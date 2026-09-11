@@ -20,19 +20,21 @@ No service-role key or privileged credential is committed to Git.
 5. `20260911215727 security_helpers_hardening_v1`
 6. `20260911215831 performance_hardening_v1`
 7. `20260911220412 entitlement_security_gate_v1`
+8. `20260911220750 religious_public_details_v1`
 
 The repository migration set must be reconciled with this provisioned schema before the infra PR is merged. Until that reconciliation is complete, the remote project is a provisioned foundation, not the canonical production migration history.
 
 ## Structural validation
 
-Validated remotely:
+Latest remote checkpoint:
 
-- 83 tables in `public` at the validation checkpoint;
-- 73 tenant-owned tables identified by a `tenant_id` column;
-- 73/73 tenant-owned tables had RLS enabled;
+- 86 tables in `public`;
+- 76 tenant-owned tables identified by a `tenant_id` column;
+- 76/76 tenant-owned tables have RLS enabled;
 - 0 tenant-owned tables without RLS;
 - 8 global roles;
-- 42 permissions at the first checkpoint, with sensitive-entitlement hardening added afterwards;
+- 42 permissions;
+- 14 core plan/features entries plus the sensitive religious feature gate added through hardening;
 - 4 plans;
 - 2 tenant-aware Storage buckets;
 - `fornalha-demo` exists explicitly as a demo tenant.
@@ -61,7 +63,7 @@ Two public authenticated RPCs intentionally remain `SECURITY DEFINER`:
 - `create_tenant_with_owner(...)`
 - `write_audit_log(...)`
 
-The Supabase security advisor flags these as authenticated-executable security-definer functions. They are intentional privilege-boundary RPCs, authenticated-only, with explicit `search_path`. They remain under review and can later be moved behind Edge Functions if that becomes the preferred boundary.
+The latest Supabase security advisor reports only these two warnings. They are intentional privilege-boundary RPCs, authenticated-only, with explicit `search_path`. They remain under review and can later be moved behind Edge Functions if that becomes the preferred boundary.
 
 Security Advisor reference:
 
@@ -75,7 +77,7 @@ Applied:
 - separation of permissive `FOR ALL` policies into operation-specific INSERT/UPDATE/DELETE policies;
 - indexes for previously uncovered single-column foreign keys.
 
-After hardening, the remaining performance-advisor notices were `unused_index` informational notices. The database is newly provisioned and has no representative workload, so indexes must not be removed based only on those notices.
+The latest performance advisor contains only `unused_index` informational notices. The database is newly provisioned and has no representative workload, so indexes must not be removed based only on those notices.
 
 Performance Advisor reference:
 
@@ -103,7 +105,7 @@ Dormant sensitive-member structures created during the remote bootstrap are prot
 
 The entitlement defaults to `false` for every seeded plan. Therefore owner/admin status by itself is not sufficient to activate the sensitive module.
 
-The canonical application should continue to avoid storing spiritual-consultation narratives by default.
+Public religious scheduling/content structures are available separately through `religious_event_details`, `religious_booking_details` and `contribution_configs`, without storing spiritual-consultation narratives by default.
 
 ## Seed/reference data
 
@@ -116,11 +118,11 @@ Provisioned reference data includes:
 - features/entitlements;
 - explicit demo tenant `fornalha-demo`.
 
-No real customer records, production credentials, reviews, payment card data or private religious records were fabricated.
+No real customer records, production credentials, reviews, payment card data or private religious consultation records were fabricated.
 
 ## TypeScript types
 
-Types were successfully generated from the remote schema using Supabase type generation. They should be regenerated and committed after migration-history reconciliation so the checked-in type file matches the final canonical schema exactly.
+Types were successfully generated again from the remote schema after the final bootstrap migration. They should be committed only after migration-history reconciliation so the checked-in type file matches the canonical migration set exactly.
 
 ## Current gates
 
@@ -130,7 +132,8 @@ Types were successfully generated from the remote schema using Supabase type gen
 | Region configured | PASS |
 | Core schema provisioned | PASS |
 | Vertical schema provisioned | PASS |
-| RLS on tenant-owned tables | PASS structurally |
+| RLS on tenant-owned tables | PASS structurally — 76/76 |
+| Tenant-owned tables without RLS | PASS — 0 |
 | Storage policies | PASS structurally |
 | Security advisors | PASS with 2 documented intentional RPC warnings |
 | Performance hardening | PASS; only unused-index informational notices remain |
@@ -138,8 +141,9 @@ Types were successfully generated from the remote schema using Supabase type gen
 | Cross-tenant authenticated A→B test | NOT RUN / RELEASE BLOCKER |
 | Repository migration history reconciled with remote | OPEN |
 | Production app integration | NOT RUN |
+| Vercel Preview deployment | NOT RUN — apps not imported yet |
 | Production deployment | NOT RUN |
 
 ## Next exact action
 
-Reconcile the repository migration files with the provisioned remote migration history, then let the Big Master Wave connect the imported apps to this Supabase project and execute authenticated cross-tenant tests before any production deployment.
+Reconcile the repository migration files with the provisioned remote migration history, then let the Big Master Wave connect the imported apps to this Supabase project and execute authenticated cross-tenant tests before any Vercel production deployment.
