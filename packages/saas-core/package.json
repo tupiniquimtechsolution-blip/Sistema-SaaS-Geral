@@ -1,0 +1,16 @@
+{
+  "name": "tupiniquim-saas-core",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./tenant": "./src/tenant.ts",
+    "./member": "./src/member.ts",
+    "./entitlement": "./src/entitlement.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.0"
+  }
+}

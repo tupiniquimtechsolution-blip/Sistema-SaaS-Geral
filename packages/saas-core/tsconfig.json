@@ -2,18 +2,13 @@
   "compilerOptions": {
     "target": "ES2020",
     "module": "ESNext",
-    "lib": ["ES2020", "DOM", "DOM.Iterable"],
-    "jsx": "react-jsx",
     "moduleResolution": "bundler",
     "strict": true,
     "skipLibCheck": true,
-    "esModuleInterop": true,
     "isolatedModules": true,
     "noEmit": true,
     "allowImportingTsExtensions": true,
-    "paths": {
-      "tupiniquim-saas-core": ["../../packages/saas-core/src/index.ts"]
-    }
+    "composite": true
   },
   "include": ["src"]
 }
