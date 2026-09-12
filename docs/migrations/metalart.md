@@ -1,73 +1,56 @@
 # Migração — MetalArt
 
-## Source repository
+## SOURCE REPO
 
-- repo: `tupiniquimtechsolution-blip/MetalArt`
-- branch: `main`
-- source HEAD SHA: `fa3616bd81005fc79565c0f953ca26ad34f61f88`
-- destination: `apps/metalart`
-- data da importação: 2026-09-12
+`tupiniquimtechsolution-blip/MetalArt`
 
-## Método
+## SOURCE IMPLEMENTATION BRANCH
 
-`git subtree add --squash --prefix=apps/metalart <url> main`
+`website-premium-metal---art-b31ef`
 
-Princípio: preservar proveniência e não apagar o repositório de origem.
+## SOURCE HEAD
 
-## Tipo do projeto
+`c746c318978ef9ed7e9bfa9fe166808b177949f0`
 
-O MetalArt não é um workspace Node/Vite. É um site estático com:
+## SOURCE STATUS
 
-- `.agents/` e `.claude/` com skills
-- `AGENTS.md`, `SECURITY.md`
-- README e documentação
-- `docs/APRESENTACAO_PROJETO.pdf`
-- vídeos `.mp4` grandes (não commitados aqui)
+Open PR #1 / unmerged implementation candidate no repo de origem.
 
-Isso é diferente dos outros apps e não entra no npm workspace. Será servido pelo pipeline de static deployment configurado por vertical.
+## MAIN STATUS
 
-## Arquivos omitidos e motivo
+Governance/media/history source. Não é a implementação executável atual.
 
-- `.git/` aninhado
-- vídeos `.mp4` em apps/metalart raiz — omitidos desta importação inicial para não inflar o monorepo com assets externos pesados. Estão preservados no repositório de origem.
-- `node_modules/` (não existia)
-- builds/caches (não existia)
+## IMPORT METHOD
 
-## PDFs encontrados
+1. Primeira tentativa: `git subtree add --squash --prefix=apps/metalart <url> main` (snapshot de governança, preservado nos commits `4c6f9c6`, `e010e88`).
+2. Correção canônica: remoção não-destrutiva do snapshot (commit `3e0313f`) + `git subtree add --squash --prefix=apps/metalart <url> website-premium-metal---art-b31ef` (commits `df2ca63` squash + `00cff2e` merge).
+3. Normalizei `package.json` name para `tupiniquim-metalart` (commit `297cfa6`).
 
-- `apps/metalart/docs/APRESENTACAO_PROJETO.pdf` — preservado
+Nenhuma reescrita de histórico. Nenhum force push. Repositório de origem intacto.
 
-Executar descoberta real:
+## MEDIA STRATEGY
 
-```bash
-find apps/metalart -type f \( -iname '*.pdf' -o -iname '*.PDF' \) | sort
-```
+- Todos os vídeos (`.mp4`), fotos (`.jpg`) e logo do site premium foram importados e preservados.
+- Total aproximado de mídia importada: ~75 MB (fotos + vídeos usados pelo site).
+- Mídias de governança do `main` original permanecem no histórico do monorepo e no repo de origem.
+- Migração futura para Supabase Storage/CDN será feita depois com estratégia explícita; nesta Wave a prioridade é preservação visual.
+- Nenhuma mídia foi apagada nesta importação premium. Sem `filter-branch`/`filter-repo`.
 
-## Stack
+## PDFS
 
-Não há package.json nem scripts de build Vite. Projeto estático com documentação própria e mídias.
+Nenhum PDF na branch premium. `APRESENTACAO_PROJETO.pdf` existe apenas no `main` (snapshot de governança preservado no histórico do monorepo, commits `4c6f9c6`/`e010e88`).
 
-## Build baseline
+## BUILD BASELINE
 
-Para ser definido conforme configuração de deploy estático por vertical. O conteúdo é servido como está. Não há build npm nesta vertical.
+- Stack: Vite + React 18 + TypeScript + Tailwind 4 + GSAP + Lenis + Framer Motion.
+- `npm run build --workspace apps/metalart`: PASS (vite build, 58 módulos).
+- `npm run typecheck --workspace apps/metalart`: PASS.
 
-## Divergências conhecidas
+## TYPECHECK
 
-- Não há `package.json` nem workspace npm. O MetalArt entra como app estático.
-- Vídeos `.mp4` removidos desta importação inicial para controle de tamanho do repo.
+PASS (tsc --noEmit, zero erros).
 
-## Equivalência visual
+## VISUAL PRESERVATION
 
-Preservar layout estático e mídias do MetalArt. O SaaS Core entra por baixo onde aplicável, sem redesign.
-
-## Vertical principal
-
-Sim. MetalArt é um dos principais verticais do SaaS.
-
-## Status de migração SaaS
-
-- importação: PASS
-- layout preservado: NOT RUN
-- SaaS Core conectado: NOT RUN
-- RLS/cross-tenant: MISSING
-- backend SaaS end-to-end: NOT RUN
+- Layout, hero, parallax, motion, Lenis, GSAP, Framer Motion, imagens, vídeos, identidade, páginas, Quote Wizard, Services, Portfolio, CTAs, WhatsApp/contato e responsividade preservados sem redesign.
+- Nenhum arquivo de src/ foi alterado além do package.json (apenas campo name).
