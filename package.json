@@ -1,0 +1,26 @@
+{
+  "name": "tupiniquim-vertical-saas",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev:bakery": "npm run dev --workspace=apps/bakery",
+    "dev:pet": "npm run dev --workspace=apps/pet",
+    "dev:restaurant": "npm run dev --workspace=apps/restaurant",
+    "dev:heavy-machinery": "npm run dev --workspace=apps/heavy-machinery",
+    "build:bakery": "npm run build --workspace=apps/bakery",
+    "build:pet": "npm run build --workspace=apps/pet",
+    "build:restaurant": "npm run build --workspace=apps/restaurant",
+    "build:heavy-machinery": "npm run build --workspace=apps/heavy-machinery",
+    "typecheck": "npm run typecheck --if-present",
+    "lint": "npm run lint --if-present",
+    "test": "npm test --if-present",
+    "build:all": "npm run build --if-present"
+  },
+  "devDependencies": {},
+  "engines": {
+    "node": ">=22"
+  }
+}
