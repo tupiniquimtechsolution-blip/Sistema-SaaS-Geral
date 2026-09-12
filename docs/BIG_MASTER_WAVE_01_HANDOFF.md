@@ -7,13 +7,13 @@ tupiniquimtechsolution-blip/Sistema-SaaS-Geral
 freebuff/big-master-wave-01-monorepo
 
 ## HEAD
-7013cac feat(saas-core): add authorization, cms, media, audit, billing, observability and integrations contracts
+7d0927b chore(tooling): add bun lockfile for saas-core test tooling
 
 ## FASE/STATUS
 PARTIAL — monorepo + 6/7 verticais importados + SaaS Core contracts testados; blocos externos classificados
 
 ## ÚLTIMA ALTERAÇÃO
-SaaS Core ampliado com contracts server-side de authorization, CMS, media, audit, billing (idempotência de webhook), observability (PII minimization) e integrations (anti-SSRF) — 47 testes unitários, 2 vulnerabilidades reais corrigidas no processo (API_KEY/api_key sanitizer bypass; IPv6 ::1 loopback bypass no guard de SSRF). MetalArt premium (branch website-premium-metal---art-b31ef, head c746c31) importado via subtree e typechecked.
+Reconciliação documental Supabase concluída: docs/SUPABASE_RECONCILIATION_FREEBUFF_VS_CHATGPT.md (Freebuff 10 tabelas vs ChatGPT 81 vs remoto documentado 86; 3 write-policy holes na migration Freebuff registrados; proposta canônica KEEP CHATGPT + ADAPT APPLICATION saas-core, nada executado). Branch pushed (3434068..7d0927b). Anteriormente: SaaS Core com 47 testes, 2 vulnerabilidades corrigidas (SSRF ::1, api_key leak); MetalArt premium importado e typechecked.
 
 ## ESCOPO CANÔNICO
 - SaaS Core único alimenta verticais e apps horizontais.
@@ -49,9 +49,18 @@ SaaS Core ampliado com contracts server-side de authorization, CMS, media, audit
 - Documentos canônicos (AGENTS.md, SECURITY.md, docs/*) — só atualização consistente com decisões novas
 
 ## MIGRATIONS
-- supabase/migrations/0001_multi_tenant_schema.sql: 10 tabelas, RLS default deny (4 policies)
+- supabase/migrations/0001_multi_tenant_schema.sql: 10 tabelas, RLS default deny (4 policies) — OBSOLETE_CANDIDATE (ver reconciliação)
 - supabase/seed.sql: planos + tenant demo Fornalha (status demo explícito)
-- NÃO executado contra o Supabase real — projeto remoto é gerido externamente (ChatGPT); reconciliação pendente
+- NÃO executado contra o Supabase real — projeto remoto é gerido externamente (ChatGPT)
+
+## SUPABASE RECONCILIATION
+DOCUMENTED — ver docs/SUPABASE_RECONCILIATION_FREEBUFF_VS_CHATGPT.md (25 seções, documental only, nenhuma decisão executada)
+
+## REMOTE MIGRATION EXECUTION
+BLOCKED_PENDING_CANONICAL_DECISION — propostas §21 aguardam ratificação owner + ChatGPT; proibido db push/dump de escrita/merge de branches
+
+## CROSS-TENANT DATABASE TEST
+NOT RUN — sem identidades controladas A/B provisionadas (release blocker documentado nas duas linhas)
 
 ## TESTES/GATES
 - saas-core: 47/47 unit tests PASS (vitest); typecheck PASS
@@ -80,13 +89,14 @@ SaaS Core ampliado com contracts server-side de authorization, CMS, media, audit
 ## BLOQUEIOS
 - BLOCKED_SOURCE_REPOSITORY_LED — repo canônico não identificado
 - BLOCKED_FREEBUFF_REPOSITORY_ACCESS_TEMPLO — repo existe; acesso Freebuff pendente
-- BLOCKED Supabase execution — projeto real é externo; reconciliação com chatgpt/supabase-vercel-foundation pendente (sem merge automático)
+- BLOCKED_REMOTE_SCHEMA_SNAPSHOT — dump remoto (read-only) exige acesso Supabase não exercido nesta sessão documental
+- BLOCKED_CANONICAL_DECISION — decisões §21 da reconciliação pendentes de ratificação
 - BLOCKED billing provider — sem credencial
 
 ## PRÓXIMA AÇÃO EXATA
-1. Reconciliar schema: comparar supabase/migrations/0001 com a fundação de chatgpt/supabase-vercel-foundation (a3b2b1f) em documento de reconciliação — sem tocar no banco remoto.
+1. Snapshot remoto read-only: supabase db dump --schema public + supabase migration list contra mmykyzzkcugxunmekwew; commit em supabase/remote-snapshot/; resolver drift §20.1/20.2/20.7 da reconciliação; depois ratificar §21 com owner + ChatGPT.
 2. Quando acesso ao Templo for liberado: subtree import para apps/religious-house seguindo docs/migrations/religious-house.md.
-3. Wire backend: conectar 1 vertical (bakery) ao Supabase dev real quando reconciliado; rodar cross-tenant tests A/B contra banco.
+3. Wire backend: conectar 1 vertical (bakery) ao Supabase dev real APÓS ratificação §21; rodar cross-tenant tests A/B contra banco.
 4. Media strategy MetalArt: inventário vídeo/foto (site vs source material), plano Supabase Storage/CDN — preservação visual primeiro.
 5. CRM horizontal: definir contrato de consumo do SaaS Core (packages/saas-core já exporta tudo via index.ts).
 
@@ -99,4 +109,8 @@ SaaS Core ampliado com contracts server-side de authorization, CMS, media, audit
 - af3eb0b docs(crm): add horizontal app integration strategy for CRM Tupiniquim
 - e09b077 docs(religious-house): classify Templo blocker as Freebuff access scope, not missing repo
 - 7013cac feat(saas-core): add authorization, cms, media, audit, billing, observability and integrations contracts
+- cdb2733 fix(saas-core): close IPv6 loopback SSRF bypass and api_key log leak; add security contract tests
+- 7d0927b chore(tooling): add bun lockfile for saas-core test tooling
+- (docs push: branch sincronizada com remote em 7d0927b; push inicial 3434068..7d0927b executado)
+- (reconciliação: docs/SUPABASE_RECONCILIATION_FREEBUFF_VS_CHATGPT.md criada — commit desta wave)
 - (commits anteriores: workspace root, core contracts, gitignore+led placeholder, db schema+seed, imports subtree bakery/pet/restaurant/heavy-machinery)
