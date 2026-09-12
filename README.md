@@ -2,7 +2,7 @@
 
 Monorepo canônico para transformar experiências premium já existentes em uma **plataforma SaaS multi-tenant, modular e white-label**, preservando o layout, a identidade, as mídias e a narrativa comercial de cada vertical.
 
-> **Estado atual:** fundação do monorepo preparada. A importação integral dos repositórios legados será executada na `Big Master Wave 01` dentro da branch `freebuff/big-master-wave-01-monorepo`. Os repositórios de origem permanecem intactos até equivalência visual/funcional e gates SaaS serem comprovados.
+> **Estado atual:** Big Master Wave 01 em execução na branch `freebuff/big-master-wave-01-monorepo`. Quatro verticais confirmados importados para `apps/*`, SaaS Core básico e schema/supabase/seed preparados. Templo e LED permaneceram blocked por repositório não identificado.
 
 ## Visão
 
@@ -91,13 +91,12 @@ Consulte [`SECURITY.md`](SECURITY.md) e o [`Tupiniquim Toolbox`](.agents/skills/
 
 ## Apresentações preservadas
 
-Apresentações confirmadas nos projetos de origem e que devem permanecer no monorepo após importação:
+Durante a Big Master Wave 01 foram encontradas as seguintes apresentações dentro dos apps importados:
 
-- **Pet Shop — Amora Pet:** `SitePetPremium/docs/AMORA_PET_PROPOSTA_COMERCIAL.pdf`
-- **Restaurante — Chez Amis Bistrô:** `RestauranteSite/docs/CHEZ_AMIS_BISTRO_PROPOSTA_COMERCIAL.pdf`
-- **Templo/Casa Religiosa:** `TemploCabocloTupinamba-FlechaDourada/docs/APRESENTACAO_PROJETO.pdf`
+- **Pet Shop — Amora Pet:** [`apps/pet/docs/AMORA_PET_PROPOSTA_COMERCIAL.pdf`](apps/pet/docs/AMORA_PET_PROPOSTA_COMERCIAL.pdf)
+- **Restaurante — Chez Amis Bistrô:** [`apps/restaurant/docs/CHEZ_AMIS_BISTRO_PROPOSTA_COMERCIAL.pdf`](apps/restaurant/docs/CHEZ_AMIS_BISTRO_PROPOSTA_COMERCIAL.pdf)
 
-Após a importação, estes links serão relativos a `apps/<vertical>/docs/...`. O inventário canônico fica em [`docs/PRESENTATIONS_INDEX.md`](docs/PRESENTATIONS_INDEX.md).
+PDF de Templo/Casa Religiosa não está no monorepo porque esse repositório não foi importável nesta sessão. O inventário canônico fica em [`docs/PRESENTATIONS_INDEX.md`](docs/PRESENTATIONS_INDEX.md).
 
 ## Estrutura alvo
 
