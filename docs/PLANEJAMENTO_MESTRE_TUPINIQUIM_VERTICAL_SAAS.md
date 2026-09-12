@@ -11,9 +11,12 @@ O produto final deve permitir que novos clientes sejam criados como **tenants co
 - Padaria
 - Pet Shop
 - Restaurante
+- MetalArt — **vertical principal**
 - Painéis de LED / comunicação visual
 - Máquinas pesadas / equipamentos industriais
-- Templo / casa religiosa
+- Templo / casa religiosa — **vertical principal**
+
+App horizontal adicional: CRM Tupiniquim (aplicação comercializável dentro do SaaS, não vertical).
 
 Cada vertical mantém sua experiência visual e seus workflows específicos, mas compartilha o mesmo SaaS Core.
 

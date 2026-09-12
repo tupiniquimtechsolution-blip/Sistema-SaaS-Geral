@@ -18,14 +18,16 @@ Quando tecnicamente possível, preferir `git subtree` para preservar proveniênc
 
 ## Repositórios confirmados
 
-| Vertical | Repositório de origem | Destino | Estado |
-| --- | --- | --- | --- |
-| Padaria | `tupiniquimtechsolution-blip/PadocaAppPremium` | `apps/bakery` | confirmado |
-| Pet Shop | `tupiniquimtechsolution-blip/SitePetPremium` | `apps/pet` | confirmado |
-| Restaurante | `tupiniquimtechsolution-blip/RestauranteSite` | `apps/restaurant` | confirmado |
-| Painéis de LED | **não localizado no GitHub conectado** | `apps/led` | BLOCKED_SOURCE_REPOSITORY |
-| Máquinas Pesadas | `tupiniquimtechsolution-blip/BigMachines` | `apps/heavy-machinery` | confirmado |
-| Templo/Casa Religiosa | `tupiniquimtechsolution-blip/TemploCabocloTupinamba-FlechaDourada` | `apps/religious-house` | confirmado |
+| Tipo | Aplicação/Vertical | Repositório de origem | Destino | Estado |
+| --- | --- | --- | --- | --- |
+| Vertical | Padaria | `tupiniquimtechsolution-blip/PadocaAppPremium` | `apps/bakery` | importado |
+| Vertical | Pet Shop | `tupiniquimtechsolution-blip/SitePetPremium` | `apps/pet` | importado |
+| Vertical | Restaurante | `tupiniquimtechsolution-blip/RestauranteSite` | `apps/restaurant` | importado |
+| Vertical | MetalArt | `tupiniquimtechsolution-blip/MetalArt` | `apps/metalart` | importado nesta wave |
+| Vertical | Painéis de LED | **não localizado no GitHub conectado** | `apps/led` | BLOCKED_SOURCE_REPOSITORY_LED |
+| Vertical | Máquinas Pesadas | `tupiniquimtechsolution-blip/BigMachines` | `apps/heavy-machinery` | importado |
+| Vertical | Templo/Casa Religiosa | `tupiniquimtechsolution-blip/TemploCabocloTupinamba-FlechaDourada` | `apps/religious-house` | BLOCKED_FREEBUFF_REPOSITORY_ACCESS_TEMPLO |
+| Horizontal | CRM Tupiniquim | `tupiniquimtechsolution-blip/CRM_Tupiniquim` | `packages/integrations/crm-tupiniquim` (destino provisório) | compatibilidad auditada, importação não concluída nesta wave |
 
 ## Estrutura alvo
 

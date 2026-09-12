@@ -23,9 +23,16 @@ Não reinicie o projeto. Não recrie layouts existentes por preferência estéti
 - `apps/bakery` — origem: `PadocaAppPremium`;
 - `apps/pet` — origem: `SitePetPremium`;
 - `apps/restaurant` — origem: `RestauranteSite`;
-- `apps/led` — origem pendente de identificação canônica;
+- `apps/metalart` — origem: `MetalArt` — **vertical principal**;
 - `apps/heavy-machinery` — origem: `BigMachines`;
-- `apps/religious-house` — origem: `TemploCabocloTupinamba-FlechaDourada`.
+- `apps/led` — origem pendente de identificação canônica — `BLOCKED_SOURCE_REPOSITORY_LED`;
+- `apps/religious-house` — origem: `TemploCabocloTupinamba-FlechaDourada` — **vertical principal**, atualmente `BLOCKED_FREEBUFF_REPOSITORY_ACCESS_TEMPLO` nesta sessão.
+
+## Aplicações horizonontais
+
+- CRM Tupiniquim — `tupiniquimtechsolution-blip/CRM_Tupiniquim` — aplicação comercializável horizontal, **não vertical**.
+
+Um SaaS Core único alimenta verticais e aplicações horizonontais. Novo cliente = novo tenant, não novo fork.
 
 ## Arquitetura obrigatória
 

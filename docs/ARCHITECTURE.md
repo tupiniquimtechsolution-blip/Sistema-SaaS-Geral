@@ -6,8 +6,10 @@ The platform is a **modular multi-tenant monorepo** with independent premium ver
 
 The architecture explicitly avoids two failure modes:
 
-1. six independent SaaS codebases that duplicate auth/billing/CMS/security;
+1. independent SaaS codebases per app/vertical that duplicate auth/billing/CMS/security;
 2. one generic frontend that destroys the identity of the existing premium sites.
+
+The platform supports an expandable set of verticals plus reusable horizontal SaaS applications (for example CRM).
 
 ## Layers
 

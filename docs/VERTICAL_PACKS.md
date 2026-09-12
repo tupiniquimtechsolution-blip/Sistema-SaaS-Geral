@@ -19,6 +19,12 @@ Each vertical declares:
 - feature flags;
 - privacy classification notes.
 
+## Horizontal apps
+
+The platform can also host shared SaaS applications that are sold/contracted across tenants, for example CRM. Horizontal apps must consume the same SaaS Core contracts (tenant, auth, membership, RBAC, entitlements, billing, audit, integrations, observability) without creating per-client forks.
+
+CRM Tupiniquim is the first confirmed horizontal app. Its integration strategy and boundaries are documented in `docs/integrations/CRM_TUPINIQUIM_SAAS_INTEGRATION.md`.
+
 ## Bakery
 
 Primary modules:
@@ -122,3 +128,21 @@ These require separate privacy/security gates and must be disabled by default.
 A vertical does not receive every module automatically. Composition depends on domain relevance and tenant entitlements.
 
 Do not create empty menu items or dead code for modules a vertical does not support.
+
+## MetalArt
+
+Vertical principal de design/arte/metal. Définir em docs/migrations/metalart.md e preservar layout e processos comerciais reais.
+
+Módulos futuros possíveis:
+
+- lead capture
+- service catalog
+- quotes
+- projects
+- commercial pipeline
+- scheduling quando aplicável
+- media/gallery
+- contact attribution
+- CRM integration
+
+Não inventar preços, resultados, depoimentos ou dados comerciais.
