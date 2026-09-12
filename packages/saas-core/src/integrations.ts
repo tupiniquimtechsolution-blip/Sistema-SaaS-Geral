@@ -21,7 +21,8 @@ export function isSafeOutboundUrl(rawUrl: string): boolean {
   try {
     const url = new URL(rawUrl);
     if (url.protocol !== "http:" && url.protocol !== "https:") return false;
-    const host = url.hostname;
+    // Strip brackets from IPv6 literals ([::1] -> ::1) so loopback cannot evade the check.
+    const host = url.hostname.replace(/^\[/, "").replace(/\]$/, "");
     if (host === "localhost" || host.endsWith(".local") || host === "0.0.0.0" || host === "::1") return false;
     // IPv4 private/link ranges
     const m = host.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/);

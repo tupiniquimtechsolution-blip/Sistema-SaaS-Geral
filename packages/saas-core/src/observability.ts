@@ -22,7 +22,9 @@ function sanitizeData(data?: Record<string, unknown>): Record<string, unknown> |
   if (!data) return undefined;
   const out: Record<string, unknown> = {};
   for (const [k, v] of Object.entries(data)) {
-    if (FORBIDDEN_LOG_KEYS.some((f) => k.toLowerCase().includes(f.toLowerCase()))) continue;
+    // Normalize separators (api_key -> apikey) so snake_case secrets cannot evade the filter.
+    const normalized = k.toLowerCase().replace(/[^a-z0-9]/g, "");
+    if (FORBIDDEN_LOG_KEYS.some((f) => normalized.includes(f.toLowerCase()))) continue;
     out[k] = v;
   }
   return out;
