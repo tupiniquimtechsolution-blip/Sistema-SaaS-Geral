@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /
+
+# SPA com rotas em hash: ao migrar para SSR com rotas reais,
+# gerar sitemap.xml e referenciá-lo aqui (ver CLIENT_REPLACEMENT_GUIDE.md > SEO).
