@@ -7,67 +7,96 @@ tupiniquimtechsolution-blip/Sistema-SaaS-Geral
 freebuff/big-master-wave-01-monorepo
 
 ## HEAD
-ver commit atual
+7013cac feat(saas-core): add authorization, cms, media, audit, billing, observability and integrations contracts
 
 ## FASE/STATUS
-PARTIAL — vertical slices executadas, blocos externos identificados
+PARTIAL — monorepo + 6/7 verticais importados + SaaS Core contracts testados; blocos externos classificados
 
 ## ÚLTIMA ALTERAÇÃO
-Importação dos 4 verticais confirmados + SaaS Core básico + migrations/seed preparados mas sem execução real no banco.
+SaaS Core ampliado com contracts server-side de authorization, CMS, media, audit, billing (idempotência de webhook), observability (PII minimization) e integrations (anti-SSRF) — 47 testes unitários, 2 vulnerabilidades reais corrigidas no processo (API_KEY/api_key sanitizer bypass; IPv6 ::1 loopback bypass no guard de SSRF). MetalArt premium (branch website-premium-metal---art-b31ef, head c746c31) importado via subtree e typechecked.
+
+## ESCOPO CANÔNICO
+- SaaS Core único alimenta verticais e apps horizontais.
+- CRM Tupiniquim = APP HORIZONTAL comercializável (repo tupiniquimtechsolution-blip/CRM_Tupiniquim); consumirá Tenant/Auth/Membership/RBAC/Entitlements/Billing/Audit/RLS como qualquer tenant-app. Não é vertical.
+- MetalArt = VERTICAL PRINCIPAL. Implementação executável = branch premium do PR #1, não main (main = governança/mídia/histórico).
+- Templo = VERTICAL PRINCIPAL. Bloqueio corrigido: BLOCKED_FREEBUFF_REPOSITORY_ACCESS_TEMPLO (escopo de acesso do app, NÃO repo inexistente).
+- LED = BLOCKED_SOURCE_REPOSITORY_LED até identificação do repo canônico. NÃO inventar.
+- Quantidade de verticais é expansível; não tratar como lista fechada.
 
 ## DECISÕES CONFIRMADAS
-- Structura monorepo: apps/*, packages/*, supabase/*, scripts/*, infra/*, docs/*
+- Estrutura monorepo: apps/*, packages/*, supabase/*, scripts/*, infra/*, docs/*
 - Importação via git subtree add --squash preferencial, preservando origem
-- LEDs e Templo blocked por repo não identificado / não encontrado
-- PDFs preservados: pet e restaurant encontrados
+- PDFs preservados (pet, restaurant) — não apagar mídia por tamanho; estratégia de mídia fica para wave futura
 - SaaS Core conecta bakery via adapter sem quebrar layout
-- Backend Supabase/schema pronto mas sem credencial nesta sessão
-- node_modules e dist mantidos fora do git pelo .gitignore raiz
+- node_modules e dist fora do git pelo .gitignore raiz
+- Reconciliação com branch chatgpt/supabase-vercel-foundation (head a3b2b1f) é trabalho futuro obrigatório: NÃO merge automático, NÃO cherry-pick em massa, NÃO schema concorrente no banco remoto
+
+## IMPORTAÇÕES (apps/*)
+| App | Origem | Método | Provenance |
+|---|---|---|---|
+| apps/bakery | PadocaAppPremium | subtree | docs/migrations/bakery.md |
+| apps/pet | SitePetPremium | subtree | docs/migrations/pet.md |
+| apps/restaurant | RestauranteSite | subtree | docs/migrations/restaurant.md |
+| apps/heavy-machinery | BigMachines | subtree | docs/migrations/heavy-machinery.md |
+| apps/metalart | MetalArt @ website-premium-metal---art-b31ef (c746c31, PR #1 aberto) | subtree squash | docs/migrations/metalart.md |
+| apps/religious-house | — | — | BLOCKED_FREEBUFF_REPOSITORY_ACCESS_TEMPLO (placeholder mínimo) |
+| apps/led | — | — | BLOCKED_SOURCE_REPOSITORY_LED (placeholder mínimo) |
 
 ## NÃO ALTERAR
-- Repositórios de origem (intactos)
+- Repositórios de origem (intactos; nunca delete/move destrutivo)
 - Layouts premium dos apps importados (sem redesign)
-- PDFs importados
-- App bakery local business config (mantido por compatibilidade)
+- PDFs importados e mídias legítimas do MetalArt
+- Documentos canônicos (AGENTS.md, SECURITY.md, docs/*) — só atualização consistente com decisões novas
 
 ## MIGRATIONS
-- supabase/migrations/0001_multi_tenant_schema.sql criado
-- supabase/seed.sql criado com demo tenant Fornalha
+- supabase/migrations/0001_multi_tenant_schema.sql: 10 tabelas, RLS default deny (4 policies)
+- supabase/seed.sql: planos + tenant demo Fornalha (status demo explícito)
+- NÃO executado contra o Supabase real — projeto remoto é gerido externamente (ChatGPT); reconciliação pendente
 
 ## TESTES/GATES
-- Typecheck: PASS em bakery, pet, restaurant, heavy-machinery, saas-core
-- Build: PASS em bakery, pet, restaurant, heavy-machinery
-- Install raiz: PASS (workspaces + lockfile)
-- npm audit: ANALYZED (3 moderate vulns react-router e uuid)
-- RLS/cross-tenant: NOT RUN (sem banco ativo nesta sessão)
+- saas-core: 47/47 unit tests PASS (vitest); typecheck PASS
+  - authorization: default deny, cross-tenant assert (13 testes)
+  - media: upload policy, tenant path isolation (7)
+  - audit: metadata sanitization (4)
+  - billing: webhook idempotency (3)
+  - observability: PII minimization (4)
+  - integrations: anti-SSRF (5)
+  - cms (2), entitlement (7), tenant (2)
+- MetalArt: typecheck PASS (bun tsc --noEmit)
+- bakery/pet/restaurant/heavy-machinery: typecheck + build PASS (sessões anteriores)
+- Install raiz: npm arborist quebra com edge case vitest-peer (erro edgesOut); bun install funciona (191 pacotes) — usar bun para tooling do saas-core
+- RLS/cross-tenant em banco real: NOT RUN (sem execução remota nesta wave, por decisão)
 - E2E: NOT RUN
-- Lint: NOT RUN (sem lint configurado ainda nos apps)
-- Dependency update force: NÃO executado (proibido sem compatibilidade)
+- Lint: NOT RUN
 
 ## SEGURANÇA
-- .gitignore raiz adicionado para não commitar node_modules/dist/env
-- Sem secrets commitados
-- RLS default deny no schema
-- memberships e tenant isolation no schema
+- Sanitizers de audit e log normalizam separadores (API_KEY, api_key não vazam)
+- Guard anti-SSRF cobre localhost, .local, 0.0.0.0, ::1 (IPv6 bracket-literal), ranges privados IPv4 e cloud metadata 169.254.169.254
+- Media paths sempre sob tenants/{tenantId}/ — traversal estruturalmente impossível
+- Webhook billing idempotente por eventId (anti double-charge)
+- Sem secrets no repositório; .env fora do git
+- RLS default deny no schema; memberships com UNIQUE(tenant_id, user_id)
 
 ## BLOQUEIOS
-- BLOCKED_SOURCE_REPOSITORY_LED
-- BLOCKED_SOURCE_REPOSITORY_TEMPLO (Repository not found)
-- BLOCKED Supabase execution (sem projeto/credencial nesta sessão)
-- BLOCKED billing provider (sem credencial)
+- BLOCKED_SOURCE_REPOSITORY_LED — repo canônico não identificado
+- BLOCKED_FREEBUFF_REPOSITORY_ACCESS_TEMPLO — repo existe; acesso Freebuff pendente
+- BLOCKED Supabase execution — projeto real é externo; reconciliação com chatgpt/supabase-vercel-foundation pendente (sem merge automático)
+- BLOCKED billing provider — sem credencial
 
 ## PRÓXIMA AÇÃO EXATA
-Continuar integration: conectar bakery ao Supabase quando projeto configurado; executar migrations; configurar auth/RLS real em dev; começar cross-tenant tests; validar layout preservation do bakery vs baseline.
+1. Reconciliar schema: comparar supabase/migrations/0001 com a fundação de chatgpt/supabase-vercel-foundation (a3b2b1f) em documento de reconciliação — sem tocar no banco remoto.
+2. Quando acesso ao Templo for liberado: subtree import para apps/religious-house seguindo docs/migrations/religious-house.md.
+3. Wire backend: conectar 1 vertical (bakery) ao Supabase dev real quando reconciliado; rodar cross-tenant tests A/B contra banco.
+4. Media strategy MetalArt: inventário vídeo/foto (site vs source material), plano Supabase Storage/CDN — preservação visual primeiro.
+5. CRM horizontal: definir contrato de consumo do SaaS Core (packages/saas-core já exporta tudo via index.ts).
 
-Quando o projeto Supabase disponível, executar:
-- supabase db push / reset com migrations/seed
-- testar tenant isolation A-B
-- conectar auth do bakery ao backend
-- registrar PASS real nos gates
-
-## COMITS
-- chore(monorepo): establish workspace root and normalize vertical package names
-- feat(core): add tenant brand theme membership and entitlement contracts
-- chore(monorepo): add root gitignore and led placeholder
-- feat(db): add multi-tenant schema, RLS default deny and demo seed
-- (mais import commits de subtree anteriores)
+## COMMITS
+- a7c2bbb docs: update canonical scope to include MetalArt, Templo, CRM horizontal
+- 3e0313f chore(metalart): retire governance snapshot to make room for premium implementation
+- 297cfa6 feat(metalart): import premium implementation and join npm workspace
+- a77a33e chore(monorepo): lock MetalArt workspace dependency resolution
+- a3a7191 docs(metalart): correct provenance to premium implementation branch
+- af3eb0b docs(crm): add horizontal app integration strategy for CRM Tupiniquim
+- e09b077 docs(religious-house): classify Templo blocker as Freebuff access scope, not missing repo
+- 7013cac feat(saas-core): add authorization, cms, media, audit, billing, observability and integrations contracts
+- (commits anteriores: workspace root, core contracts, gitignore+led placeholder, db schema+seed, imports subtree bakery/pet/restaurant/heavy-machinery)
