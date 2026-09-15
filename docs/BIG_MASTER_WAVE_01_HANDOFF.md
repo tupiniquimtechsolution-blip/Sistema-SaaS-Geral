@@ -7,13 +7,13 @@ tupiniquimtechsolution-blip/Sistema-SaaS-Geral
 freebuff/big-master-wave-01-monorepo
 
 ## HEAD
-7d0927b chore(tooling): add bun lockfile for saas-core test tooling
+51d1f0f + commits desta fase (ver COMMITS)
 
 ## FASE/STATUS
-PARTIAL — monorepo + 6/7 verticais importados + SaaS Core contracts testados; blocos externos classificados
+PARTIAL — monorepo + 6/7 verticais importados + SaaS Core contracts testados + ALINHAMENTO CANÔNICO saas-core→Supabase remoto CONCLUÍDO; blocos externos classificados
 
 ## ÚLTIMA ALTERAÇÃO
-Reconciliação documental Supabase concluída: docs/SUPABASE_RECONCILIATION_FREEBUFF_VS_CHATGPT.md (Freebuff 10 tabelas vs ChatGPT 81 vs remoto documentado 86; 3 write-policy holes na migration Freebuff registrados; proposta canônica KEEP CHATGPT + ADAPT APPLICATION saas-core, nada executado). Branch pushed (3434068..7d0927b). Anteriormente: SaaS Core com 47 testes, 2 vulnerabilidades corrigidas (SSRF ::1, api_key leak); MetalArt premium importado e typechecked.
+Ratificação canônica executada (2026-09-15): §21 RATIFIED (KEEP CHATGPT/REMOTE em todos os grupos), §20.1/20.2/20.7 resolvidos como CONFIRMED REMOTE STATE (8 migrations *_v1 aplicadas, 86 tabelas/86 RLS, buckets tenant-public/tenant-private, booking.read/write existem). Migration Freebuff 0001 marcada OBSOLETE_SUPERSEDED_NOT_REMOTE (header, sem alterar SQL). saas-core realinhado: 28 permissions + role matrix remota exata, 17 feature keys com Plan/PlanEntitlement/TenantEntitlement/TenantFeatureOverride/EffectiveEntitlement + precedência, tenantMediaPath → <uuid>/<folder>/<file> com buckets canônicos. Gates: saas-core 68/68 + typecheck PASS; bakery typecheck PASS (adapter READ CONTRACT READY com fallback legado preservado). DB não tocado (DATABASE MUTATIONS = NONE).
 
 ## ESCOPO CANÔNICO
 - SaaS Core único alimenta verticais e apps horizontais.
@@ -49,29 +49,46 @@ Reconciliação documental Supabase concluída: docs/SUPABASE_RECONCILIATION_FRE
 - Documentos canônicos (AGENTS.md, SECURITY.md, docs/*) — só atualização consistente com decisões novas
 
 ## MIGRATIONS
-- supabase/migrations/0001_multi_tenant_schema.sql: 10 tabelas, RLS default deny (4 policies) — OBSOLETE_CANDIDATE (ver reconciliação)
-- supabase/seed.sql: planos + tenant demo Fornalha (status demo explícito)
-- NÃO executado contra o Supabase real — projeto remoto é gerido externamente (ChatGPT)
+- supabase/migrations/0001_multi_tenant_schema.sql: **OBSOLETE_SUPERSEDED_NOT_REMOTE** — header de aviso adicionado (NEVER APPLIED REMOTELY / SUPERSEDED / DO NOT PUSH TO PRODUCTION); SQL intacto como evidência histórica
+- supabase/seed.sql: planos + tenant demo Fornalha (status demo explícito) — legado, mantido
+- docs/REMOTE_MIGRATION_LEDGER.md criado: 8 migrations remotas *_v1 mapeadas; 4 REMOTE_ONLY/NEEDS_EXPORT (security_helpers_hardening, performance_hardening, entitlement_security_gate, religious_public_details)
+- NADA executado contra o Supabase real nesta fase (DATABASE MUTATIONS = NONE)
+
+## CANONICAL SCHEMA
+RATIFIED (2026-09-15) — doc §21: KEEP CHATGPT/REMOTE (core, RBAC, plans/entitlements, CMS, media, CRM, commerce, bookings/events, B2B, pet, restaurant, religious com sensíveis DORMANT, storage); Freebuff saas-core = KEEP FREEBUFF + ADAPT APPLICATION (executado)
+
+## ENTITLEMENTS
+ALIGNED — 17 feature keys canônicas (incluindo orders/projects/loyalty/inventory/support.enabled adicionadas); Plan/Feature/PlanEntitlement/TenantEntitlement/TenantFeatureOverride/EffectiveEntitlement; precedência plan < tenant_entitlements < tenant_features; RBAC separado de product entitlement; autoridade final = banco (entitlement_security_gate_v1 remoto)
+
+## PERMISSIONS
+ALIGNED 28/28 — docs/PERMISSION_ALIGNMENT.md (catalogo remoto espelhado em member.ts; role matrix remota aplicada: owner/admin 28, manager 20, editor 8, catalog_manager 5, orders_manager 7, support 7, viewer 14)
+
+## STORAGE
+PATH: ALIGNED → <tenant-uuid>/<folder>/<file> (UUID no primeiro segmento, lowercase, traversal estruturalmente impossível; isCanonicalMediaPath como defesa adicional) · BUCKETS: tenant-public / tenant-private (canônicos remotamente confirmados); policies remotas NÃO alteradas
 
 ## SUPABASE RECONCILIATION
-DOCUMENTED — ver docs/SUPABASE_RECONCILIATION_FREEBUFF_VS_CHATGPT.md (25 seções, documental only, nenhuma decisão executada)
+DOCUMENTED + §21 RATIFIED (2026-09-15) — §20.1 CONFIRMED REMOTE STATE; §20.2 RESOLVED (tenant-public/tenant-private); §20.7 RESOLVED (booking.read/write EXISTEM) — ver docs/SUPABASE_RECONCILIATION_FREEBUFF_VS_CHATGPT.md
 
 ## REMOTE MIGRATION EXECUTION
-BLOCKED_PENDING_CANONICAL_DECISION — propostas §21 aguardam ratificação owner + ChatGPT; proibido db push/dump de escrita/merge de branches
+BLOCKED_PENDING_CANONICAL_DECISION — §21 ratificado; faltam as 4 migrations REMOTE_ONLY (NEEDS_EXPORT) antes de escrever novas migrations locais; db push continua proibido nesta fase
+
+## BAKERY READ CONTRACT
+READY — apps/bakery/src/business/saas-adapter.ts: mapeia tenant/brand/theme/settings remotos → shape legado com fallback demo preservado; resolveBakeryEntitlements (precedência canônica); canReadFeature (leitura only); bakeryMediaPath/bakeryBucketFor/canUploadBakeryMedia (contratos de mídia canônicos). SEM writes remotos; layout e fallback legado intocados
 
 ## CROSS-TENANT DATABASE TEST
 NOT RUN — sem identidades controladas A/B provisionadas (release blocker documentado nas duas linhas)
 
 ## TESTES/GATES
-- saas-core: 47/47 unit tests PASS (vitest); typecheck PASS
-  - authorization: default deny, cross-tenant assert (13 testes)
-  - media: upload policy, tenant path isolation (7)
+- saas-core: **68/68** unit tests PASS (vitest); typecheck PASS
+  - authorization: catalogo 28 permissions + role matrix remota exata + default deny + cross-tenant assert
+  - entitlement: catalogo 17 features + validação jsonb + precedência de override + separação RBAC×entitlement
+  - media: buckets canônicos + path <uuid>/<folder>/<file> + UUID primeiro segmento + traversal/cross-tenant
   - audit: metadata sanitization (4)
   - billing: webhook idempotency (3)
   - observability: PII minimization (4)
   - integrations: anti-SSRF (5)
   - cms (2), entitlement (7), tenant (2)
-- MetalArt: typecheck PASS (bun tsc --noEmit)
+- MetalArt: typecheck PASS (bun tsc --noEmit); bakery: typecheck PASS com adapter READ CONTRACT READY
 - bakery/pet/restaurant/heavy-machinery: typecheck + build PASS (sessões anteriores)
 - Install raiz: npm arborist quebra com edge case vitest-peer (erro edgesOut); bun install funciona (191 pacotes) — usar bun para tooling do saas-core
 - RLS/cross-tenant em banco real: NOT RUN (sem execução remota nesta wave, por decisão)
@@ -81,7 +98,7 @@ NOT RUN — sem identidades controladas A/B provisionadas (release blocker docum
 ## SEGURANÇA
 - Sanitizers de audit e log normalizam separadores (API_KEY, api_key não vazam)
 - Guard anti-SSRF cobre localhost, .local, 0.0.0.0, ::1 (IPv6 bracket-literal), ranges privados IPv4 e cloud metadata 169.254.169.254
-- Media paths sempre sob tenants/{tenantId}/ — traversal estruturalmente impossível
+- Media paths sempre em <tenant-uuid>/<folder>/<file> — traversal estruturalmente impossível; UUID validado antes de virar segmento
 - Webhook billing idempotente por eventId (anti double-charge)
 - Sem secrets no repositório; .env fora do git
 - RLS default deny no schema; memberships com UNIQUE(tenant_id, user_id)
@@ -89,14 +106,14 @@ NOT RUN — sem identidades controladas A/B provisionadas (release blocker docum
 ## BLOQUEIOS
 - BLOCKED_SOURCE_REPOSITORY_LED — repo canônico não identificado
 - BLOCKED_FREEBUFF_REPOSITORY_ACCESS_TEMPLO — repo existe; acesso Freebuff pendente
-- BLOCKED_REMOTE_SCHEMA_SNAPSHOT — dump remoto (read-only) exige acesso Supabase não exercido nesta sessão documental
-- BLOCKED_CANONICAL_DECISION — decisões §21 da reconciliação pendentes de ratificação
+- BLOCKED_REMOTE_SCHEMA_SNAPSHOT — dump remoto (read-only) exige acesso Supabase não exercido nesta sessão (4 migrations NEEDS_EXPORT no ledger)
+- RESOLVIDO: BLOCKED_CANONICAL_DECISION — §21 RATIFICADO em 2026-09-15
 - BLOCKED billing provider — sem credencial
 
 ## PRÓXIMA AÇÃO EXATA
-1. Snapshot remoto read-only: supabase db dump --schema public + supabase migration list contra mmykyzzkcugxunmekwew; commit em supabase/remote-snapshot/; resolver drift §20.1/20.2/20.7 da reconciliação; depois ratificar §21 com owner + ChatGPT.
+1. Export read-only das 4 migrations REMOTE_ONLY (supabase db dump / migration list) contra mmykyzzkcugxunmekwew → commit em supabase/remote-snapshot/ + atualizar docs/REMOTE_MIGRATION_LEDGER.md de NEEDS_EXPORT para exportado.
 2. Quando acesso ao Templo for liberado: subtree import para apps/religious-house seguindo docs/migrations/religious-house.md.
-3. Wire backend: conectar 1 vertical (bakery) ao Supabase dev real APÓS ratificação §21; rodar cross-tenant tests A/B contra banco.
+3. Wire backend bakery: conectar o adapter READ CONTRACT READY ao Supabase real (leitura) + cross-tenant tests A/B contra banco.
 4. Media strategy MetalArt: inventário vídeo/foto (site vs source material), plano Supabase Storage/CDN — preservação visual primeiro.
 5. CRM horizontal: definir contrato de consumo do SaaS Core (packages/saas-core já exporta tudo via index.ts).
 
