@@ -1,0 +1,353 @@
+@import "tailwindcss";
+
+/* ============================================================
+   IDENTIDADE VISUAL OFICIAL — Metal & Art Serralheria
+   (extraída do Guia de Identidade fornecido pelo cliente)
+
+   Carbon Black  #01030C · Deep Navy #020B21 · Industrial Blue #072F6C
+   Electric Blue #2E8AD1 · Amber Metal #F2A11C · Spark Orange #C73F09
+   Warm Ivory    #F6D798 · Metallic Sand #B7A78F
+
+   Tipografia: Roboto Condensed (títulos/números) + Inter (texto/UI)
+   ============================================================ */
+@theme {
+  --font-display: "Roboto Condensed", "Arial Narrow", "Impact", sans-serif;
+  --font-body: "Inter", "Trebuchet MS", sans-serif;
+  /* rótulos técnicos e métricas — Roboto Condensed em caixa alta */
+  --font-mono: "Roboto Condensed", "Inter", sans-serif;
+
+  /* superfícies escuras (navy) */
+  --color-coal-950: #01030c; /* Carbon Black */
+  --color-coal-900: #020b21; /* Deep Navy — fundo principal */
+  --color-coal-850: #051733; /* navy intermediário */
+  --color-coal-800: #072f6c; /* Industrial Blue — cards/seções */
+  --color-coal-700: #0c3b80; /* bordas sobre navy */
+  --color-coal-600: #1557ae; /* bordas/hover */
+  /* texto secundário sobre fundo escuro (azul-acinzentado) */
+  --color-steel-500: #6e8099;
+  --color-steel-400: #9fb0c9;
+  --color-steel-300: #c9d4e4;
+  --color-steel-200: #e2e8f2;
+  /* superfícies claras */
+  --color-paper-100: #f4f6f8; /* surface */
+  --color-paper-200: #e9edf3;
+  --color-ink-900: #01030c; /* texto forte sobre claro */
+  --color-ink-700: #33415c;
+  /* calor da solda */
+  --color-ember-300: #ffd37a;
+  --color-ember-400: #fbb53c;
+  --color-ember-500: #f2a11c; /* Amber Metal — CTA principal */
+  --color-ember-600: #c73f09; /* Spark Orange — acento forte */
+  --color-weld-300: #ffe9bc;
+  --color-weld-400: #f6d798; /* Warm Ivory */
+  /* metal frio / azul elétrico */
+  --color-arc-300: #9cc4e8;
+  --color-arc-400: #5fa8de;
+  --color-arc-500: #2e8ad1; /* Electric Blue — links/foco */
+  --color-arc-700: #1b5c96;
+  --color-arc-900: #0e3560;
+  /* Metallic Sand — divisores e superfícies metálicas neutras */
+  --color-sand-300: #cdbfa9;
+  --color-sand-400: #b7a78f;
+  --color-sand-500: #9a8a73;
+}
+
+/* ============ base ============ */
+
+html {
+  background: var(--color-coal-950);
+}
+
+html,
+body {
+  /* clip (e não hidden) para não quebrar o pinning do ScrollTrigger */
+  overflow-x: clip;
+}
+
+body {
+  background: var(--color-coal-950);
+  color: var(--color-paper-100);
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection {
+  background: var(--color-ember-500);
+  color: var(--color-coal-950);
+}
+
+/* Ken Burns — mesmo movimento do slideshow oficial (zoom-in lento) */
+.kenburns {
+  animation: kenburns 7.5s ease-out both;
+}
+@keyframes kenburns {
+  from {
+    transform: scale(1.02);
+  }
+  to {
+    transform: scale(1.11);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .kenburns {
+    animation: none;
+  }
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-ember-500);
+  outline-offset: 3px;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+}
+::-webkit-scrollbar-track {
+  background: var(--color-coal-900);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-coal-600);
+  border: 2px solid var(--color-coal-900);
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-ember-600);
+}
+
+/* ============ overlays / fundos ============ */
+
+.noise-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  pointer-events: none;
+  opacity: 0.05;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 240 240' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 240px 240px;
+}
+
+.blueprint-grid {
+  background-image:
+    linear-gradient(to right, rgba(127, 169, 212, 0.07) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(127, 169, 212, 0.07) 1px, transparent 1px),
+    linear-gradient(to right, rgba(127, 169, 212, 0.035) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(127, 169, 212, 0.035) 1px, transparent 1px);
+  background-size:
+    140px 140px,
+    140px 140px,
+    28px 28px,
+    28px 28px;
+}
+
+.blueprint-grid-light {
+  background-image:
+    linear-gradient(to right, rgba(43, 74, 104, 0.09) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(43, 74, 104, 0.09) 1px, transparent 1px),
+    linear-gradient(to right, rgba(43, 74, 104, 0.045) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(43, 74, 104, 0.045) 1px, transparent 1px);
+  background-size:
+    140px 140px,
+    140px 140px,
+    28px 28px,
+    28px 28px;
+}
+
+.text-stroke {
+  color: transparent;
+  -webkit-text-stroke: 1.5px rgba(233, 234, 236, 0.85);
+}
+.text-stroke-dim {
+  color: transparent;
+  -webkit-text-stroke: 1px rgba(139, 147, 158, 0.4);
+}
+
+/* ============ marquee ============ */
+
+.marquee {
+  overflow: hidden;
+  display: flex;
+}
+.marquee-track {
+  display: flex;
+  flex-shrink: 0;
+  min-width: 100%;
+  gap: 0;
+  animation: marquee-x 32s linear infinite;
+}
+.marquee:hover .marquee-track {
+  animation-play-state: paused;
+}
+@keyframes marquee-x {
+  to {
+    transform: translateX(-100%);
+  }
+}
+
+/* ============ preloader ============ */
+
+@keyframes weld-travel {
+  0% {
+    left: 0%;
+    opacity: 0;
+  }
+  6% {
+    opacity: 1;
+  }
+  94% {
+    opacity: 1;
+  }
+  100% {
+    left: 100%;
+    opacity: 0;
+  }
+}
+@keyframes weld-line-draw {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+@keyframes pl-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+    letter-spacing: 0.35em;
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+    letter-spacing: 0.12em;
+  }
+}
+@keyframes pl-curtain {
+  to {
+    clip-path: inset(0 0 100% 0);
+  }
+}
+@keyframes spark-flicker {
+  0%,
+  100% {
+    opacity: 0.9;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.4;
+    transform: scale(0.7);
+  }
+}
+
+/* ============ timeline de solda ============ */
+
+@keyframes glow-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 12px 2px rgba(255, 122, 41, 0.55);
+  }
+  50% {
+    box-shadow: 0 0 22px 5px rgba(255, 196, 107, 0.8);
+  }
+}
+.weld-dot {
+  animation: glow-pulse 1.6s ease-in-out infinite;
+}
+
+/* ============ campos de formulário ============ */
+
+.field {
+  width: 100%;
+  background: var(--color-coal-800);
+  border: 1px solid var(--color-coal-600);
+  color: var(--color-paper-100);
+  padding: 0.8rem 1rem;
+  font-size: 0.95rem;
+  transition:
+    border-color 0.2s,
+    background 0.2s;
+}
+.field::placeholder {
+  color: var(--color-steel-500);
+}
+.field:focus {
+  outline: none;
+  border-color: var(--color-ember-500);
+  background: var(--color-coal-700);
+}
+
+/* ============ diversos ============ */
+
+.no-scrollbar {
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.btn-press {
+  transition:
+    transform 0.15s ease,
+    background-color 0.2s ease,
+    color 0.2s ease,
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+.btn-press:active {
+  transform: translateY(1px) scale(0.985);
+}
+
+.img-zoom img {
+  transition: transform 0.9s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.img-zoom:hover img {
+  transform: scale(1.05);
+}
+
+.underline-weld {
+  background-image: linear-gradient(
+    to right,
+    var(--color-ember-500),
+    var(--color-ember-500)
+  );
+  background-size: 0% 2px;
+  background-repeat: no-repeat;
+  background-position: left bottom;
+  transition: background-size 0.35s ease;
+}
+.underline-weld:hover {
+  background-size: 100% 2px;
+}
+
+/* cursor customizado */
+.ma-cursor {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 90;
+  pointer-events: none;
+  display: none;
+}
+@media (pointer: fine) {
+  .ma-cursor {
+    display: block;
+  }
+}
+
+/* ============ reduced motion ============ */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  .marquee-track {
+    animation: none !important;
+  }
+  .weld-dot {
+    animation: none !important;
+  }
+}

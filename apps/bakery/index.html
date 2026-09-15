@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <title>Fornalha — Padaria Artesanal em Pinheiros · Pães de fermentação natural</title>
+    <meta
+      name="description"
+      content="Fornalha: padaria artesanal em Pinheiros, São Paulo. Sourdough de fermentação natural, croissants de manteiga, café de origem. Peça online para entrega ou retirada."
+    />
+    <meta name="theme-color" content="#171009" />
+    <link rel="canonical" href="https://fornalha.example.com/" />
+
+    <!-- Open Graph -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Fornalha" />
+    <meta property="og:title" content="Fornalha — Padaria Artesanal" />
+    <meta property="og:description" content="Do forno para a sua mesa. Pães de fermentação natural, folhados e café de origem em Pinheiros." />
+    <meta property="og:locale" content="pt_BR" />
+
+    <!-- PWA -->
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="icon" type="image/svg+xml" href="/icon.svg" />
+    <link rel="apple-touch-icon" href="/icon.svg" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+
+    <!-- Tipografia: Fraunces (display) + Manrope (interface) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..700;1,9..144,300..700&family=Manrope:wght@400..800&display=swap"
+      rel="stylesheet"
+    />
+
+    <!-- SEO local: schema.org LocalBusiness/Bakery -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "Bakery",
+        "name": "Fornalha",
+        "description": "Padaria artesanal de fermentação natural em Pinheiros, São Paulo.",
+        "slogan": "Do forno para a sua mesa.",
+        "servesCuisine": "Padaria, Confeitaria, Café",
+        "priceRange": "$$",
+        "telephone": "+55 11 3456-7890",
+        "email": "ola@fornalha.com.br",
+        "address": {
+          "@type": "PostalAddress",
+          "streetAddress": "Rua dos Pinheiros, 428",
+          "addressLocality": "São Paulo",
+          "addressRegion": "SP",
+          "postalCode": "05422-000",
+          "addressCountry": "BR"
+        },
+        "geo": { "@type": "GeoCoordinates", "latitude": -23.5673, "longitude": -46.6886 },
+        "openingHoursSpecification": [
+          { "@type": "OpeningHoursSpecification", "dayOfWeek": ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"], "opens": "06:00", "closes": "20:00" },
+          { "@type": "OpeningHoursSpecification", "dayOfWeek": "Sunday", "opens": "06:30", "closes": "13:00" }
+        ],
+        "acceptsReservations": "False",
+        "hasMenu": "https://fornalha.example.com/#/produtos"
+      }
+    </script>
+
+    <style>
+      html, body { margin: 0; background: #171009; }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
