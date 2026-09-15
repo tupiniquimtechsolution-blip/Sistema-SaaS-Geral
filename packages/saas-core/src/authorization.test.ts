@@ -1,38 +1,103 @@
 import { describe, expect, it } from "vitest";
 import type { Membership } from "./member";
-import { DEFAULT_ROLE_PERMISSIONS } from "./member";
+import { DEFAULT_ROLE_PERMISSIONS, PERMISSIONS } from "./member";
 import { assertTenantPermission, hasPermission, permissionsForRole, resolveMembership } from "./authorization";
 
 function mkMembership(userId: string, tenantId: string, role: Membership["role"]): Membership {
   return { userId, tenantId, role, createdAt: "2026-09-12T00:00:00.000Z" };
 }
 
-describe("role matrix", () => {
-  it("gives owner full administrative permissions", () => {
-    const perms = permissionsForRole("owner");
-    expect(perms).toContain("tenant.settings.write");
-    expect(perms).toContain("members.roles.write");
-    expect(perms).toContain("billing.write");
-    expect(perms).toContain("audit.read");
+describe("canonical permission catalog (28 permissions, remote mirror)", () => {
+  it("mirrors exactly the 28 remote permission keys — no invention, no omission", () => {
+    expect(PERMISSIONS).toHaveLength(28);
+    // remote catalog additions confirmed in platform_core_v1
+    expect(PERMISSIONS).toContain("crm.read");
+    expect(PERMISSIONS).toContain("crm.write");
+    expect(PERMISSIONS).toContain("booking.read");
+    expect(PERMISSIONS).toContain("booking.write");
+    expect(PERMISSIONS).toContain("quotes.read");
+    expect(PERMISSIONS).toContain("quotes.write");
+    // spot-check pre-existing keys still present
+    expect(PERMISSIONS).toContain("tenant.read");
+    expect(PERMISSIONS).toContain("audit.read");
   });
 
-  it("denies viewer write permissions (default deny)", () => {
-    const perms = permissionsForRole("viewer");
-    expect(perms).toEqual(["tenant.read"]);
-    expect(perms).not.toContain("catalog.write");
-    expect(perms).not.toContain("brand.write");
+  it("keeps every catalog entry unique", () => {
+    expect(new Set(PERMISSIONS).size).toBe(PERMISSIONS.length);
+  });
+});
+
+describe("remote role matrix (platform_core_v1 role_permissions)", () => {
+  it("owner and admin hold all 28 permissions", () => {
+    expect(permissionsForRole("owner")).toHaveLength(28);
+    expect(permissionsForRole("admin")).toHaveLength(28);
   });
 
-  it("keeps orders_manager scoped to orders", () => {
-    const perms = permissionsForRole("orders_manager");
-    expect(perms).toContain("orders.read");
-    expect(perms).toContain("orders.status.write");
-    expect(perms).not.toContain("brand.write");
+  it("manager holds exactly the 20 remote-granted permissions", () => {
+    const perms = permissionsForRole("manager");
+    expect(perms).toHaveLength(20);
+    expect(perms).toContain("cms.write");
+    expect(perms).toContain("booking.write");
+    expect(perms).toContain("quotes.write");
+    expect(perms).not.toContain("members.invite");
     expect(perms).not.toContain("members.roles.write");
+    expect(perms).not.toContain("tenant.settings.write");
+    expect(perms).not.toContain("billing.write");
   });
 
-  it("never grants tenant.settings.write to editor", () => {
-    expect(permissionsForRole("editor")).not.toContain("tenant.settings.write");
+  it("editor holds exactly the 8 remote-granted permissions", () => {
+    const perms = permissionsForRole("editor");
+    expect(perms).toHaveLength(8);
+    expect(perms).toContain("cms.write");
+    expect(perms).toContain("brand.write");
+    expect(perms).toContain("media.write");
+    expect(perms).not.toContain("catalog.write");
+    expect(perms).not.toContain("tenant.settings.write");
+  });
+
+  it("catalog_manager holds exactly the 5 remote-granted permissions", () => {
+    const perms = permissionsForRole("catalog_manager");
+    expect(perms).toEqual([
+      "tenant.read",
+      "media.read",
+      "media.write",
+      "catalog.read",
+      "catalog.write",
+    ]);
+  });
+
+  it("orders_manager holds exactly the 7 remote-granted permissions (incl. crm)", () => {
+    const perms = permissionsForRole("orders_manager");
+    expect(perms).toEqual([
+      "tenant.read",
+      "catalog.read",
+      "orders.read",
+      "orders.create",
+      "orders.status.write",
+      "crm.read",
+      "crm.write",
+    ]);
+  });
+
+  it("support holds exactly the 7 remote-granted permissions (read/write split)", () => {
+    const perms = permissionsForRole("support");
+    expect(perms).toEqual([
+      "tenant.read",
+      "orders.read",
+      "crm.read",
+      "crm.write",
+      "booking.read",
+      "booking.write",
+      "quotes.read",
+    ]);
+  });
+
+  it("viewer holds exactly the 14 remote-granted read permissions", () => {
+    const perms = permissionsForRole("viewer");
+    expect(perms).toHaveLength(14);
+    expect(perms).toContain("billing.read");
+    expect(perms).toContain("audit.read");
+    expect(perms.every((p) => p.endsWith(".read"))).toBe(true);
   });
 
   it("covers every role with a non-empty matrix", () => {
@@ -57,6 +122,7 @@ describe("membership resolution", () => {
   it("hasPermission respects the role of the membership", () => {
     expect(hasPermission(mkMembership("u", "t", "admin"), "cms.write")).toBe(true);
     expect(hasPermission(mkMembership("u", "t", "viewer"), "cms.write")).toBe(false);
+    expect(hasPermission(mkMembership("u", "t", "viewer"), "booking.read")).toBe(true);
   });
 });
 
