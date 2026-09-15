@@ -1,5 +1,24 @@
 # SUPABASE RECONCILIATION — FREEBUFF VS CHATGPT
 
+> **LIVE CATALOG ADDENDUM (2026-09-15, post-ratification drift fix):** a direct
+> live query of the remote Supabase superseded the historical branch snapshot
+> used in the first alignment pass.
+>
+> - **HISTORICAL BRANCH SNAPSHOT:** 28 permissions / 17 proposed features
+> - **REMOTE LIVE:** **42 permissions / 14 features**
+> - **REMOTE WINS.**
+>
+> Corrections applied (code + tests + docs, DB untouched):
+> permissions mirrored 42/42 (14 added: documents.*, events.*, loyalty.*,
+> pets.*, projects.*, religious.sensitive.*, support.*) with the live role
+> matrix (owner 42, admin 40, manager 32, editor 9, catalog_manager 5,
+> orders_manager 5, support 7, viewer 19 — admin intentionally holds NO
+> religious.sensitive.*); feature catalog reduced to the 14 live keys
+> (orders/projects/loyalty/inventory .enabled removed as non-canonical and
+> registered as PROPOSED_FUTURE_FEATURES; religious.sensitive.enabled added,
+> default false, triple-gated ENTITLEMENT+RBAC+RLS). Gates: 86/86 saas-core
+> tests, typecheck PASS. See docs/PERMISSION_ALIGNMENT.md §0.
+
 Status: **DOCUMENTAL ONLY**. No database command was executed against the remote project. No merge between branches. No migration rewritten. This document registers drift and proposes canonicalization for human/ChatGPT decision.
 
 ## 1. EXECUTIVE SUMMARY

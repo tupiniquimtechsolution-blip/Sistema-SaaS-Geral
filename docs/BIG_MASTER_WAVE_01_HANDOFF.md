@@ -13,7 +13,7 @@ freebuff/big-master-wave-01-monorepo
 PARTIAL — monorepo + 6/7 verticais importados + SaaS Core contracts testados + ALINHAMENTO CANÔNICO saas-core→Supabase remoto CONCLUÍDO; blocos externos classificados
 
 ## ÚLTIMA ALTERAÇÃO
-Ratificação canônica executada (2026-09-15): §21 RATIFIED (KEEP CHATGPT/REMOTE em todos os grupos), §20.1/20.2/20.7 resolvidos como CONFIRMED REMOTE STATE (8 migrations *_v1 aplicadas, 86 tabelas/86 RLS, buckets tenant-public/tenant-private, booking.read/write existem). Migration Freebuff 0001 marcada OBSOLETE_SUPERSEDED_NOT_REMOTE (header, sem alterar SQL). saas-core realinhado: 28 permissions + role matrix remota exata, 17 feature keys com Plan/PlanEntitlement/TenantEntitlement/TenantFeatureOverride/EffectiveEntitlement + precedência, tenantMediaPath → <uuid>/<folder>/<file> com buckets canônicos. Gates: saas-core 68/68 + typecheck PASS; bakery typecheck PASS (adapter READ CONTRACT READY com fallback legado preservado). DB não tocado (DATABASE MUTATIONS = NONE).
+Correção de drift live (2026-09-15): consulta DIRETA ao Supabase live provou que o alinhamento anterior espelhava snapshot histórico (28 permissions / 17 features) e não o estado real (42 permissions / 14 features). REMOTE WINS: member.ts realinhado a 42 permissions (14 novas: documents/events/loyalty/pets/projects/religious.sensitive/support) com role matrix live (owner 42, admin 40, manager 32, editor 9, catalog_manager 5, orders_manager 5, support 7, viewer 19 — admin SEM religious.sensitive.*, intencional); entitlement.ts realinhado a 14 features (removidas orders/projects/loyalty/inventory .enabled como não-canônicas, registradas em PROPOSED_FUTURE_FEATURES; adicionada religious.sensitive.enabled, default false, triple gate ENTITLEMENT+RBAC+RLS). Testes 68→86. DB não tocado (DATABASE MUTATIONS = NONE). Anteriormente: ratificação §21, adapter bakery READ CONTRACT READY, saas-core alinhado a 28/17 do snapshot.
 
 ## ESCOPO CANÔNICO
 - SaaS Core único alimenta verticais e apps horizontais.
@@ -58,10 +58,10 @@ Ratificação canônica executada (2026-09-15): §21 RATIFIED (KEEP CHATGPT/REMO
 RATIFIED (2026-09-15) — doc §21: KEEP CHATGPT/REMOTE (core, RBAC, plans/entitlements, CMS, media, CRM, commerce, bookings/events, B2B, pet, restaurant, religious com sensíveis DORMANT, storage); Freebuff saas-core = KEEP FREEBUFF + ADAPT APPLICATION (executado)
 
 ## ENTITLEMENTS
-ALIGNED — 17 feature keys canônicas (incluindo orders/projects/loyalty/inventory/support.enabled adicionadas); Plan/Feature/PlanEntitlement/TenantEntitlement/TenantFeatureOverride/EffectiveEntitlement; precedência plan < tenant_entitlements < tenant_features; RBAC separado de product entitlement; autoridade final = banco (entitlement_security_gate_v1 remoto)
+ALIGNED (LIVE) — 14 feature keys canônicas live; orders/projects/loyalty/inventory .enabled REMOVIDAS (não-canônicas no live, registradas em PROPOSED_FUTURE_FEATURES); religious.sensitive.enabled ADICIONADA (boolean, default false, NÃO autoriza sozinha — exige entitlement + religious.sensitive.read/write RBAC + membership/RLS corretos); Plan/Feature/PlanEntitlement/TenantEntitlement/TenantFeatureOverride/EffectiveEntitlement; precedência plan < tenant_entitlements < tenant_features; autoridade final = banco (entitlement_security_gate_v1 remoto)
 
 ## PERMISSIONS
-ALIGNED 28/28 — docs/PERMISSION_ALIGNMENT.md (catalogo remoto espelhado em member.ts; role matrix remota aplicada: owner/admin 28, manager 20, editor 8, catalog_manager 5, orders_manager 7, support 7, viewer 14)
+ALIGNED 42/42 (LIVE) — docs/PERMISSION_ALIGNMENT.md §0 registra o drift: HISTORICAL BRANCH SNAPSHOT 28/17 vs REMOTE LIVE 42/14, REMOTE WINS. Role matrix live aplicada: owner 42, admin 40 (sem religious.sensitive.*, intencional), manager 32, editor 9, catalog_manager 5, orders_manager 5, support 7, viewer 19
 
 ## STORAGE
 PATH: ALIGNED → <tenant-uuid>/<folder>/<file> (UUID no primeiro segmento, lowercase, traversal estruturalmente impossível; isCanonicalMediaPath como defesa adicional) · BUCKETS: tenant-public / tenant-private (canônicos remotamente confirmados); policies remotas NÃO alteradas
@@ -79,9 +79,9 @@ READY — apps/bakery/src/business/saas-adapter.ts: mapeia tenant/brand/theme/se
 NOT RUN — sem identidades controladas A/B provisionadas (release blocker documentado nas duas linhas)
 
 ## TESTES/GATES
-- saas-core: **68/68** unit tests PASS (vitest); typecheck PASS
-  - authorization: catalogo 28 permissions + role matrix remota exata + default deny + cross-tenant assert
-  - entitlement: catalogo 17 features + validação jsonb + precedência de override + separação RBAC×entitlement
+- saas-core: **86/86** unit tests PASS (vitest); typecheck PASS (68→86 após correção live)
+  - authorization: PERMISSIONS=42, contagens live de role (42/40/32/9/5/5/7/19), default deny, cross-tenant assert, portão religious.sensitive (owner tem, admin não tem, mesmo no próprio tenant)
+  - entitlement: FEATURES=14, chaves não-canônicas rejeitadas (orders/projects/loyalty/inventory .enabled), religious.sensitive.enabled presente e default-off, validação jsonb, precedência de override
   - media: buckets canônicos + path <uuid>/<folder>/<file> + UUID primeiro segmento + traversal/cross-tenant
   - audit: metadata sanitization (4)
   - billing: webhook idempotency (3)

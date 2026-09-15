@@ -4,6 +4,15 @@ Canonical remote database: **Supabase project `mmykyzzkcugxunmekwew`** (validate
 
 Rule enforced by this ledger: **remote state prevails over historical/local migrations**. Remote migration SQL is NOT reconstructed by guessing; entries below record evidence only.
 
+> **LIVE CATALOG NOTE (2026-09-15):** the live database holds **42 permissions**
+> and **14 features** — the historical branch migration files (e.g. the
+> platform_core seed visible at a3b2b1f) seed fewer permissions (28) and a
+> proposed 17-feature catalog. Later remote migrations (entitlement_security_gate_v1,
+> security_helpers_hardening_v1, etc.) evolved the catalog. This is additional
+> evidence that the 20260911xxxx branch files are SOURCE_FILE_PARTIAL and that
+> the REMOTE_ONLY migrations must be exported before any canonical claim.
+> See docs/PERMISSION_ALIGNMENT.md §0.
+
 ## Remote migrations (8, applied — confirmed via remote migration list)
 
 | VERSION | NAME | REMOTE STATUS | LOCAL SOURCE FILE | RECONCILIATION STATUS |
