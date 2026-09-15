@@ -7,6 +7,8 @@ import {
   isBooleanFeature,
   isFeatureKey,
   isNumericFeature,
+  isReligiousSensitiveFeatureKey,
+  PROPOSED_FUTURE_FEATURES,
   resolveEffectiveEntitlements,
   validateEntitlement,
 } from "./entitlement";
@@ -35,30 +37,60 @@ const planB: TenantSubscription = {
   ],
 };
 
-describe("canonical feature catalog (17 features, remote mirror)", () => {
-  it("mirrors exactly the 17 remote feature keys — no invention, no omission", () => {
-    expect(FEATURES).toHaveLength(17);
+describe("live feature catalog (14 features, remote live mirror)", () => {
+  it("FEATURES.length === 14 (live public.features)", () => {
+    expect(FEATURES).toHaveLength(14);
+  });
+
+  it("contains every live key with its live value_type", () => {
     expect(FEATURES.map((f) => f.key)).toEqual(
       expect.arrayContaining([
-        "commerce.enabled",
-        "orders.enabled",
-        "booking.enabled",
-        "crm.enabled",
-        "quotes.enabled",
-        "projects.enabled",
-        "events.enabled",
-        "loyalty.enabled",
-        "inventory.enabled",
-        "support.enabled",
-        "customDomain.enabled",
-        "locations.max",
-        "users.max",
-        "products.max",
-        "storage.bytes",
-        "media.maxFileSize",
         "audit.retentionDays",
+        "booking.enabled",
+        "commerce.enabled",
+        "crm.enabled",
+        "customDomain.enabled",
+        "events.enabled",
+        "locations.max",
+        "media.maxFileSize",
+        "products.max",
+        "quotes.enabled",
+        "religious.sensitive.enabled",
+        "storage.bytes",
+        "support.enabled",
+        "users.max",
       ]),
     );
+  });
+
+  it("religious.sensitive.enabled EXISTS and is boolean", () => {
+    expect(isFeatureKey("religious.sensitive.enabled")).toBe(true);
+    expect(isBooleanFeature("religious.sensitive.enabled")).toBe(true);
+  });
+
+  it("NON-CANONICAL DRIFT: orders.enabled is NOT a FeatureKey", () => {
+    expect(isFeatureKey("orders.enabled")).toBe(false);
+  });
+
+  it("NON-CANONICAL DRIFT: projects.enabled is NOT a FeatureKey", () => {
+    expect(isFeatureKey("projects.enabled")).toBe(false);
+  });
+
+  it("NON-CANONICAL DRIFT: loyalty.enabled is NOT a FeatureKey", () => {
+    expect(isFeatureKey("loyalty.enabled")).toBe(false);
+  });
+
+  it("NON-CANONICAL DRIFT: inventory.enabled is NOT a FeatureKey", () => {
+    expect(isFeatureKey("inventory.enabled")).toBe(false);
+  });
+
+  it("removed keys are registered as PROPOSED_FUTURE_FEATURES (not silently dropped)", () => {
+    expect(PROPOSED_FUTURE_FEATURES).toEqual([
+      "orders.enabled",
+      "projects.enabled",
+      "loyalty.enabled",
+      "inventory.enabled",
+    ]);
   });
 
   it("classifies value types like public.features.value_type", () => {
@@ -74,6 +106,33 @@ describe("canonical feature catalog (17 features, remote mirror)", () => {
   });
 });
 
+describe("SECURITY CONTRACT — religious sensitive triple gate (entitlement layer)", () => {
+  it("isReligiousSensitiveFeatureKey identifies only the sensitive feature", () => {
+    expect(isReligiousSensitiveFeatureKey("religious.sensitive.enabled")).toBe(true);
+    expect(isReligiousSensitiveFeatureKey("commerce.enabled")).toBe(false);
+  });
+
+  it("flag alone never authorizes: validate accepts it but canUseFeature requires value true", () => {
+    expect(validateEntitlement("religious.sensitive.enabled", false)).toEqual({
+      key: "religious.sensitive.enabled",
+      value: false,
+    });
+    const sub: TenantSubscription = {
+      planId: "x",
+      state: "active",
+      entitlements: [{ key: "religious.sensitive.enabled", value: false }],
+    };
+    expect(canUseFeature(sub, "religious.sensitive.enabled")).toBe(false);
+    expect(() => assertEntitlement(sub, "religious.sensitive.enabled")).toThrow(/Entitlement required/);
+  });
+
+  it("default remains disabled (no catalog or plan default turns it on)", () => {
+    // Nothing in FEATURES carries a value; absence in a subscription = denied
+    const empty: TenantSubscription = { planId: "x", state: "active", entitlements: [] };
+    expect(canUseFeature(empty, "religious.sensitive.enabled")).toBe(false);
+  });
+});
+
 describe("entitlement validation (jsonb boundary)", () => {
   it("accepts catalog keys with matching value types", () => {
     expect(validateEntitlement("booking.enabled", true)).toEqual({ key: "booking.enabled", value: true });
@@ -85,20 +144,18 @@ describe("entitlement validation (jsonb boundary)", () => {
     expect(validateEntitlement("users.max", 2.5)).toBeNull();
     expect(validateEntitlement("users.max", true)).toBeNull();
     expect(validateEntitlement("not.a.feature", true)).toBeNull();
+    expect(validateEntitlement("orders.enabled", true)).toBeNull(); // non-canonical → invalid row
   });
 
   it("decodeEntitlementRows filters invalid rows instead of widening access", () => {
     const rows = [
-      { feature_key: "orders.enabled", value: true },
+      { feature_key: "orders.enabled", value: true }, // non-canonical → dropped
       { feature_key: "hack.enabled", value: true }, // unknown key → dropped
       { feature_key: "users.max", value: "lots" }, // type mismatch → dropped
       { feature_key: "support.enabled", value: true },
     ];
     const decoded = decodeEntitlementRows(rows);
-    expect(decoded).toEqual([
-      { key: "orders.enabled", value: true },
-      { key: "support.enabled", value: true },
-    ]);
+    expect(decoded).toEqual([{ key: "support.enabled", value: true }]);
   });
 });
 
@@ -169,7 +226,6 @@ describe("entitlement resolution", () => {
   });
 
   it("RBAC and entitlements stay separate domains", () => {
-    // Entitlement gates product capability; it must never grant a human permission.
     expect(canUseFeature(planB, "crm.enabled")).toBe(true);
     expect(canUseFeature(planB, "members.roles.write")).toBe(false); // not a feature key at all
   });

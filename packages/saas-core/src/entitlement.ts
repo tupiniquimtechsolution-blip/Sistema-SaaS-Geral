@@ -1,9 +1,12 @@
 /**
- * Entitlement contracts — ALIGNED with the canonical remote Supabase schema
- * (project mmykyzzkcugxunmekwew, platform_core_v1 + entitlement_security_gate_v1).
+ * Entitlement contracts — ALIGNED with the LIVE remote Supabase state
+ * (project mmykyzzkcugxunmekwew; public.features queried directly 2026-09-15).
+ *
+ * LIVE = 14 features. The earlier 17-key catalog reflected the historical
+ * branch snapshot; live database state prevails (ratified rule).
  *
  * SOURCE OF TRUTH
- * - public.features          → feature catalog (17 canonical keys)
+ * - public.features          → feature catalog (14 canonical keys)
  * - public.plans             → plan definitions
  * - public.plan_entitlements → plan defaults (jsonb value per feature)
  * - public.tenant_entitlements → per-tenant plan defaults (diff/override)
@@ -29,45 +32,59 @@ export interface Feature {
   valueType: FeatureValueType;
 }
 
-/** Exact mirror of the 17 canonical feature keys. DO NOT invent keys. */
+/**
+ * Exact mirror of the 14 LIVE canonical feature keys. DO NOT invent keys.
+ *
+ * DRIFT NOTE: orders.enabled / projects.enabled / loyalty.enabled /
+ * inventory.enabled were previously mirrored from the historical branch
+ * snapshot but DO NOT exist in the live public.features — they are NOT
+ * canonical (see PROPOSED_FUTURE_FEATURES below). Removing them from this
+ * union is the ratified decision of this wave.
+ */
 export type FeatureKey =
-  | "commerce.enabled"
-  | "orders.enabled"
   | "booking.enabled"
+  | "commerce.enabled"
   | "crm.enabled"
-  | "quotes.enabled"
-  | "projects.enabled"
-  | "events.enabled"
-  | "loyalty.enabled"
-  | "inventory.enabled"
-  | "support.enabled"
   | "customDomain.enabled"
+  | "events.enabled"
   | "locations.max"
-  | "users.max"
-  | "products.max"
-  | "storage.bytes"
   | "media.maxFileSize"
-  | "audit.retentionDays";
+  | "products.max"
+  | "quotes.enabled"
+  | "religious.sensitive.enabled"
+  | "storage.bytes"
+  | "support.enabled"
+  | "audit.retentionDays"
+  | "users.max";
 
 const FEATURE_CATALOG: readonly Feature[] = [
-  { key: "commerce.enabled", description: "Commerce module availability", valueType: "boolean" },
-  { key: "orders.enabled", description: "Orders module availability", valueType: "boolean" },
-  { key: "booking.enabled", description: "Booking module availability", valueType: "boolean" },
-  { key: "crm.enabled", description: "CRM module availability", valueType: "boolean" },
-  { key: "quotes.enabled", description: "Quotes/proposals module availability", valueType: "boolean" },
-  { key: "projects.enabled", description: "Projects/installations module availability", valueType: "boolean" },
-  { key: "events.enabled", description: "Events module availability", valueType: "boolean" },
-  { key: "loyalty.enabled", description: "Loyalty module availability", valueType: "boolean" },
-  { key: "inventory.enabled", description: "Inventory module availability", valueType: "boolean" },
-  { key: "support.enabled", description: "Support/warranty module availability", valueType: "boolean" },
-  { key: "customDomain.enabled", description: "Custom domain support", valueType: "boolean" },
-  { key: "locations.max", description: "Maximum number of business locations", valueType: "integer" },
-  { key: "users.max", description: "Maximum tenant members", valueType: "integer" },
-  { key: "products.max", description: "Maximum catalog products/equipment entries", valueType: "integer" },
-  { key: "storage.bytes", description: "Tenant storage quota in bytes", valueType: "integer" },
-  { key: "media.maxFileSize", description: "Maximum upload size in bytes", valueType: "integer" },
   { key: "audit.retentionDays", description: "Audit retention target in days", valueType: "integer" },
+  { key: "booking.enabled", description: "Booking module availability", valueType: "boolean" },
+  { key: "commerce.enabled", description: "Commerce module availability", valueType: "boolean" },
+  { key: "crm.enabled", description: "CRM module availability", valueType: "boolean" },
+  { key: "customDomain.enabled", description: "Custom domain support", valueType: "boolean" },
+  { key: "events.enabled", description: "Events module availability", valueType: "boolean" },
+  { key: "locations.max", description: "Maximum number of business locations", valueType: "integer" },
+  { key: "media.maxFileSize", description: "Maximum upload size in bytes", valueType: "integer" },
+  { key: "products.max", description: "Maximum catalog products/equipment entries", valueType: "integer" },
+  { key: "quotes.enabled", description: "Quotes/proposals module availability", valueType: "boolean" },
+  { key: "religious.sensitive.enabled", description: "Sensitive religious operations module availability", valueType: "boolean" },
+  { key: "storage.bytes", description: "Tenant storage quota in bytes", valueType: "integer" },
+  { key: "support.enabled", description: "Support/warranty module availability", valueType: "boolean" },
+  { key: "users.max", description: "Maximum tenant members", valueType: "integer" },
 ];
+
+/**
+ * Features proposed for the future but NOT canonical in the live
+ * public.features (2026-09-15). Never treat these as granted; they are
+ * registered for the feature-request pipeline only. Keep out of FeatureKey.
+ */
+export const PROPOSED_FUTURE_FEATURES: readonly string[] = [
+  "orders.enabled",
+  "projects.enabled",
+  "loyalty.enabled",
+  "inventory.enabled",
+] as const;
 
 /** Canonical catalog, exposed read-only for validation/UI presentation. */
 export const FEATURES: readonly Feature[] = FEATURE_CATALOG;
@@ -84,6 +101,20 @@ const NUMERIC_FEATURES = new Set<string>(
 
 export function isFeatureKey(key: string): key is FeatureKey {
   return FEATURE_KEYS.has(key);
+}
+
+/**
+ * RELIGIOUS SENSITIVE — TRIPLE GATE (contract reminder + runtime helper).
+ * A sensitive religious operation is allowed ONLY when ALL of the following hold:
+ *   1. ENTITLEMENT: religious.sensitive.enabled === true for the tenant, AND
+ *   2. RBAC: the actor holds religious.sensitive.read or religious.sensitive.write
+ *      (matching the operation) — only owner holds these by default, AND
+ *   3. TENANT/RLS: the actor's membership resolves in the correct tenant and
+ *      the database RLS/gate re-validates server-side.
+ * The feature flag alone NEVER authorizes anything. Default remains false.
+ */
+export function isReligiousSensitiveFeatureKey(key: string): boolean {
+  return key === "religious.sensitive.enabled";
 }
 
 export function isBooleanFeature(key: string): boolean {
