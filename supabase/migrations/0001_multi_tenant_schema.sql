@@ -1,6 +1,18 @@
 -- 0001_multi_tenant_schema.sql
 -- Tupiniquim Vertical SaaS — Supabase/PostgreSQL baseline
 -- Parcial: pronto para schema, mas pendente de projeto Supabase configurado.
+--
+-- =============================================================================
+-- ⚠️  OBSOLETE_SUPERSEDED_NOT_REMOTE — HISTORICAL EVIDENCE ONLY (2026-09-15)
+-- =============================================================================
+-- NEVER APPLIED REMOTELY (project mmykyzzkcugxunmekwew).
+-- SUPERSEDED BY CANONICAL REMOTE SCHEMA (chatgpt/supabase-vercel-foundation
+-- lineage + remote state validated directly by the owner).
+-- DO NOT PUSH TO PRODUCTION. DO NOT `supabase db push` THIS FILE.
+-- It is retained purely as historical evidence; do NOT edit its SQL to make it
+-- resemble the remote schema. See docs/REMOTE_MIGRATION_LEDGER.md and
+-- docs/SUPABASE_RECONCILIATION_FREEBUFF_VS_CHATGPT.md (§21 RATIFIED).
+-- =============================================================================
 
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 

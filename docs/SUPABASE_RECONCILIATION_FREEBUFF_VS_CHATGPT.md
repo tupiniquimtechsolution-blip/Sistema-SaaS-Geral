@@ -271,17 +271,17 @@ MIGRATION HISTORY DIFFERENCES: FB 1 obsolete file; CG 8 files correlated to 8 re
 
 ## 20. SCHEMA DRIFT
 
-1. Remote (86 tables) > CG branch migrations (81 tables): hardening migrations added structures not in branch files (e.g. sensitive religious dormant structures, possibly `booking.read/write` permissions — note `religious_booking_details_write` references `booking.write`, which is not in the branch's 42-permission seed visible here; must be verified remotely).
-2. Bucket naming: branch `tenant-media-public/private` vs status doc `tenant-public`/`tenant-private`.
-3. FB TS path convention (`tenants/<uuid>/...`) vs CG/remote storage (`<uuid>/...`).
-4. FB plans-as-JSONB vs remote normalized plan_entitlements (already deployed remotely — FB TS `Plan` type will not map 1:1).
-5. FB `tenant_features` is member-writable in FB policy vs remote entitlement security gate.
-6. saas-core TS entitlement union lacks 5 CG feature keys (`orders/projects/loyalty/inventory/support.enabled`).
-7. `booking.write`/`booking.read` permissions referenced by CG RLS but possibly absent from branch permission seed (verify).
+1. **RESOLVED — CONFIRMED REMOTE STATE (2026-09-15)**: remote migrations confirmed as 8 applied `*_v1` migrations (platform_core_v1 20260911215335 → religious_public_details_v1 20260911220750, project mmykyzzkcugxunmekwew); 86 public tables, 86/86 with RLS, 76 tenant-owned. The remote `*_v1` lineage (post-hardening) prevails over the branch's 20260911xxxx files (pre-hardening, SOURCE_FILE_PARTIAL per docs/REMOTE_MIGRATION_LEDGER.md).
+2. **RESOLVED (2026-09-15)**: bucket naming confirmed remote-canonical as `tenant-public` / `tenant-private` (owner-validated). Branch `tenant-media-*` names are obsolete.
+3. FB TS path convention (`tenants/<uuid>/...`) vs CG/remote storage (`<uuid>/...`) — **RESOLVED at application layer (2026-09-15)**: `tenantMediaPath()` now emits `<uuid>/<folder>/<file>` (UUID first segment, lowercase, structural traversal guard); remote policies untouched.
+4. FB plans-as-JSONB vs remote normalized plan_entitlements — **RESOLVED at application layer (2026-09-15)**: saas-core now types Plan/PlanEntitlement/TenantEntitlement/TenantFeatureOverride/EffectiveEntitlement mirroring the normalized model with override precedence plan < tenant_entitlements < tenant_features.
+5. FB `tenant_features` is member-writable in FB policy vs remote entitlement security gate — moot: FB 0001 is OBSOLETE_SUPERSEDED_NOT_REMOTE (header added); remote gate prevails.
+6. saas-core TS entitlement union lacked 5 CG feature keys (`orders/projects/loyalty/inventory/support.enabled`) — **RESOLVED (2026-09-15)**: saas-core now mirrors the full 17-key catalog.
+7. **RESOLVED (2026-09-15)**: `booking.read` and `booking.write` confirmed to EXIST remotely (owner-validated). Both mirrored into saas-core with the rest of the 28-key catalog (docs/PERMISSION_ALIGNMENT.md).
 
-Never mask drift: items 1, 2 and 7 require remote inspection to resolve, not assumption.
+Never mask drift: items 1, 2 and 7 were remote-inspection questions and are now owner-confirmed, not assumed.
 
-## 21. CANONICALIZATION PROPOSAL
+## 21. CANONICALIZATION PROPOSAL — RATIFIED 2026-09-15 ✅
 
 | Group | Proposal | Rationale |
 |---|---|---|
@@ -295,9 +295,9 @@ Never mask drift: items 1, 2 and 7 require remote inspection to resolve, not ass
 | B2B layer | KEEP CHATGPT | Serves MetalArt/Machinery/LED without per-vertical forks |
 | Pet / Restaurant specifics | KEEP CHATGPT | Complete; waitlist gap deferred |
 | Religious house | KEEP CHATGPT + DEFER (dormant sensitive) | Sensitive structures stay disabled pending explicit decision |
-| Storage | KEEP CHATGPT (remote naming to be confirmed) | DB-enforced; FB TS path builder must ADAPT APPLICATION (`tenants/` prefix removal) |
-| FB `0001` migration | OBSOLETE_CANDIDATE — retire (documented, not deleted now) | Superseded; contains RLS write holes |
-| FB saas-core TS contracts | KEEP FREEBUFF, ADAPT APPLICATION | Unique value (tests, SSRF/PII guards, idempotency); align entitlement keys + plan types to CG schema |
+| Storage | KEEP REMOTE (RATIFIED: `tenant-public` / `tenant-private`) | DB-enforced; FB TS path builder ADAPTED to `<uuid>/<folder>/<file>` (media.ts, 2026-09-15) |
+| FB `0001` migration | **RATIFIED: OBSOLETE_SUPERSEDED_NOT_REMOTE** — retained as historical evidence only (header warning added), never applied remotely, DO NOT PUSH TO PRODUCTION | Superseded; contains RLS write holes |
+| FB saas-core TS contracts | **RATIFIED: KEEP FREEBUFF + ADAPT APPLICATION (DONE 2026-09-15)** | Aligned to canonical remote model: 28 permissions, 8-role matrix, 17 feature keys, normalized entitlement types + override precedence, canonical storage paths/buckets. 68/68 tests, typecheck PASS. See docs/PERMISSION_ALIGNMENT.md and docs/REMOTE_MIGRATION_LEDGER.md |
 | FB demo tenant seed | REPLACE CONCEPT — bootstrap via `create_tenant_with_owner()` with controlled demo identity | No ownerless tenant, no hard-coded demo credentials |
 | Effective entitlement logic | REQUIRES HUMAN/CHATGPT DECISION (RPC vs app-layer calc) | Security-sensitive; `entitlement_security_gate_v1` exists remotely |
 | SECURITY DEFINER RPCs | DEFER decision (keep vs Edge Functions) | Documented advisor warnings; not urgent |
@@ -347,4 +347,4 @@ Obrigatórios antes do primeiro Preview SaaS integrado:
 
 ## 25. NEXT EXACT ACTION
 
-Fetch the authoritative remote state: run a read-only `supabase db dump --schema public` (or equivalent SQL introspection) against project `mmykyzzkcugxunmekwew` plus `supabase migration list`, commit the snapshot under `supabase/remote-snapshot/`, and resolve drift items §20.1, §20.2 and §20.7 — then ratify §21 with the owner before touching any migration file.
+Ratification of §21 and resolution of §20.1/20.2/20.7 are DONE (2026-09-15). Next exact action: obtain the 4 REMOTE_ONLY hardening migrations (`security_helpers_hardening_v1`, `performance_hardening_v1`, `entitlement_security_gate_v1`, `religious_public_details_v1`) via a read-only `supabase db dump` / migration export against project `mmykyzzkcugxunmekwew`, commit under `supabase/remote-snapshot/`, and update `docs/REMOTE_MIGRATION_LEDGER.md` entries from NEEDS_EXPORT to exported — before any new local migration is written forward.
