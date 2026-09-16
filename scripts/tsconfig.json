@@ -1,0 +1,17 @@
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "strict": true,
+    "skipLibCheck": true,
+    "noEmit": true,
+    "paths": {
+      "tupiniquim-saas-core": ["../packages/saas-core/src/index.ts"],
+      "tupiniquim-database": ["../packages/database/src/index.ts"],
+      "tupiniquim-auth": ["../packages/auth/src/index.ts"],
+      "tupiniquim-tenancy": ["../packages/tenancy/src/index.ts"]
+    }
+  },
+  "include": ["."]
+}
