@@ -12,7 +12,10 @@
     "noEmit": true,
     "allowImportingTsExtensions": true,
     "paths": {
-      "tupiniquim-saas-core": ["../../packages/saas-core/src/index.ts"]
+      "tupiniquim-saas-core": ["../../packages/saas-core/src/index.ts"],
+      "tupiniquim-database": ["../../packages/database/src/index.ts"],
+      "tupiniquim-auth": ["../../packages/auth/src/index.ts"],
+      "tupiniquim-tenancy": ["../../packages/tenancy/src/index.ts"]
     }
   },
   "include": ["src"]
