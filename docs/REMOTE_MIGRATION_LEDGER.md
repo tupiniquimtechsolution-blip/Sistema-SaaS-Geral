@@ -37,3 +37,13 @@ Rule enforced by this ledger: **remote state prevails over historical/local migr
 1. Do not fabricate SQL for `REMOTE_ONLY / NEEDS_EXPORT` entries. Export read-only (`supabase db dump`) when credential access is granted, then commit under `supabase/remote-snapshot/`.
 2. New local migrations must be written **forward** from the remote state, never re-stating 0001.
 3. Remote state prevails wherever drift is proven (§20 of the reconciliation doc).
+
+## Snapshot evidence log (2026-09-16 — Wave de Integração Real 01)
+
+- Supabase CLI is NOT available in this sandbox (no binary, no authenticated session); the
+  read-only snapshot could not be produced this wave. Status: **BLOCKED_REMOTE_SNAPSHOT_CLI_ACCESS**.
+  Per the wave rules, application integration continued and was NOT blocked by this.
+- No REMOTE_ONLY migration was reclassified. When the dump is eventually produced, classify
+  entries as **REMOTE_STATE_SNAPSHOTTED** — a `db dump` proves final schema state, NOT the
+  historical SQL of a migration — and never as SOURCE_FILE_MATCHED by dump alone.
+- No database command was executed against the remote project (DATABASE MUTATIONS = NONE).

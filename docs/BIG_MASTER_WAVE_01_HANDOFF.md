@@ -10,10 +10,10 @@ freebuff/big-master-wave-01-monorepo
 51d1f0f + commits desta fase (ver COMMITS)
 
 ## FASE/STATUS
-PARTIAL — monorepo + 6/7 verticais importados + SaaS Core contracts testados + ALINHAMENTO CANÔNICO saas-core→Supabase remoto CONCLUÍDO; blocos externos classificados
+PARTIAL — monorepo + 6/7 verticais importados + SaaS Core contracts testados + ALINHAMENTO CANÔNICO concluído + **WAVE DE INTEGRAÇÃO REAL 01 EXECUTADA** (packages database/auth/tenancy + bakery LIVE READ CAPABLE + harness cross-tenant; ZERO writes remotos); blocos externos classificados
 
 ## ÚLTIMA ALTERAÇÃO
-Correção de drift live (2026-09-15): consulta DIRETA ao Supabase live provou que o alinhamento anterior espelhava snapshot histórico (28 permissions / 17 features) e não o estado real (42 permissions / 14 features). REMOTE WINS: member.ts realinhado a 42 permissions (14 novas: documents/events/loyalty/pets/projects/religious.sensitive/support) com role matrix live (owner 42, admin 40, manager 32, editor 9, catalog_manager 5, orders_manager 5, support 7, viewer 19 — admin SEM religious.sensitive.*, intencional); entitlement.ts realinhado a 14 features (removidas orders/projects/loyalty/inventory .enabled como não-canônicas, registradas em PROPOSED_FUTURE_FEATURES; adicionada religious.sensitive.enabled, default false, triple gate ENTITLEMENT+RBAC+RLS). Testes 68→86. DB não tocado (DATABASE MUTATIONS = NONE). Anteriormente: ratificação §21, adapter bakery READ CONTRACT READY, saas-core alinhado a 28/17 do snapshot.
+Wave de Integração Real 01 (2026-09-16): criados `packages/database` (client Supabase com config explícita + rejeição service_role + row contracts + read helpers RLS-backed; peer @supabase/supabase-js, zero deps novas), `packages/auth` (getSession/onAuthStateChange/signInWithPassword/signOut/projeção de usuário, sem mock), `packages/tenancy` (resolver membership-scoped puro + orquestração `resolveTenantContext` + `resolveDemoFallback` como regra de plataforma). Bakery: `mapLiveTenantToBakery` + `loadBakeryLiveConfig` (READ CONTRACT → LIVE READ CAPABLE) com política de fallback demo explícita (DEMO_MODE=true → demo-fallback sinalizado; false → erro, nunca demo como real). Harness `scripts/cross-tenant-smoke.ts` (read-only, env-driven, TEST = NOT RUN sem identidades A/B). Lockfile root regenerado (npm --package-lock-only --legacy-peer-deps; bun install ok). Supabase CLI ausente no sandbox → BLOCKED_REMOTE_SNAPSHOT_CLI_ACCESS (não bloqueia a integração). DATABASE MUTATIONS = NONE. Docs: docs/LIVE_SUPABASE_INTEGRATION.md.
 
 ## ESCOPO CANÔNICO
 - SaaS Core único alimenta verticais e apps horizontais.
@@ -73,12 +73,24 @@ DOCUMENTED + §21 RATIFIED (2026-09-15) — §20.1 CONFIRMED REMOTE STATE; §20.
 BLOCKED_PENDING_CANONICAL_DECISION — §21 ratificado; faltam as 4 migrations REMOTE_ONLY (NEEDS_EXPORT) antes de escrever novas migrations locais; db push continua proibido nesta fase
 
 ## BAKERY READ CONTRACT
-READY — apps/bakery/src/business/saas-adapter.ts: mapeia tenant/brand/theme/settings remotos → shape legado com fallback demo preservado; resolveBakeryEntitlements (precedência canônica); canReadFeature (leitura only); bakeryMediaPath/bakeryBucketFor/canUploadBakeryMedia (contratos de mídia canônicos). SEM writes remotos; layout e fallback legado intocados
+LIVE READ CAPABLE — apps/bakery/src/business/saas-adapter.ts: `mapLiveTenantToBakery` mapeia rows canônicas (tenants/tenant_brands/tenant_themes/tenant_settings + effective entitlements) → shape legado; `loadBakeryLiveConfig` orquestra resolveTenantContext com política de fallback demo explícita (source: live | demo-fallback | error). Mantidos: mapRemoteTenantToBakery, resolveBakeryEntitlements, canReadFeature, media helpers, fallback legado. SEM writes remotos; layout e fallback intocados
+
+## LIVE SUPABASE INTEGRATION (WAVE INTEGRAÇÃO REAL 01)
+DOCUMENTED + IMPLEMENTED — ver docs/LIVE_SUPABASE_INTEGRATION.md. packages/database (client explícito, service_role rejeitado em runtime), packages/auth (sessão real, sem mock), packages/tenancy (seleção de tenant restrita às memberships ativas do usuário autenticado — browser selection é UX, RLS é enforcement), política demo fallback como regra de plataforma, harness cross-tenant read-only pronto. Env contract: VITE_SUPABASE_URL / VITE_SUPABASE_PUBLISHABLE_KEY / VITE_DEMO_MODE (guard de plataforma bloqueia criação de .env.example no sandbox — contrato documentado no doc de integração)
+
+## REMOTE SNAPSHOT
+BLOCKED_REMOTE_SNAPSHOT_CLI_ACCESS — Supabase CLI ausente/sem credencial read-only no sandbox; integração da aplicação NÃO bloqueada; ledger mantém as 4 migrations REMOTE_ONLY/NEEDS_EXPORT; use REMOTE_STATE_SNAPSHOTTED (não SOURCE_FILE_MATCHED) quando o dump for obtido
 
 ## CROSS-TENANT DATABASE TEST
 NOT RUN — sem identidades controladas A/B provisionadas (release blocker documentado nas duas linhas)
 
 ## TESTES/GATES
+- packages/tenancy: **13/13** PASS (membership filtering, seleção/deny, multi-membership, default-deny, precedência, demo fallback policy); typecheck PASS
+- packages/database: **3/3** PASS (service_role rejection, client build, config validation); typecheck PASS
+- packages/auth: **3/3** PASS (projeção, null user, metadata leak); typecheck PASS
+- scripts typecheck PASS; harness probe: TEST = NOT RUN (sem env)
+- bakery: typecheck PASS + **build PASS** (vite; warning chunk three.js preexistente)
+- metalart typecheck PASS (packages compartilhados não quebram)
 - saas-core: **86/86** unit tests PASS (vitest); typecheck PASS (68→86 após correção live)
   - authorization: PERMISSIONS=42, contagens live de role (42/40/32/9/5/5/7/19), default deny, cross-tenant assert, portão religious.sensitive (owner tem, admin não tem, mesmo no próprio tenant)
   - entitlement: FEATURES=14, chaves não-canônicas rejeitadas (orders/projects/loyalty/inventory .enabled), religious.sensitive.enabled presente e default-off, validação jsonb, precedência de override
@@ -111,11 +123,12 @@ NOT RUN — sem identidades controladas A/B provisionadas (release blocker docum
 - BLOCKED billing provider — sem credencial
 
 ## PRÓXIMA AÇÃO EXATA
-1. Export read-only das 4 migrations REMOTE_ONLY (supabase db dump / migration list) contra mmykyzzkcugxunmekwew → commit em supabase/remote-snapshot/ + atualizar docs/REMOTE_MIGRATION_LEDGER.md de NEEDS_EXPORT para exportado.
-2. Quando acesso ao Templo for liberado: subtree import para apps/religious-house seguindo docs/migrations/religious-house.md.
-3. Wire backend bakery: conectar o adapter READ CONTRACT READY ao Supabase real (leitura) + cross-tenant tests A/B contra banco.
-4. Media strategy MetalArt: inventário vídeo/foto (site vs source material), plano Supabase Storage/CDN — preservação visual primeiro.
-5. CRM horizontal: definir contrato de consumo do SaaS Core (packages/saas-core já exporta tudo via index.ts).
+1. Provisionar identidades controladas A/B no Supabase (etapa controlada do owner; NÃO criar à mão em auth.users) e rodar `scripts/cross-tenant-smoke.ts` com SUPABASE_URL/PUBLISHABLE_KEY + credenciais em env → converter cross-tenant de NOT RUN para PASS/FAIL real.
+2. Export read-only das 4 migrations REMOTE_ONLY (supabase db dump / migration list) contra mmykyzzkcugxunmekwew → commit em supabase/remote-snapshot/ + atualizar docs/REMOTE_MIGRATION_LEDGER.md de NEEDS_EXPORT para REMOTE_STATE_SNAPSHOTTED.
+3. Preencher VITE_SUPABASE_URL / VITE_SUPABASE_PUBLISHABLE_KEY / VITE_DEMO_MODE=false (produção) no ambiente do bakery e exerciciar loadBakeryLiveConfig de ponta a ponta.
+4. Quando acesso ao Templo for liberado: subtree import para apps/religious-house seguindo docs/migrations/religious-house.md.
+5. Media strategy MetalArt: inventário vídeo/foto (site vs source material), plano Supabase Storage/CDN — preservação visual primeiro.
+6. CRM horizontal: definir contrato de consumo do SaaS Core (packages/saas-core já exporta tudo via index.ts).
 
 ## COMMITS
 - a7c2bbb docs: update canonical scope to include MetalArt, Templo, CRM horizontal
