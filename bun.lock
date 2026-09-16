@@ -156,9 +156,44 @@
         "vite": "^6.3.5",
       },
     },
+    "packages/auth": {
+      "name": "tupiniquim-auth",
+      "devDependencies": {
+        "@supabase/supabase-js": "^2.98.0",
+        "typescript": "^5.7.0",
+        "vitest": "^4.1.10",
+      },
+      "peerDependencies": {
+        "@supabase/supabase-js": ">=2.0.0",
+      },
+    },
+    "packages/database": {
+      "name": "tupiniquim-database",
+      "devDependencies": {
+        "@supabase/supabase-js": "^2.98.0",
+        "typescript": "^5.7.0",
+        "vitest": "^4.1.10",
+      },
+      "peerDependencies": {
+        "@supabase/supabase-js": ">=2.0.0",
+      },
+    },
     "packages/saas-core": {
       "name": "tupiniquim-saas-core",
       "devDependencies": {
+        "typescript": "^5.7.0",
+        "vitest": "^4.1.10",
+      },
+    },
+    "packages/tenancy": {
+      "name": "tupiniquim-tenancy",
+      "dependencies": {
+        "tupiniquim-auth": "*",
+        "tupiniquim-database": "*",
+        "tupiniquim-saas-core": "*",
+      },
+      "devDependencies": {
+        "@supabase/supabase-js": "^2.98.0",
         "typescript": "^5.7.0",
         "vitest": "^4.1.10",
       },
@@ -653,7 +688,11 @@
 
     "tslib": ["tslib@2.8.1", "", {}, "sha512-oJFu94HQb+KVduSUQL7wnpmqnfmLsOA/nAh6b6EH0wCEoK0/mPeXU6c3wKDV83MkOuHPRHtSXKKU99IBazS/2w=="],
 
+    "tupiniquim-auth": ["tupiniquim-auth@workspace:packages/auth"],
+
     "tupiniquim-bakery": ["tupiniquim-bakery@workspace:apps/bakery"],
+
+    "tupiniquim-database": ["tupiniquim-database@workspace:packages/database"],
 
     "tupiniquim-heavy-machinery": ["tupiniquim-heavy-machinery@workspace:apps/heavy-machinery"],
 
@@ -664,6 +703,8 @@
     "tupiniquim-restaurant": ["tupiniquim-restaurant@workspace:apps/restaurant"],
 
     "tupiniquim-saas-core": ["tupiniquim-saas-core@workspace:packages/saas-core"],
+
+    "tupiniquim-tenancy": ["tupiniquim-tenancy@workspace:packages/tenancy"],
 
     "typescript": ["typescript@5.9.3", "", { "bin": { "tsc": "bin/tsc", "tsserver": "bin/tsserver" } }, "sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw=="],
 
