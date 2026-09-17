@@ -82,13 +82,13 @@ DOCUMENTED + IMPLEMENTED — ver docs/LIVE_SUPABASE_INTEGRATION.md. packages/dat
 BLOCKED_REMOTE_SNAPSHOT_CLI_ACCESS — Supabase CLI ausente/sem credencial read-only no sandbox; integração da aplicação NÃO bloqueada; ledger mantém as 4 migrations REMOTE_ONLY/NEEDS_EXPORT; use REMOTE_STATE_SNAPSHOTTED (não SOURCE_FILE_MATCHED) quando o dump for obtido
 
 ## CROSS-TENANT DATABASE TEST
-NOT RUN — sem identidades controladas A/B provisionadas (release blocker documentado nas duas linhas)
+**PASS — 2026-09-17 (LIVE, publishable key, projeto mmykyzzkcugxunmekwew).** Identidades A/B provisionadas via RPC canônica `create_tenant_with_owner(p_name, p_slug, p_vertical_id)` (assinatura real descoberta por introspecção — a versão de branch com p_demo NÃO existe no remoto). Gate completo 58/58: matriz de leitura A→A/A→B/B→B/B→A negada cross-tenant em 11 tabelas (tenants, brands, themes, settings, memberships, subscriptions, entitlements, features, contacts, products, bookings); write isolation (QA_RLS_ em contacts): create own ALLOW, create cross DENY por RLS, update cross 0 rows affected; membership isolation e entitlement isolation provadas do banco real. Evidência completa: docs/CROSS_TENANT_RLS_EVIDENCE.md. Storage cross-tenant: PARTIAL (harness pendente, não mascara DB). RELEASE BLOCKER: NO. DATABASE MUTATIONS: apenas dados QA prefixados QA_RLS_ (removidos pelo próprio dono no fim do gate) + tenants/memberships QA via RPC canônica
 
 ## TESTES/GATES
 - packages/tenancy: **13/13** PASS (membership filtering, seleção/deny, multi-membership, default-deny, precedência, demo fallback policy); typecheck PASS
 - packages/database: **3/3** PASS (service_role rejection, client build, config validation); typecheck PASS
 - packages/auth: **3/3** PASS (projeção, null user, metadata leak); typecheck PASS
-- scripts typecheck PASS; harness probe: TEST = NOT RUN (sem env)
+- scripts typecheck PASS; **cross-tenant LIVE: PASS 58/58 (2026-09-17)**; smoke A/B PASS; bakery live read PASS (VITE_DEMO_MODE=false, tenant QA e63de944, brand/theme/settings/entitlements live, sem fallback Fornalha)
 - bakery: typecheck PASS + **build PASS** (vite; warning chunk three.js preexistente)
 - metalart typecheck PASS (packages compartilhados não quebram)
 - saas-core: **86/86** unit tests PASS (vitest); typecheck PASS (68→86 após correção live)
@@ -103,7 +103,7 @@ NOT RUN — sem identidades controladas A/B provisionadas (release blocker docum
 - MetalArt: typecheck PASS (bun tsc --noEmit); bakery: typecheck PASS com adapter READ CONTRACT READY
 - bakery/pet/restaurant/heavy-machinery: typecheck + build PASS (sessões anteriores)
 - Install raiz: npm arborist quebra com edge case vitest-peer (erro edgesOut); bun install funciona (191 pacotes) — usar bun para tooling do saas-core
-- RLS/cross-tenant em banco real: NOT RUN (sem execução remota nesta wave, por decisão)
+- RLS/cross-tenant em banco real: **PASS (2026-09-17, live)** — ver CROSS-TENANT DATABASE TEST acima
 - E2E: NOT RUN
 - Lint: NOT RUN
 

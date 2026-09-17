@@ -106,7 +106,9 @@ Implementada como regra de plataforma em `packages/tenancy/src/demo-fallback.ts`
 
 ## CROSS-TENANT HARNESS
 
-`scripts/cross-tenant-smoke.ts` — read-only, env-driven (`SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, `TEST_A_EMAIL/PASSWORD`, `TEST_B_EMAIL/PASSWORD`, opcionais `TEST_A/B_TENANT_ID`). Fluxo previsto: auth A → tenants A; auth B → tenants B; A→A allow; A→B deny/empty (probes em tenants, tenant_brands, tenant_settings, tenant_entitlements); B→B allow; B→A deny/empty. Sem credenciais → `TEST = NOT RUN` (não mocka PASS). Credenciais A/B: etapa controlada separada — NÃO criadas nesta Wave.
+`scripts/cross-tenant-smoke.ts` — read-only, env-driven (`SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, `TEST_A_EMAIL/PASSWORD`, `TEST_B_EMAIL/PASSWORD`, opcionais `TEST_A/B_TENANT_ID` / `TEST_A/B_TENANT_SLUG`). Fluxo previsto: auth A → tenants A; auth B → tenants B; A→A allow; A→B deny/empty (probes em tenants, tenant_brands, tenant_settings, tenant_entitlements); B→B allow; B→A deny/empty. Sem credenciais → `TEST = NOT RUN` (não mocka PASS).
+
+**EXECUTADO (2026-09-17): smoke PASS + gate completo 58/58 PASS + provisionamento live via RPC canônica + bakery live read PASS. Evidência completa: `docs/CROSS_TENANT_RLS_EVIDENCE.md`. Tooling adicional: `key-probe.ts`, `env-doctor.ts`, `rpc-introspect.ts`, `provision-cross-tenant-qa.ts` (RPC real: `create_tenant_with_owner(p_name, p_slug, p_vertical_id)` — sem p_demo), `rls-gate.ts`, `bakery-live-read.ts`.**
 
 ## TEST STATUS
 
@@ -119,19 +121,20 @@ Implementada como regra de plataforma em `packages/tenancy/src/demo-fallback.ts`
 | auth tests | PASS — 3/3 (projection, null, metadata leak) |
 | tenancy tests | PASS — 13/13 (membership filtering, selection/deny, multi-membership, default-deny, precedência, demo policy) |
 | scripts typecheck | PASS |
-| cross-tenant real A/B | NOT RUN (identidades controladas não existem — etapa separada) |
+| cross-tenant real A/B | **PASS — 2026-09-17** (smoke PASS; gate 58/58; evidência: CROSS_TENANT_RLS_EVIDENCE.md) |
 | bakery typecheck | PASS |
 | bakery build | PASS (`vite build`, warning de chunk preexistente three.js) |
 | metalart typecheck | PASS (packages compartilhados não quebram) |
-| RLS / auth real / cross-tenant DB | NOT RUN (banco não tocado — DATABASE MUTATIONS = NONE) |
+| RLS / auth real / cross-tenant DB | **PASS — 2026-09-17** (live, publishable key; DATABASE MUTATIONS = dados QA prefixados `QA_RLS_`, removidos ao final) |
+| Storage cross-tenant | PARTIAL (harness de storage ainda não implementado; não mascara DB RLS) |
 
 ## BLOCKERS
 
 - `BLOCKED_REMOTE_SNAPSHOT_CLI_ACCESS` — Supabase CLI não disponível/autenticado no sandbox; snapshot read-only (`db dump`, `migration list`) permanece pendente; ledger mantém 4 migrations REMOTE_ONLY/NEEDS_EXPORT.
 - `.env.example` não pode ser criado por guard de plataforma (contrato documentado acima).
-- Identidades A/B controladas não provisionadas (etapa controlada separada).
+- ~~Identidades A/B controladas não provisionadas~~ RESOLVIDO 2026-09-17 (provisionadas via RPC canônica; gate PASS).
 - `BLOCKED_SOURCE_REPOSITORY_LED` · `BLOCKED_FREEBUFF_REPOSITORY_ACCESS_TEMPLO` · billing provider (unchanged).
 
 ## NEXT EXACT ACTION
 
-Criar as duas identidades controladas A/B no Supabase (etapa controlada do owner), exportar o snapshot read-only quando houver CLI/credencial, e rodar `scripts/cross-tenant-smoke.ts` com as credenciais em env para converter o cross-tenant de NOT RUN para PASS/FAIL real.
+Exportar o snapshot read-only do remoto (`supabase db dump --schema public` + `supabase migration list`) quando houver CLI/credencial — o gate cross-tenant já está PASS; o próximo passo canônico é fechar o STORAGE cross-tenant (PARTIAL) com um harness de storage e, depois, o snapshot das 4 migrations REMOTE_ONLY.
