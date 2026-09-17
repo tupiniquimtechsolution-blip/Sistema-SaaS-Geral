@@ -121,13 +121,14 @@ BLOCKED_REMOTE_SNAPSHOT_CLI_ACCESS — Supabase CLI ausente/sem credencial read-
 - BLOCKED_REMOTE_SCHEMA_SNAPSHOT — dump remoto (read-only) exige acesso Supabase não exercido nesta sessão (4 migrations NEEDS_EXPORT no ledger)
 - RESOLVIDO: BLOCKED_CANONICAL_DECISION — §21 RATIFICADO em 2026-09-15
 - BLOCKED billing provider — sem credencial
+- PUBLIC STORAGE FUNCTIONALITY (novo, funcional — NÃO é leak): uploads own-path em tenant-public negados por RLS para owners autenticados (tenants QA status live = trialing; suspeita: policy filtra status; root cause SUSPECTED). Isolamento de storage provado PASS — ver docs/STORAGE_CROSS_TENANT_EVIDENCE.md
 
 ## PRÓXIMA AÇÃO EXATA
-1. Provisionar identidades controladas A/B no Supabase (etapa controlada do owner; NÃO criar à mão em auth.users) e rodar `scripts/cross-tenant-smoke.ts` com SUPABASE_URL/PUBLISHABLE_KEY + credenciais em env → converter cross-tenant de NOT RUN para PASS/FAIL real.
-2. Export read-only das 4 migrations REMOTE_ONLY (supabase db dump / migration list) contra mmykyzzkcugxunmekwew → commit em supabase/remote-snapshot/ + atualizar docs/REMOTE_MIGRATION_LEDGER.md de NEEDS_EXPORT para REMOTE_STATE_SNAPSHOTTED.
-3. Preencher VITE_SUPABASE_URL / VITE_SUPABASE_PUBLISHABLE_KEY / VITE_DEMO_MODE=false (produção) no ambiente do bakery e exerciciar loadBakeryLiveConfig de ponta a ponta.
+1. RESOLVIDO 2026-09-17: cross-tenant DB real = PASS (58/58) + storage isolation = PASS (12/12 private, cross-write 4/4 negado) + bakery live read = PASS com VITE_DEMO_MODE=false. Evidência: docs/CROSS_TENANT_RLS_EVIDENCE.md + docs/STORAGE_CROSS_TENANT_EVIDENCE.md.
+2. Investigar root cause do blocker funcional de public storage (inspeção read-only de pg_policies quando autorizado OU re-teste com tenant status active) — SEM alterar policies automaticamente.
+3. Export read-only das 4 migrations REMOTE_ONLY (supabase db dump / migration list) contra mmykyzzkcugxunmekwew → commit em supabase/remote-snapshot/ + atualizar docs/REMOTE_MIGRATION_LEDGER.md de NEEDS_EXPORT para REMOTE_STATE_SNAPSHOTTED.
 4. Quando acesso ao Templo for liberado: subtree import para apps/religious-house seguindo docs/migrations/religious-house.md.
-5. Media strategy MetalArt: inventário vídeo/foto (site vs source material), plano Supabase Storage/CDN — preservação visual primeiro.
+5. Media strategy MetalArt: inventário vídeo/foto (site vs source material), plano Supabase Storage/CDN — preservação visual primeiro (requer public storage funcional resolvido).
 6. CRM horizontal: definir contrato de consumo do SaaS Core (packages/saas-core já exporta tudo via index.ts).
 
 ## COMMITS
@@ -144,3 +145,8 @@ BLOCKED_REMOTE_SNAPSHOT_CLI_ACCESS — Supabase CLI ausente/sem credencial read-
 - (docs push: branch sincronizada com remote em 7d0927b; push inicial 3434068..7d0927b executado)
 - (reconciliação: docs/SUPABASE_RECONCILIATION_FREEBUFF_VS_CHATGPT.md criada — commit desta wave)
 - (commits anteriores: workspace root, core contracts, gitignore+led placeholder, db schema+seed, imports subtree bakery/pet/restaurant/heavy-machinery)
+- f894df6 fix(qa): align tenant provisioner with live RPC signature (p_plan_id DEFAULT 'starter')
+- b03763c test(security): full live RLS gate and bakery live-read gates
+- 15331dc docs(qa): record live cross-tenant RLS evidence and Vercel preview readiness
+- 1f04835 test(security): add QA cleanup verification for RLS gate
+- (storage wave: cross-tenant-storage-smoke + evidence — commit desta rodada)

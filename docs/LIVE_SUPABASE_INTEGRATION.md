@@ -108,7 +108,7 @@ Implementada como regra de plataforma em `packages/tenancy/src/demo-fallback.ts`
 
 `scripts/cross-tenant-smoke.ts` — read-only, env-driven (`SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, `TEST_A_EMAIL/PASSWORD`, `TEST_B_EMAIL/PASSWORD`, opcionais `TEST_A/B_TENANT_ID` / `TEST_A/B_TENANT_SLUG`). Fluxo previsto: auth A → tenants A; auth B → tenants B; A→A allow; A→B deny/empty (probes em tenants, tenant_brands, tenant_settings, tenant_entitlements); B→B allow; B→A deny/empty. Sem credenciais → `TEST = NOT RUN` (não mocka PASS).
 
-**EXECUTADO (2026-09-17): smoke PASS + gate completo 58/58 PASS + provisionamento live via RPC canônica + bakery live read PASS. Evidência completa: `docs/CROSS_TENANT_RLS_EVIDENCE.md`. Tooling adicional: `key-probe.ts`, `env-doctor.ts`, `rpc-introspect.ts`, `provision-cross-tenant-qa.ts` (RPC real: `create_tenant_with_owner(p_name, p_slug, p_vertical_id)` — sem p_demo), `rls-gate.ts`, `bakery-live-read.ts`.**
+**EXECUTADO (2026-09-17): smoke PASS + gate completo 58/58 PASS + provisionamento live via RPC canônica + bakery live read PASS. Evidência completa: `docs/CROSS_TENANT_RLS_EVIDENCE.md`. Tooling adicional: `key-probe.ts`, `env-doctor.ts`, `rpc-introspect.ts`, `provision-cross-tenant-qa.ts` (RPC live: `create_tenant_with_owner(p_name, p_slug, p_vertical_id, p_plan_id DEFAULT 'starter')` — 4 args, p_plan_id opcional), `rls-gate.ts`, `bakery-live-read.ts`.**
 
 ## TEST STATUS
 
@@ -126,7 +126,7 @@ Implementada como regra de plataforma em `packages/tenancy/src/demo-fallback.ts`
 | bakery build | PASS (`vite build`, warning de chunk preexistente three.js) |
 | metalart typecheck | PASS (packages compartilhados não quebram) |
 | RLS / auth real / cross-tenant DB | **PASS — 2026-09-17** (live, publishable key; DATABASE MUTATIONS = dados QA prefixados `QA_RLS_`, removidos ao final) |
-| Storage cross-tenant | PARTIAL (harness de storage ainda não implementado; não mascara DB RLS) |
+| Storage cross-tenant | **EXECUTADO — 2026-09-17**: STORAGE ISOLATION = PASS (zero leaks: private own/cross upload/read/update/delete 12/12 negados; cross-write público 4/4 negado). PUBLIC READ FUNCTIONALITY = FAIL (blocker funcional separado, não-bloqueante p/ preview de leitura). Evidência: `docs/STORAGE_CROSS_TENANT_EVIDENCE.md`; harness: `scripts/cross-tenant-storage-smoke.ts` |
 
 ## BLOCKERS
 
@@ -137,4 +137,4 @@ Implementada como regra de plataforma em `packages/tenancy/src/demo-fallback.ts`
 
 ## NEXT EXACT ACTION
 
-Exportar o snapshot read-only do remoto (`supabase db dump --schema public` + `supabase migration list`) quando houver CLI/credencial — o gate cross-tenant já está PASS; o próximo passo canônico é fechar o STORAGE cross-tenant (PARTIAL) com um harness de storage e, depois, o snapshot das 4 migrations REMOTE_ONLY.
+STORAGE cross-tenant fechado (ISOLATION PASS; PUBLIC FUNCTIONALITY FAIL registrado como blocker funcional). Próximo passo canônico: investigar a root cause da policy pública (inspeção read-only de `pg_policies` quando autorizado, ou re-teste empírico com tenant status `active`) — SEM alterar policies automaticamente — e, em paralelo, exportar o snapshot read-only do remoto (`supabase db dump --schema public` + `supabase migration list`) quando houver CLI/credencial.
