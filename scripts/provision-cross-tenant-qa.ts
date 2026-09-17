@@ -18,7 +18,7 @@ declare const process: {
  *   TEST_B_EMAIL / TEST_B_PASSWORD            controlled identity B
  *   TEST_A_TENANT_SLUG / TEST_B_TENANT_SLUG   desired tenant slugs
  *   QA_VERTICAL_ID                            vertical_registry.id (default 'bakery')
- *   QA_PLAN_ID                                reserved for a later phase (unused here)
+ *   QA_PLAN_ID                                plan passed as p_plan_id (default 'starter')
  *   ALLOW_REMOTE_QA_WRITES                    must be truthy to allow the tenant RPC call
  *
  * IDEMPOTENCY: uses each identity's existing active membership when present;
@@ -42,6 +42,7 @@ interface ProvisionEnv {
   a: { email: string; password: string; slug: string };
   b: { email: string; password: string; slug: string };
   verticalId: string;
+  planId: string;
   allowRemoteQaWrites: boolean;
 }
 
@@ -77,6 +78,7 @@ export function readProvisionEnv(): ProvisionEnv | null {
     a: { email: aEmail, password: aPassword, slug: aSlug },
     b: { email: bEmail, password: bPassword, slug: bSlug },
     verticalId: env["QA_VERTICAL_ID"] || "bakery",
+    planId: env["QA_PLAN_ID"] || "starter",
     allowRemoteQaWrites: /^(1|true|yes)$/i.test(env["ALLOW_REMOTE_QA_WRITES"] ?? ""),
   };
 }
@@ -88,6 +90,7 @@ async function provisionOne(
   env: { url: string; publishableKey: string },
   who: { email: string; password: string; slug: string },
   verticalId: string,
+  planId: string,
   allowWrites: boolean,
 ): Promise<{ checks: Check[]; tenantId?: string }> {
   const checks: Check[] = [];
@@ -145,12 +148,19 @@ async function provisionOne(
   }
 
   const { data: tenantId, error: rpcError } = await client.rpc("create_tenant_with_owner", {
-    // REAL remote signature (probed live via PostgREST schema-cache hints):
-    // create_tenant_with_owner(p_name text, p_slug text, p_vertical_id text)
-    // — NO p_demo param (that was the historical branch version; remote wins).
+    // LIVE remote signature (confirmed by owner against the canonical project):
+    //   create_tenant_with_owner(
+    //     p_name text, p_slug text, p_vertical_id text,
+    //     p_plan_id text DEFAULT 'starter' )
+    // p_plan_id is OPTIONAL via its default; we pass it explicitly so the
+    // created tenant's plan is deterministic. Historical note: earlier runs
+    // used the branch-era 3-arg shape (p_demo instead of p_plan_id) and the
+    // remote default 'starter' was applied → QA tenants landed starter/
+    // trialing, not demo. Registered in docs/CROSS_TENANT_RLS_EVIDENCE.md.
     p_name: `QA ${who.slug} tenant`,
     p_slug: who.slug,
     p_vertical_id: verticalId,
+    p_plan_id: planId,
   });
   if (rpcError) {
     // Duplicate slug = slug already exists (owned by another user).
@@ -182,12 +192,12 @@ export async function runProvisioner(
     return { status: "NOT_RUN", checks: [] };
   }
   console.log(
-    `[provision] ALLOW_REMOTE_QA_WRITES=${env.allowRemoteQaWrites ? "true" : "false"} vertical=${env.verticalId}`,
+    `[provision] ALLOW_REMOTE_QA_WRITES=${env.allowRemoteQaWrites ? "true" : "false"} vertical=${env.verticalId} plan=${env.planId}`,
   );
 
   const checks: Check[] = [];
-  const a = await provisionOne(createClientFn, env, env.a, env.verticalId, env.allowRemoteQaWrites);
-  const b = await provisionOne(createClientFn, env, env.b, env.verticalId, env.allowRemoteQaWrites);
+  const a = await provisionOne(createClientFn, env, env.a, env.verticalId, env.planId, env.allowRemoteQaWrites);
+  const b = await provisionOne(createClientFn, env, env.b, env.verticalId, env.planId, env.allowRemoteQaWrites);
   checks.push(...a.checks, ...b.checks);
 
   if (a.tenantId && b.tenantId && a.tenantId === b.tenantId) {
