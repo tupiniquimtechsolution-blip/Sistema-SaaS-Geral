@@ -20,7 +20,7 @@ apenas valores publishable/browser.
 | Usuários controlados A/B | READY | Provisionados via RPC canônica; isolamento provado |
 | Cross-tenant negative tests | READY | A→B e B→A negados (leitura e escrita) |
 | Bakery live read | READY | scripts/bakery-live-read.ts PASS — brand/theme/settings/entitlements live, sem fallback Fornalha |
-| Storage security | READY (isolamento) | Storage gate live: PRIVATE ISOLATION PASS 12/12, cross-write DENY 4/4, zero leaks (docs/STORAGE_CROSS_TENANT_EVIDENCE.md). Ressalva funcional não-bloqueante: uploads own-path em `tenant-public` negados por RLS p/ owners autenticados (PUBLIC READ FUNCTIONALITY = FAIL) — preview de leitura não depende disso |
+| Storage security | READY (isolamento) | Storage gate live: PRIVATE ISOLATION PASS 12/12, cross-write DENY 4/4, zero leaks (docs/STORAGE_CROSS_TENANT_EVIDENCE.md). Blocker funcional diagnóstico COMPLETO: root cause `tenant_public_read` CONFIRMED (`storage_tenant_id(t.name)` aplica a fn ao nome do tenant, não ao path) — migration forward-only preparada localmente, REMOTE APPLY STATUS = NOT APPLIED (docs/PUBLIC_STORAGE_POLICY_FIX.md). INSERT público puro = PASS; falha específica = upsert + SELECT RLS-governed. Preview de leitura não depende |
 | Build | READY | bakery build PASS (vite); typechecks PASS |
 | Typecheck | READY | saas-core/database/auth/tenancy/bakery PASS |
 | Unit/security tests | READY | saas-core 86/86, database 3/3, auth 3/3, tenancy 13/13 |
@@ -33,12 +33,15 @@ apenas valores publishable/browser.
 `VITE_DEMO_MODE=false`), com duas ressalvas explícitas e não-bloqueantes:
 
 1. **Storage isolation = PASS** (2026-09-17, live): 12/12 checks privados
-   A/B own/cross (upload/read/update/delete) e 4/4 cross-write públicos negados.
-   **Blocker funcional registrado (não-bloqueante p/ preview de leitura):**
-   uploads own-path em `tenant-public` são negados por RLS para owners
-   autenticados (suspeita: policy filtra tenant status `trialing`; root cause
-   SUSPECTED — ver POLICY FINDINGS em docs/STORAGE_CROSS_TENANT_EVIDENCE.md).
-   Qualquer preview com funcionalidade de upload real requer resolução ANTES.
+   A/B own/cross (upload/read/update/delete) e cross-write público negado.
+   **Blocker funcional DIAGNOSTICADO (não-bloqueante p/ preview de leitura):**
+   root cause CONFIRMED — `tenant_public_read` aplica `storage_tenant_id(t.name)`
+   ao nome do tenant em vez de `storage.objects.name`; hipótese do "trialing"
+   REJEITADA (insert policy não verifica status). INSERT público puro PASS;
+   upsert falha por interferência da SELECT quebrada. Migration forward-only
+   `20260917120000_fix_tenant_public_read_policy.sql` preparada localmente,
+   **NOT APPLIED** (docs/PUBLIC_STORAGE_POLICY_FIX.md). Qualquer preview com
+   upload real requer apply autorizado + re-teste ANTES.
 2. **Remote migration snapshot = BLOCKED** — pendente de CLI/credencial
    read-only; não afeta o preview, mas precede qualquer decisão de migration.
 

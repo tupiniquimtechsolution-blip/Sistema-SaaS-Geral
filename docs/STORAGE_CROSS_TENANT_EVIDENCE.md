@@ -57,30 +57,45 @@ Indisponibilidade ≠ vazamento: o FAIL de public é funcionalidade, registrado 
 
 ## POLICY FINDINGS — `tenant_public_read` / insert público
 
+**ATUALIZADO 2026-09-17 (2ª rodada): hipótese do trialing REJEITADA; root cause CONFIRMED.**
+
 ```
 POLICY (documentada live): tenant_media_insert · tenant_media_update ·
   tenant_media_delete · tenant_private_read · tenant_public_read
-EXPECTED: owner autenticado com media.write consegue gravar own-path em
-  tenant-public; objeto público legível anonimamente para tenant em status
-  permitido pela policy.
-ACTUAL: upload own-path em tenant-public NEGADO ("new row violates row-level
-  security policy") para os MESMOS atores/permission que gravam com sucesso em
-  tenant-private. Anonymous read consequentemente DENY (objeto inexistente).
-SUSPECTED EXPRESSION: a policy de insert de tenant-public provavelmente exige
-  tenant status em um conjunto que exclui 'trialing' (ex.: status = 'active'),
-  enquanto a policy do bucket privado não filtra status — hipótese consistente
-  com os dois tenants QA estarem em status live = 'trialing'.
-ROOT CAUSE: SUSPECTED (não confirmado — nenhuma consulta a pg_policies nesta
-  rodada; nenhuma policy foi alterada).
+
+HISTORICAL ASSUMPTION (RODADA 1):
+  "tenant-public falha porque tenant status = trialing"
+  → REJEITADA (NOT SUPPORTED BY LIVE INSERT POLICY): tenant_media_insert é
+  genérica para ambos os buckets (bucket_id permitido + storage_tenant_id(name)
+  válido + has_tenant_permission('media.write')) e NÃO verifica tenant.status.
+
+BUG CONFIRMED (tenant_public_read):
+  A expressão live contém storage_tenant_id(t.name) onde t é a tabela tenants —
+  aplica storage_tenant_id() ao NOME DO TENANT em vez de storage.objects.name
+  (o path do objeto). SELECT público estruturalmente incorreto.
+  ROOT CAUSE PUBLIC READ: CONFIRMED (pg_policies + evidência empírica abaixo).
+
+EMPIRICAL PROOF (harness, rodada 2):
+  public:insert-only A/B own (upsert=false, filename único) → ALLOW
+  public:insert-only A→B / B→A                            → DENY (isolamento OK)
+  public:upload A/B own (upsert=true)                     → DENY
+  → PUBLIC INSERT POLICY: PASS · PUBLIC UPSERT: FAIL
+  → ROOT CAUSE UPSERT: CONFIRMED — a policy SELECT quebrada interfere no fluxo
+    de upsert (INSERT + SELECT/UPDATE internos). Mesmo ator/bucket, única
+    variável = upsert.
+  public:anon-list governed (RLS SELECT) sobre pasta com objeto existente
+    → EMPTY (0 rows) — policy SELECT quebrada nega
+  mesma objeto via rota /object/public/ (bypass de RLS) → ALLOW
+
+MIGRATION CANDIDATA (LOCAL, NÃO APLICADA):
+  supabase/migrations/20260917120000_fix_tenant_public_read_policy.sql
+  substitui SOMENTE tenant_public_read. Ver docs/PUBLIC_STORAGE_POLICY_FIX.md
+  (REMOTE APPLY STATUS: NOT APPLIED).
 ```
 
 Contexto capturado pelo harness: `tenant-status — A=trialing B=trialing (live read — policy-finding context)`.
 
-Próximo passo diagnóstico (sem mutação): confirmar a expressão real da policy
-(`pg_policies`) quando o owner autorizar a inspeção, e decidir entre
-(a) ativar status `active` nos tenants QA para re-teste empírico ou
-(b) revisão de policy pelo dono do schema. **Nenhuma alteração de policy foi
-feita ou será feita automaticamente.**
+**Nenhuma policy foi alterada remotamente nesta Wave.**
 
 ## Impacto no preview
 

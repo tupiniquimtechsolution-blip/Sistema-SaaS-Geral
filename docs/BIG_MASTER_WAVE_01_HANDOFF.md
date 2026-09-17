@@ -121,11 +121,11 @@ BLOCKED_REMOTE_SNAPSHOT_CLI_ACCESS — Supabase CLI ausente/sem credencial read-
 - BLOCKED_REMOTE_SCHEMA_SNAPSHOT — dump remoto (read-only) exige acesso Supabase não exercido nesta sessão (4 migrations NEEDS_EXPORT no ledger)
 - RESOLVIDO: BLOCKED_CANONICAL_DECISION — §21 RATIFICADO em 2026-09-15
 - BLOCKED billing provider — sem credencial
-- PUBLIC STORAGE FUNCTIONALITY (novo, funcional — NÃO é leak): uploads own-path em tenant-public negados por RLS para owners autenticados (tenants QA status live = trialing; suspeita: policy filtra status; root cause SUSPECTED). Isolamento de storage provado PASS — ver docs/STORAGE_CROSS_TENANT_EVIDENCE.md
+- PUBLIC STORAGE FUNCTIONALITY (funcional — NÃO é leak): ROOT CAUSE CONFIRMED — tenant_public_read aplica storage_tenant_id(t.name) ao NOME DO TENANT em vez de storage.objects.name (bug estrutural da SELECT pública). Hipótese do trialing REJEITADA (insert policy não verifica status). INSERT público puro PASS; upsert falha por interferência da SELECT quebrada. Migration forward-only 20260917120000_fix_tenant_public_read_policy.sql preparada LOCALMENTE — REMOTE APPLY STATUS: NOT APPLIED (docs/PUBLIC_STORAGE_POLICY_FIX.md). Isolamento provado PASS — docs/STORAGE_CROSS_TENANT_EVIDENCE.md
 
 ## PRÓXIMA AÇÃO EXATA
 1. RESOLVIDO 2026-09-17: cross-tenant DB real = PASS (58/58) + storage isolation = PASS (12/12 private, cross-write 4/4 negado) + bakery live read = PASS com VITE_DEMO_MODE=false. Evidência: docs/CROSS_TENANT_RLS_EVIDENCE.md + docs/STORAGE_CROSS_TENANT_EVIDENCE.md.
-2. Investigar root cause do blocker funcional de public storage (inspeção read-only de pg_policies quando autorizado OU re-teste com tenant status active) — SEM alterar policies automaticamente.
+2. RESOLVIDO 2026-09-17 (diagnóstico): root cause do public storage CONFIRMADO (tenant_public_read quebrada; trialing hypothesis REJEITADA). Migration forward-only preparada localmente (NOT APPLIED). Próximo: com autorização explícita do owner → capturar pg_policies atual (backup) → aplicar 20260917120000_fix_tenant_public_read_policy.sql → re-executar scripts/cross-tenant-storage-smoke.ts e validar tabela before/after de docs/PUBLIC_STORAGE_POLICY_FIX.md.
 3. Export read-only das 4 migrations REMOTE_ONLY (supabase db dump / migration list) contra mmykyzzkcugxunmekwew → commit em supabase/remote-snapshot/ + atualizar docs/REMOTE_MIGRATION_LEDGER.md de NEEDS_EXPORT para REMOTE_STATE_SNAPSHOTTED.
 4. Quando acesso ao Templo for liberado: subtree import para apps/religious-house seguindo docs/migrations/religious-house.md.
 5. Media strategy MetalArt: inventário vídeo/foto (site vs source material), plano Supabase Storage/CDN — preservação visual primeiro (requer public storage funcional resolvido).
