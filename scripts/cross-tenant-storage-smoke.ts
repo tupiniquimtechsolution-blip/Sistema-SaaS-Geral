@@ -211,10 +211,10 @@ export async function runStorageSmoke(
 
   // ---------------- PUBLIC ----------------
   const aPubUp = await clientA.storage.from(PUBLIC_BUCKET).upload(objectPath(tenantA, "public-a.png"), PNG_BYTES, { contentType: MIME, upsert: true });
-  add("public:upload A own", !aPubUp.error, aPubUp.error?.message ?? "uploaded");
+  add("public:upload A own (upsert)", !aPubUp.error, aPubUp.error?.message ?? "uploaded");
 
   const bPubUp = await clientB.storage.from(PUBLIC_BUCKET).upload(objectPath(tenantB, "public-b.png"), PNG_BYTES, { contentType: MIME, upsert: true });
-  add("public:upload B own", !bPubUp.error, bPubUp.error?.message ?? "uploaded");
+  add("public:upload B own (upsert)", !bPubUp.error, bPubUp.error?.message ?? "uploaded");
 
   const aPubToB = await clientA.storage.from(PUBLIC_BUCKET).upload(objectPath(tenantB, "public-b.png"), PNG_BYTES, { contentType: MIME, upsert: true });
   add("public:upload A→B", Boolean(aPubToB.error), aPubToB.error ? `denied: ${aPubToB.error.message}` : "LEAK: A wrote B's public path");
@@ -222,20 +222,59 @@ export async function runStorageSmoke(
   const bPubToA = await clientB.storage.from(PUBLIC_BUCKET).upload(objectPath(tenantA, "public-a.png"), PNG_BYTES, { contentType: MIME, upsert: true });
   add("public:upload B→A", Boolean(bPubToA.error), bPubToA.error ? `denied: ${bPubToA.error.message}` : "LEAK: B wrote A's public path");
 
-  // Read-own/cleanup for public objects only make sense if the object exists.
-  // When upload was denied by policy, record NOT RUN (blocked) instead of a
-  // cascading failure — the availability failure is already recorded above.
+  // ---- PUBLIC INSERT-ONLY ISOLATION (unique filename, upsert=false) ----
+  // Isolates a pure INSERT from the upsert path: upsert may involve
+  // SELECT/UPDATE internally, so a broken public SELECT policy can fail an
+  // upsert even when the INSERT policy is correct. Unique timestamped files
+  // guarantee no prior object exists (no upsert semantics possible).
+  const runId = Date.now().toString(36);
+  const aInsPath = objectPath(tenantA, `public-insert-only-${runId}.png`);
+  const bInsPath = objectPath(tenantB, `public-insert-only-${runId}.png`);
+  const aIns = await clientA.storage.from(PUBLIC_BUCKET).upload(aInsPath, PNG_BYTES, { contentType: MIME, upsert: false });
+  add(
+    "public:insert-only A own",
+    !aIns.error,
+    aIns.error ? `denied: ${aIns.error.message}` : `uploaded (${aInsPath.split("/").pop()})`,
+  );
+  const bIns = await clientB.storage.from(PUBLIC_BUCKET).upload(bInsPath, PNG_BYTES, { contentType: MIME, upsert: false });
+  add(
+    "public:insert-only B own",
+    !bIns.error,
+    bIns.error ? `denied: ${bIns.error.message}` : `uploaded (${bInsPath.split("/").pop()})`,
+  );
+  const aInsToB = await clientA.storage.from(PUBLIC_BUCKET).upload(bInsPath, PNG_BYTES, { contentType: MIME, upsert: false });
+  add("public:insert-only A→B", Boolean(aInsToB.error), aInsToB.error ? `denied: ${aInsToB.error.message}` : "LEAK: A inserted B's public path");
+  const bInsToA = await clientB.storage.from(PUBLIC_BUCKET).upload(aInsPath, PNG_BYTES, { contentType: MIME, upsert: false });
+  add("public:insert-only B→A", Boolean(bInsToA.error), bInsToA.error ? `denied: ${bInsToA.error.message}` : "LEAK: B inserted A's public path");
+
+  // Read-own for the INSERT-ONLY objects (guaranteed to exist iff insert
+  // succeeded) — this directly probes the SELECT path on a freshly inserted
+  // public object, no upsert interference.
+  if (!aIns.error) {
+    const aInsRead = await clientA.storage.from(PUBLIC_BUCKET).download(aInsPath);
+    add("public:read A own (authenticated, insert-only object)", !aInsRead.error, aInsRead.error ? `denied: ${aInsRead.error.message}` : "downloaded");
+  } else {
+    add("public:read A own (authenticated, insert-only object)", true, "NOT RUN — insert was denied");
+  }
+  if (!bIns.error) {
+    const bInsRead = await clientB.storage.from(PUBLIC_BUCKET).download(bInsPath);
+    add("public:read B own (authenticated, insert-only object)", !bInsRead.error, bInsRead.error ? `denied: ${bInsRead.error.message}` : "downloaded");
+  } else {
+    add("public:read B own (authenticated, insert-only object)", true, "NOT RUN — insert was denied");
+  }
+  // Upsert-path objects only exist if upsert succeeded; record NOT RUN instead
+  // of cascading failure when denied by policy.
   if (!aPubUp.error) {
     const aPubReadOwn = await clientA.storage.from(PUBLIC_BUCKET).download(objectPath(tenantA, "public-a.png"));
-    add("public:read A own (authenticated)", !aPubReadOwn.error, aPubReadOwn.error?.message ?? "downloaded");
+    add("public:read A own (upsert object)", !aPubReadOwn.error, aPubReadOwn.error?.message ?? "downloaded");
   } else {
-    add("public:read A own (authenticated)", true, "NOT RUN — no object (upload denied by policy); availability failure recorded at public:upload A own");
+    add("public:read A own (upsert object)", true, "NOT RUN — no object (upsert denied); availability failure recorded at public:upload A own (upsert)");
   }
   if (!bPubUp.error) {
     const bPubReadOwn = await clientB.storage.from(PUBLIC_BUCKET).download(objectPath(tenantB, "public-b.png"));
-    add("public:read B own (authenticated)", !bPubReadOwn.error, bPubReadOwn.error?.message ?? "downloaded");
+    add("public:read B own (upsert object)", !bPubReadOwn.error, bPubReadOwn.error?.message ?? "downloaded");
   } else {
-    add("public:read B own (authenticated)", true, "NOT RUN — no object (upload denied by policy); availability failure recorded at public:upload B own");
+    add("public:read B own (upsert object)", true, "NOT RUN — no object (upsert denied); availability failure recorded at public:upload B own (upsert)");
   }
 
   // ANONYMOUS public read — EMPIRICAL plain HTTPS GET (no sign-in).
@@ -251,55 +290,80 @@ export async function runStorageSmoke(
       return "ERROR";
     }
   };
-  const anonA = await anonProbe(objectPath(tenantA, "public-a.png"));
-  const anonB = await anonProbe(objectPath(tenantB, "public-b.png"));
-  add("public:anonymous read A", true, `ACTUAL=${anonA} (empirical — availability, not isolation)`);
-  add("public:anonymous read B", true, `ACTUAL=${anonB} (empirical — availability, not isolation)`);
+  // Anonymous probes target the INSERT-ONLY objects first (they exist iff the
+  // insert policy allowed), falling back to upsert objects when those exist.
+  const anonAPath = !aIns.error ? aInsPath : objectPath(tenantA, "public-a.png");
+  const anonBPath = !bIns.error ? bInsPath : objectPath(tenantB, "public-b.png");
+  const anonA = await anonProbe(anonAPath);
+  const anonB = await anonProbe(anonBPath);
+  add("public:anonymous read A", true, `ACTUAL=${anonA} (object: ${anonAPath.split("/").pop()}) (empirical — availability, not isolation)`);
+  add("public:anonymous read B", true, `ACTUAL=${anonB} (object: ${anonBPath.split("/").pop()}) (empirical — availability, not isolation)`);
+
+  // RLS-GOVERNED SELECT probe: storage list() is a direct storage.objects DB
+  // query — it ALWAYS evaluates tenant_public_read (no public-URL bypass like
+  // download() on public buckets, which the storage server may serve from the
+  // /object/public/ route). With the broken tenant_public_read expression
+  // (storage_tenant_id applied to the tenant NAME, per live pg_policies), an
+  // anon list over a folder containing an existing public object must return
+  // EMPTY. Non-empty here would contradict the pg_policies inspection.
+  if (!aIns.error) {
+    const anonClient = await createClientFn(env.url, env.key);
+    const anonList = await anonClient.storage.from(PUBLIC_BUCKET).list(`${tenantA}/${QA_FOLDER}`, { search: `public-insert-only-${runId}`, limit: 10 });
+    const visible = !anonList.error && (anonList.data ?? []).length > 0;
+    add(
+      "public:anon-list governed (RLS SELECT)",
+      true,
+      `ACTUAL=${anonList.error ? `ERROR (${anonList.error.message})` : visible ? "OBJECT VISIBLE" : "EMPTY (denied)"} — EXPECTED=EMPTY while tenant_public_read is broken (${anonList.error ? "error" : "0 rows"})`,
+    );
+  } else {
+    add("public:anon-list governed (RLS SELECT)", true, "NOT RUN — insert-only object does not exist");
+  }
 
   // ---------------- CLEANUP ----------------
-  const cleanups: Array<{ label: string; client: Client; bucket: string; tenantId: string; file: string }> = [
-    { label: "A private", client: clientA, bucket: PRIVATE_BUCKET, tenantId: tenantA, file: "storage-a.png" },
-    { label: "B private", client: clientB, bucket: PRIVATE_BUCKET, tenantId: tenantB, file: "storage-b.png" },
-    { label: "A public", client: clientA, bucket: PUBLIC_BUCKET, tenantId: tenantA, file: "public-a.png" },
-    { label: "B public", client: clientB, bucket: PUBLIC_BUCKET, tenantId: tenantB, file: "public-b.png" },
-  ];
-  for (const c of cleanups) {
-    // Public objects may legitimately not exist (upload denied by policy) —
-    // then "nothing removed" is the CORRECT outcome (residual=0), not a failure.
-    const publicBlocked =
-      c.bucket === PUBLIC_BUCKET &&
-      ((c.label === "A public" && Boolean(aPubUp.error)) || (c.label === "B public" && Boolean(bPubUp.error)));
-    if (publicBlocked) {
-      add(`cleanup:${c.label}`, true, "nothing to remove — upload was denied by policy (residual verified via list below)");
-      continue;
-    }
-    const r = await c.client.storage.from(c.bucket).remove([objectPath(c.tenantId, c.file)]);
-    const item = (r.data ?? []) as unknown as Array<{ name: string; error?: string | null }>;
-    // remove() reports per-object errors INSIDE data — a missing check here was a
-    // false-positive source in the first run ("removed" while deletion was denied).
-    const removed = !r.error && item.length > 0 && !item[0]?.error;
-    add(
-      `cleanup:${c.label}`,
-      removed,
-      item[0]?.error ?? r.error?.message ?? (removed ? "removed" : "nothing removed"),
-    );
-  }
-  // residual verification via list() — reads storage.objects metadata directly
-  // (deterministic), unlike download() which can hit a cached CDN response for a
-  // just-deleted private object.
+  // list() reads storage.objects metadata directly (deterministic) — unlike
+  // download(), which can hit a cached CDN response for a just-deleted object.
   const listGone = async (client: Client, bucket: string, tenantId: string, file: string) => {
     const r = await client.storage.from(bucket).list(`${tenantId}/${QA_FOLDER}`, { search: file, limit: 1 });
     if (r.error) return "LIST_ERROR";
     return (r.data ?? []).length === 0 ? "gone" : "PRESENT";
   };
+  const cleanups: Array<{ label: string; client: Client; bucket: string; tenantId: string; file: string; exists: boolean }> = [
+    { label: "A private", client: clientA, bucket: PRIVATE_BUCKET, tenantId: tenantA, file: "storage-a.png", exists: true },
+    { label: "B private", client: clientB, bucket: PRIVATE_BUCKET, tenantId: tenantB, file: "storage-b.png", exists: true },
+    { label: "A public (upsert)", client: clientA, bucket: PUBLIC_BUCKET, tenantId: tenantA, file: "public-a.png", exists: !aPubUp.error },
+    { label: "B public (upsert)", client: clientB, bucket: PUBLIC_BUCKET, tenantId: tenantB, file: "public-b.png", exists: !bPubUp.error },
+    { label: "A public (insert-only)", client: clientA, bucket: PUBLIC_BUCKET, tenantId: tenantA, file: `public-insert-only-${runId}.png`, exists: !aIns.error },
+    { label: "B public (insert-only)", client: clientB, bucket: PUBLIC_BUCKET, tenantId: tenantB, file: `public-insert-only-${runId}.png`, exists: !bIns.error },
+  ];
+  for (const c of cleanups) {
+    // Public objects may legitimately not exist (upload denied by policy) —
+    // then "nothing removed" is the CORRECT outcome (residual=0), not a failure.
+    if (c.bucket === PUBLIC_BUCKET && !c.exists) {
+      add(`cleanup:${c.label}`, true, "nothing to remove — upload was denied by policy (residual verified via list below)");
+      continue;
+    }
+    const r = await c.client.storage.from(c.bucket).remove([objectPath(c.tenantId, c.file)]);
+    const item = (r.data ?? []) as unknown as Array<{ name: string; error?: string | null }>;
+    // remove() may return an EMPTY ack even when the deletion succeeded
+    // (observed live on public-bucket objects) — the truthful pass criterion
+    // is the object being GONE (list() = storage.objects metadata), not the ack.
+    const gone = await listGone(c.client, c.bucket, c.tenantId, c.file);
+    const removed = gone === "gone";
+    add(
+      `cleanup:${c.label}`,
+      removed,
+      item[0]?.error ?? r.error?.message ?? (removed ? "removed (verified gone via list)" : `STILL PRESENT (list=${gone})`),
+    );
+  }
+  // residual verification — searches the whole qa/ prefix for any QA remainder.
   const gonePrivA = await listGone(clientA, PRIVATE_BUCKET, tenantA, "storage-a.png");
   const gonePrivB = await listGone(clientB, PRIVATE_BUCKET, tenantB, "storage-b.png");
-  const gonePubA = await listGone(clientA, PUBLIC_BUCKET, tenantA, "public-a.png");
-  const gonePubB = await listGone(clientB, PUBLIC_BUCKET, tenantB, "public-b.png");
+  const gonePubA = await listGone(clientA, PUBLIC_BUCKET, tenantA, "public");
+  const gonePubB = await listGone(clientB, PUBLIC_BUCKET, tenantB, "public");
   add(
     "QA_STORAGE_RESIDUAL",
     gonePrivA === "gone" && gonePrivB === "gone" && gonePubA === "gone" && gonePubB === "gone",
-    `private A=${gonePrivA} private B=${gonePrivB} public A=${gonePubA} public B=${gonePubB}`,
+    `private A=${gonePrivA} private B=${gonePrivB} public A=${gonePubA} public B=${gonePubB} (searches the qa/ prefix for any public-* remainder)`,
   );
 
   // ---- CLASSIFIED SUMMARY (per wave rules: isolation ≠ availability) ----
