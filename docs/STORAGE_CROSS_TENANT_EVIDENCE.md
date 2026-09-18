@@ -1,6 +1,6 @@
 # STORAGE CROSS-TENANT EVIDENCE
 
-Data: 2026-09-17 · Branch `freebuff/big-master-wave-01-monorepo`
+Data: 2026-09-17 (BEFORE) · **ATUALIZADO 2026-09-18: AFTER pós-apply da migration 20260918132842** · Branch `freebuff/big-master-wave-01-monorepo`
 Execução: `scripts/cross-tenant-storage-smoke.ts` (live, publishable key, PII mascarada)
 Projeto: `mmykyzzkcugxunmekwew` (estado remoto = fonte de verdade)
 
@@ -32,6 +32,24 @@ Projeto: `mmykyzzkcugxunmekwew` (estado remoto = fonte de verdade)
 
 | BUCKET | PATH | ACTOR | TARGET TENANT | OPERATION | EXPECTED | ACTUAL | RESULT |
 |---|---|---|---|---|---|---|---|
+### AFTER — pós-apply 20260918132842 (empírico, 2026-09-18, 42/42 PASS)
+
+| BUCKET | OPERATION | ACTOR | EXPECTED | ACTUAL | RESULT |
+|---|---|---|---|---|---|
+| tenant-public | upload own (upsert) | A / B | ALLOW | **uploaded** | **PASS** ✅ (principal teste da correção) |
+| tenant-public | insert-only own | A / B | ALLOW | uploaded | PASS |
+| tenant-public | upload/insert cross | A→B / B→A | DENY | RLS violation | PASS |
+| tenant-public | read own (auth, upsert + insert-only) | A / B | ALLOW | downloaded | PASS |
+| tenant-public | anonymous GET (rota /object/public/) | anônimo | ALLOW | ALLOW | PASS (disponibilidade, não isolamento) |
+| tenant-public | auth-list governed (RLS SELECT) | A | objeto próprio visível | OBJECT VISIBLE | PASS |
+| tenant-public | anon-list governed (RLS SELECT) | anônimo | observação honesta | **EMPTY (restricted)** | registrado — rota pública é RLS-independent; nem EMPTY nem VISIBLE é leak |
+| tenant-public | cross-list A→B (RLS SELECT) | A | informacional | EMPTY | registrado (listing ≠ write) |
+| tenant-private | matriz completa (12 checks) | A / B | inalterada | PASS | PASS |
+
+### BEFORE — pré-apply (2026-09-17, preservado como evidência histórica)
+
+| BUCKET | PATH | ACTOR | TARGET TENANT | OPERATION | EXPECTED | ACTUAL | RESULT |
+|---|---|---|---|---|---|---|---|
 | tenant-public | `<A>/qa/public-a.png` | A | A | upload own | ALLOW | **RLS violation** | **FAIL (funcional)** |
 | tenant-public | `<B>/qa/public-b.png` | B | B | upload own | ALLOW | **RLS violation** | **FAIL (funcional)** |
 | tenant-public | `<B>/qa/public-b.png` | A | B | upload cross | DENY | RLS violation | PASS |
@@ -54,10 +72,20 @@ RLS (SELECT/list/upsert), não a rota pública direta.
 ```
 PRIVATE ISOLATION:          PASS  (12/12 — zero vazamentos)
 WRITE ISOLATION (2 buckets): PASS  (todo write/update/delete cruzado negado)
-PUBLIC READ FUNCTIONALITY:  FAIL  (uploads own-path negados para owners autenticados)
-STORAGE ISOLATION (security): PASS — nenhum leak: NÃO é release blocker
-QA_STORAGE_RESIDUAL:        0 (verificação via list() em storage.objects — determinística)
+PUBLIC READ FUNCTIONALITY:  PASS  (pós-apply: upsert own ALLOW para A e B;
+  insert-only ALLOW; anon GET via /object/public/ ALLOW)
+STORAGE ISOLATION (security): PASS — zero leaks — NÃO é release blocker
+QA_STORAGE_RESIDUAL:        0 (varredura da pasta qa/ dedicada inteira por
+  bucket/tenant — determinística e idempotente entre runs com runIds únicos)
+STORAGE HARNESS POST-APPLY: 42/42 PASS (2026-09-18)
 ```
+
+Nota de ferramental (residual): runs anteriores usavam runIds únicos por
+execução e a cleanup por-run deixava objetos de execuções anteriores para
+trás (observado live: 3 leftovers `public-insert-only-*` por tenant). O
+harness agora varre e limpa a PASTA `qa/` dedicada inteira (limite 100) por
+bucket/tenant — `qa/` é exclusiva de QA sob o UUID do tenant, nunca toca
+mídia real.
 
 Leak em qualquer um destes seria release blocker: A lê private B · B lê private A · A escreve path B · B escreve path A · A altera/deleta objeto B · B altera/deleta objeto A. **Nenhum ocorreu.**
 
@@ -65,7 +93,7 @@ Indisponibilidade ≠ vazamento: o FAIL de public é funcionalidade, registrado 
 
 ## POLICY FINDINGS — `tenant_public_read` / insert público
 
-**ATUALIZADO 2026-09-17 (2ª rodada): hipótese do trialing REJEITADA; root cause CONFIRMED.**
+**ATUALIZADO 2026-09-18: MIGRATION 20260918132842 APLICADA REMOTAMENTE (root cause CONFIRMED e CORRIGIDO). Histórico do diagnóstico preservado abaixo.**
 
 ```
 POLICY (documentada live): tenant_media_insert · tenant_media_update ·
@@ -95,14 +123,17 @@ EMPIRICAL PROOF (harness, rodada 2):
     → EMPTY (0 rows) — policy SELECT quebrada nega
   mesma objeto via rota /object/public/ (bypass de RLS) → ALLOW
 
-MIGRATION CANDIDATA (LOCAL, NÃO APLICADA):
-  supabase/migrations/20260917120000_fix_tenant_public_read_policy.sql
-  substitui SOMENTE tenant_public_read. Efeitos: repara SELECT/list RLS-
-  governed e o fluxo de upsert. NÃO revoga a rota pública direta
-  /object/public/ de bucket public=true — essa rota não avalia RLS.
-  Revogação imediata por status de tenant = FUTURE HARDENING (private bucket
-  + signed URL, ou authenticated/proxy delivery). Ver
-  docs/PUBLIC_STORAGE_POLICY_FIX.md (REMOTE APPLY STATUS: NOT APPLIED).
+MIGRATION APLICADA (2026-09-18, pelo owner):
+  supabase/migrations/20260918132842_fix_tenant_public_read_policy.sql
+  substituiu SOMENTE tenant_public_read. Efeitos confirmados empiricamente:
+  upsert own ALLOW; auth-list governed vê o objeto próprio; anon-list
+  permaneceu EMPTY (observação — rota pública /object/public/ é
+  RLS-independent e continua servindo; nem EMPTY nem VISIBLE é leak).
+  NÃO revoga a rota pública direta de bucket public=true. Revogação imediata
+  por status de tenant = FUTURE HARDENING (private bucket + signed URL, ou
+  authenticated/proxy delivery). Ver docs/PUBLIC_STORAGE_POLICY_FIX.md
+  (REMOTE APPLY STATUS: APPLIED). Local file RENAMED para 20260918132842
+  (SQL byte-idêntico) — MIGRATION REAPPLIED: NO.
 ```
 
 Contexto capturado pelo harness: `tenant-status — A=trialing B=trialing (live read — policy-finding context)`.
@@ -113,8 +144,9 @@ Contexto capturado pelo harness: `tenant-status — A=trialing B=trialing (live 
 
 O adapter do Bakery (live read) consome apenas tabelas DB (tenant, brand, theme,
 settings, entitlements) — NÃO depende de leitura pública de `tenant-public`
-nesta fase. Portanto o preview permanece READY; o blocker funcional de public
-storage fica registrado para a fase de mídia real (uploads de logo/galeria).
+nesta fase. Pós-apply (2026-09-18) o blocker funcional de public storage foi
+**RESOLVIDO** (upsert own ALLOW; anon GET ALLOW), o que também destrava uploads
+reais de mídia (logo/galeria) na fase seguinte. Preview permanece READY.
 
 ## Metodologia
 

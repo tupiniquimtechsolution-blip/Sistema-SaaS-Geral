@@ -126,7 +126,7 @@ Implementada como regra de plataforma em `packages/tenancy/src/demo-fallback.ts`
 | bakery build | PASS (`vite build`, warning de chunk preexistente three.js) |
 | metalart typecheck | PASS (packages compartilhados não quebram) |
 | RLS / auth real / cross-tenant DB | **PASS — 2026-09-17** (live, publishable key; DATABASE MUTATIONS = dados QA prefixados `QA_RLS_`, removidos ao final) |
-| Storage cross-tenant | **EXECUTADO — 2026-09-17**: STORAGE ISOLATION = PASS (zero leaks: private own/cross upload/read/update/delete 12/12 negados; cross-write público 4/4 negado). PUBLIC READ FUNCTIONALITY = FAIL (blocker funcional separado, não-bloqueante p/ preview de leitura). Evidência: `docs/STORAGE_CROSS_TENANT_EVIDENCE.md`; harness: `scripts/cross-tenant-storage-smoke.ts` |
+| Storage cross-tenant | **PASS — 2026-09-18 (pós-apply da migration 20260918132842)**: STORAGE ISOLATION = PASS (42/42, zero leaks) · PUBLIC FUNCTIONALITY = PASS (upsert own ALLOW para A/B; insert-only ALLOW; anon GET via /object/public/ ALLOW; auth-list governed vê objeto próprio; anon-list = EMPTY registrado como observação — rota pública é RLS-independent). Histórico BEFORE (2026-09-17: upsert FAIL, blocker funcional) preservado em `docs/STORAGE_CROSS_TENANT_EVIDENCE.md`. Harness: `scripts/cross-tenant-storage-smoke.ts` (cleanup por varredura da pasta qa/ dedicada, idempotente) |
 
 ## BLOCKERS
 
@@ -137,4 +137,4 @@ Implementada como regra de plataforma em `packages/tenancy/src/demo-fallback.ts`
 
 ## NEXT EXACT ACTION
 
-STORAGE cross-tenant fechado (ISOLATION PASS; PUBLIC FUNCTIONALITY FAIL registrado como blocker funcional). Próximo passo canônico: investigar a root cause da policy pública (inspeção read-only de `pg_policies` quando autorizado, ou re-teste empírico com tenant status `active`) — SEM alterar policies automaticamente — e, em paralelo, exportar o snapshot read-only do remoto (`supabase db dump --schema public` + `supabase migration list`) quando houver CLI/credencial.
+STORAGE cross-tenant FECHADO (2026-09-18): migration `20260918132842_fix_tenant_public_read_policy` aplicada pelo owner — upsert público reparado e provado empiricamente (42/42), sem regressão de isolamento. Arquivo local renomeado de 20260917120000 para 20260918132842 (SQL byte-idêntico; MIGRATION REAPPLIED: NO). Nota semântica permanente: a rota `/storage/v1/object/public/` de bucket `public=true` NÃO avalia RLS — a policy não revoga a URL pública direta; revogação imediata por status de tenant = FUTURE HARDENING (private bucket + signed URL ou authenticated/proxy delivery). Próximo passo canônico: exportar o snapshot read-only do remoto (`supabase db dump --schema public` + `supabase migration list`) quando houver CLI/credencial, e só então avaliar novas migrations locais.

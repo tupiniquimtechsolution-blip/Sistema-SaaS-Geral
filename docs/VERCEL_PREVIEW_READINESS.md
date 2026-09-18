@@ -1,6 +1,6 @@
 # VERCEL PREVIEW READINESS
 
-Data: 2026-09-17 · Branch `freebuff/big-master-wave-01-monorepo`
+Data: 2026-09-17 · **ATUALIZADO 2026-09-18 (pós-apply storage)** · Branch `freebuff/big-master-wave-01-monorepo`
 
 Avaliação de prontidão para um primeiro preview integrado (Vercel ou hosting
 equivalente de build estático). **Sem nenhum secret** — o preview consome
@@ -20,7 +20,7 @@ apenas valores publishable/browser.
 | Usuários controlados A/B | READY | Provisionados via RPC canônica; isolamento provado |
 | Cross-tenant negative tests | READY | A→B e B→A negados (leitura e escrita) |
 | Bakery live read | READY | scripts/bakery-live-read.ts PASS — brand/theme/settings/entitlements live, sem fallback Fornalha |
-| Storage security | READY (isolamento) | Storage gate live: PRIVATE ISOLATION PASS 12/12, cross-write DENY 4/4, zero leaks (docs/STORAGE_CROSS_TENANT_EVIDENCE.md). Blocker funcional diagnóstico COMPLETO: root cause `tenant_public_read` CONFIRMED (`storage_tenant_id(t.name)` aplica a fn ao nome do tenant, não ao path) — migration forward-only preparada localmente, REMOTE APPLY STATUS = NOT APPLIED (docs/PUBLIC_STORAGE_POLICY_FIX.md). INSERT público puro = PASS; falha específica = upsert + SELECT RLS-governed. Preview de leitura não depende |
+| Storage security | READY (isolamento + funcionalidade) | Storage gate live pós-apply (2026-09-18): 42/42 PASS — PRIVATE ISOLATION 12/12, cross-write DENY, zero leaks; **PUBLIC FUNCTIONALITY agora PASS** (upsert own ALLOW A/B; anon GET ALLOW). Migration `20260918132842_fix_tenant_public_read_policy` APLICADA pelo owner (arquivo local renomeado, SQL byte-idêntico, REAPPLIED: NO). Root cause anterior CONFIRMADO e CORRIGIDO (docs/PUBLIC_STORAGE_POLICY_FIX.md) |
 | Build | READY | bakery build PASS (vite); typechecks PASS |
 | Typecheck | READY | saas-core/database/auth/tenancy/bakery PASS |
 | Unit/security tests | READY | saas-core 86/86, database 3/3, auth 3/3, tenancy 13/13 |
@@ -30,18 +30,17 @@ apenas valores publishable/browser.
 ## Veredito
 
 **READY** para o primeiro preview SaaS integrado (postura de leitura, com
-`VITE_DEMO_MODE=false`), com duas ressalvas explícitas e não-bloqueantes:
+`VITE_DEMO_MODE=false`), com uma ressalva explícita não-bloqueante:
 
-1. **Storage isolation = PASS** (2026-09-17, live): 12/12 checks privados
-   A/B own/cross (upload/read/update/delete) e cross-write público negado.
-   **Blocker funcional DIAGNOSTICADO (não-bloqueante p/ preview de leitura):**
-   root cause CONFIRMED — `tenant_public_read` aplica `storage_tenant_id(t.name)`
-   ao nome do tenant em vez de `storage.objects.name`; hipótese do "trialing"
-   REJEITADA (insert policy não verifica status). INSERT público puro PASS;
-   upsert falha por interferência da SELECT quebrada. Migration forward-only
-   `20260917120000_fix_tenant_public_read_policy.sql` preparada localmente,
-   **NOT APPLIED** (docs/PUBLIC_STORAGE_POLICY_FIX.md). Qualquer preview com
-   upload real requer apply autorizado + re-teste ANTES.
+1. **Storage isolation = PASS e PUBLIC FUNCTIONALITY = PASS** (2026-09-18, live
+   pós-apply da migration `20260918132842`): 12/12 checks privados A/B
+   own/cross, cross-write negado, upsert público own ALLOW, anon GET ALLOW —
+   42/42 no harness. O blocker funcional anterior foi RESOLVIDO. Nota
+   semântica permanente (FUTURE HARDENING, non-blocking): a rota
+   `/object/public/` de bucket `public=true` não avalia RLS — a policy não
+   revoga a URL pública direta de tenants suspended/disabled; se esse
+   requisito existir, avaliar private bucket + signed URL ou
+   authenticated/proxy delivery.
 2. **Remote migration snapshot = BLOCKED** — pendente de CLI/credencial
    read-only; não afeta o preview, mas precede qualquer decisão de migration.
 

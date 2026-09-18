@@ -1,8 +1,8 @@
 # PUBLIC STORAGE POLICY FIX
 
-Data: 2026-09-17 · Branch `freebuff/big-master-wave-01-monorepo`
+Data: 2026-09-17 (criação) · **ATUALIZADO 2026-09-18: MIGRATION APLICADA REMOTAMENTE** · Branch `freebuff/big-master-wave-01-monorepo`
 Projeto: `mmykyzzkcugxunmekwew` (estado remoto = fonte de verdade)
-Migration candidata: `supabase/migrations/20260917120000_fix_tenant_public_read_policy.sql`
+Migration: `supabase/migrations/20260918132842_fix_tenant_public_read_policy.sql` (renomeada de 20260917120000 para alinhar com o ledger remoto — SQL statements preservados byte-idênticos)
 
 ## CURRENT POLICY (live, confirmada por inspeção externa de pg_policies)
 
@@ -98,20 +98,28 @@ A nova policy preserva e corrige:
   cross-tenant é introduzido (FOR SELECT exclusivo; write continua nas policies
   de mídia existentes; private continua em `tenant_private_read`).
 
-Efeito esperado after: anon/authenticated `list()` passa a enxergar objetos
-públicos de tenants ativos; `upsert own` passa a funcionar (SELECT interno
-resolvido); cross-write permanece DENY.
+Efeito after (empírico): `upsert own` FUNCIONA (SELECT interno resolvido —
+ALLOW para A e B); authenticated `list()` enxerga o objeto próprio; anon
+`list()` permaneceu EMPTY (observação registrada — entrega pública real é a
+rota /object/public/, RLS-independent); cross-write permanece DENY.
 
-## BEFORE / AFTER ESPERADO
+## BEFORE / AFTER (AFTER = empírico real, 2026-09-18)
 
-| Probe | BEFORE (live) | AFTER (esperado) |
+| Probe | BEFORE (live, 2026-09-17) | AFTER (empírico, 2026-09-18) |
 |---|---|---|
-| public:upload own (upsert) | DENY | ALLOW |
-| public:insert-only own | ALLOW | ALLOW (inalterado) |
-| public:insert-only cross | DENY | DENY (inalterado) |
-| public:anon-list governed | EMPTY | objeto visível |
-| public:anonymous read (rota pública) | ALLOW | ALLOW (inalterado) |
-| private:* (todos) | PASS | PASS (inalterado) |
+| public:upload own (upsert) A | **DENY** | **ALLOW** ✅ |
+| public:upload own (upsert) B | **DENY** | **ALLOW** ✅ |
+| public:insert-only own A/B | ALLOW | ALLOW (inalterado) ✅ |
+| public:insert-only cross A→B / B→A | DENY | DENY (inalterado) ✅ |
+| public:auth-list governed (RLS SELECT) | — (não probeado antes) | OBJECT VISIBLE ✅ |
+| public:anon-list governed (RLS SELECT) | **EMPTY** | **EMPTY (restricted)** — observação honesta; entrega pública é via /object/public/ (RLS-independent), nem EMPTY nem VISIBLE é leak |
+| public:anonymous read (rota pública) | ALLOW | ALLOW (inalterado) ✅ |
+| private:* (todos, 12 checks) | PASS | PASS (inalterado) ✅ |
+| cross-list A→B (RLS SELECT) | — | EMPTY (informacional; listing ≠ write) |
+
+O principal objetivo da correção — **upsert próprio ALLOW** — foi atingido.
+Isolamento: zero vazamentos em todas as matrizes (42/42 no storage harness
+pós-apply; RLS gate DB 58/58 reconfirmado).
 
 ## FUTURE HARDENING (NON-BLOCKING)
 
@@ -157,7 +165,20 @@ na inspeção externa; nenhum dado é destruído (operação DDL de policy, reve
 
 ## REMOTE APPLY STATUS
 
-**NOT APPLIED** — migration existe apenas localmente. Nenhum comando de
-aplicação foi executado contra o projeto remoto. Aplicação futura exige:
-autorização explícita do owner → captura de pg_policies atual (backup) → apply
-→ re-execução do harness storage → comparação before/after da tabela acima.
+**APPLIED (2026-09-18)** — aplicada pelo owner (ChatGPT) diretamente no
+Supabase canônico.
+
+```
+REMOTE MIGRATION VERSION:  20260918132842
+REMOTE MIGRATION NAME:     fix_tenant_public_read_policy
+VALIDAÇÃO READ-ONLY EXTERNA: tenant_public_read corrigida; a expressão antiga
+  storage_tenant_id(t.name) NÃO existe mais; expressão live atual usa
+  storage_tenant_id(storage.objects.name) (ou forma normalizada equivalente
+  storage_tenant_id(name))
+POLICIES INALTERADAS: tenant_media_insert / tenant_media_update /
+  tenant_media_delete / tenant_private_read — UNCHANGED (5 antes, 5 depois,
+  nenhuma duplicada)
+MIGRATION REAPPLIED: NO — o arquivo local foi RENOMEADO para 20260918132842
+  (SQL byte-idêntico) para alinhar com o ledger remoto e impedir reaplicação
+  acidental via supabase db push / migration up
+```
