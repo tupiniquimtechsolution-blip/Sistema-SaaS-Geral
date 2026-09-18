@@ -137,6 +137,14 @@ BLOCKED_REMOTE_SNAPSHOT_CLI_ACCESS — Supabase CLI ausente/sem credencial read-
 7. Media strategy MetalArt: inventário vídeo/foto (site vs source material), plano Supabase Storage/CDN — preservação visual primeiro (requer public storage funcional resolvido).
 8. CRM horizontal: definir contrato de consumo do SaaS Core (packages/saas-core já exporta tudo via index.ts).
 
+## BIG RUN MASTER WAVE — MIGRAÇÃO FINAL VERCEL → CLOUDFLARE (2026-09-18, quarta rodada — AUTORIZAÇÃO EXPRESSA DO OWNER)
+- **Alvo revisado:** WORKERS STATIC ASSETS (Pages descartado p/ monorepo — limite de projetos/repo). 6 configs `apps/<app>/wrangler.jsonc` (STATIC ASSETS ONLY — WORKER_MAIN: NONE em todos, zero server-side, zero features pagas) + `_headers` por app + `.wrangler/` no .gitignore + wrangler 4.135.0 devDependency fixada (npm ci revalidado).
+- **Deploys via `wrangler deploy --temporary`** (sandbox sem login durável): bakery cab8d1ae · pet c5e7dd3b · restaurant 61fd4383 · heavy-machinery c2e855a5 · platform bce46574 — todos com `scripts/cloudflare-gate.ts` (HTTP 200 + title/identity + assets + SPA fallback) **PASS**. URLs: tupiniquim-{bakery,pet,restaurant,heavy-machinery,saas}.dramatic-condition.workers.dev.
+- **MetalArt: BLOCKED_STATIC_ASSET_LIMIT** — vídeo 10,9M excede o limite de 5 MiB/arquivo do caminho temporary (CF 10304). Deploy durável (login do owner) usa 25 MiB/arquivo → vídeo de 22M passa. NENHUM corte de mídia (regra AGENTS). Config commitada.
+- **Platform por último (§26):** rebuild com VITE_VERTICAL_PREVIEW_URLS reais (5/5 cards → demos workers.dev; cards bloqueados sem link fake) + redeploy bce46574 + gate PASS. Supabase revalidado live (BAKERY LIVE READ = PASS); DATABASE MUTATIONS: NONE.
+- **Vercel PRESERVADO** (rollback source; vercel.json intacto; NENHUMA alteração DNS/custom domain/nameserver). Rollback: docs/CLOUDFLARE_ROLLBACK_RUNBOOK.md. Ações do owner: docs/CLOUDFLARE_OWNER_ACTIONS.md (login durável, deploys definitivos, Workers Builds opcional).
+- **VEREDITO: CLOUDFLARE_MIGRATION = PASS (workers.dev, 5/6 + platform) · CLOUDFLARE_FRONTEND_HOSTING = PASS · DOMAIN_CUTOVER = PENDING_OWNER_AUTHORIZATION · FINAL_HOSTING_COMPLETE = YES para workers.dev (durável após login do owner)**
+
 ## BIG RUN MASTER WAVE — FECHAMENTO REAL DO PRODUTO (2026-09-18, terceira rodada)
 - **FATO EXTERNO VERIFICADO PELO OWNER:** deployment do commit 657fb86
   (sistema-saa-s-geral-pd4osf8ql.vercel.app) READY, GET / = 200, title

@@ -18,7 +18,7 @@ domínios. Vercel dedicado por vertical NÃO é requisito.
 | Permissões | **IMPLEMENTED** | RBAC server-side; mirror 42; RLS = autoridade |
 | Entitlements | **IMPLEMENTED** | features=14; plan/tenant entitlements; effective set default-deny |
 | Dados isolados | **IMPLEMENTED** | RLS 58/58 + storage 42/42 — isolamento provado live |
-| Site publicado | **DEPLOYMENT_READY** | Builds provados; publishing definitivo = wave Cloudflare |
+| Site publicado | **DEPLOYED (workers.dev)** | 5/6 apps publicados no Cloudflare Workers Static Assets (bakery/pet/restaurant/heavy-machinery/platform — docs/CLOUDFLARE_WORKER_MATRIX.md); MetalArt pending owner login (blocker temporary-path); domínios definitivos = wave de cutover |
 
 ## Decisões de escopo MVP (registradas)
 

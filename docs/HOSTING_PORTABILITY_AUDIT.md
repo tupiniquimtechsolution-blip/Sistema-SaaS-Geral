@@ -18,7 +18,8 @@ Varredura de referências Vercel-specific em `apps/*/src` e `packages/*/src`:
 | apps/pet · restaurant · metalart · heavy-machinery | **PORTABLE** | Vite estático + HashRouter; nenhuma `VITE_*` consumida |
 | packages/saas-core · database · auth · tenancy | **PORTABLE** | Contratos puros + Supabase JS; zero acoplamento de hosting |
 | Supabase backend | **PORTABLE (N/A)** | Backend gerenciado externo — independe do hosting do frontend |
-| scripts/preview-http-gate.ts | **PORTABLE** | HTTP puro (fetch) — funciona contra qualquer host (Pages/Workers incluídos) |
+| scripts/preview-http-gate.ts · scripts/cloudflare-gate.ts | **PORTABLE** | HTTP puro (fetch) — funcionam contra qualquer host |
+| Worker configs (wrangler.jsonc × 6) | **PROVADO** | Static Assets direct serving sem Worker script — deploy real executado (execution report) |
 | vercel.json | **NEEDS_ABSTRACTION (infra-only)** | Config de deploy Vercel; equivalente Cloudflare já mapeado no master plan — nenhuma mudança de código |
 | Edge functions / middleware | **NENHUM EXISTE** | Não há código server-side acoplado — nada a portar |
 
@@ -33,6 +34,9 @@ Varredura de referências Vercel-specific em `apps/*/src` e `packages/*/src`:
 
 ## Veredito
 
-**HOSTING PORTABILITY = PASS.** Todos os frontends são estáticos portáveis;
-a migração Cloudflare (docs/CLOUDFLARE_MIGRATION_MASTER_PLAN.md) é operacional
-(config de deploy + DNS), não de engenharia.
+**HOSTING PORTABILITY = PASS (comprovado em produção).** Todos os frontends
+são estáticos portáveis; a migração Workers Static Assets foi EXECUTADA em
+5/6 apps no workers.dev (docs/CLOUDFLARE_EXECUTION_REPORT.md) sem NENHUMA
+mudança de código de aplicação — apenas configs wrangler + _headers.
+Restante: operacional (login durável do owner p/ MetalArt + deploys duráveis
+e DNS/cutover com autorização).

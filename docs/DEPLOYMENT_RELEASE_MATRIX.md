@@ -20,6 +20,14 @@ Projetos Vercel dedicados por vertical: **NOT REQUIRED**. Remote preview do
 central verificado pelo owner: commit 657fb86 → READY, HTTP 200, title
 "Tupiniquim SaaS — Plataforma".
 
+**CLOUDFLARE (workers.dev, 2026-09-18):** bakery/pet/restaurant/heavy-machinery
++ platform deployados e validados (gates HTTP+identidade PASS; URLs e versions
+em docs/CLOUDFLARE_WORKER_MATRIX.md). MetalArt: BLOCKED_STATIC_ASSET_LIMIT no
+caminho temporary (deploy durável do owner cobre). Platform build final com
+VITE_VERTICAL_PREVIEW_URLS reais → 5/5 cards apontando demos Cloudflare;
+cards bloqueados sem link fake. DNS/custom domains: NOT EXECUTED. Vercel:
+preservado (rollback).
+
 | APP | SOURCE | CODE_READY | LOCAL_PREVIEW | TEMP_REMOTE_PREVIEW | CLOUDFLARE_READY | COMMERCIAL_READY | FINAL_HOSTING | BLOCKER |
 |---|---|---|---|---|---|---|---|---|
 | **Platform** | apps/platform (control plane completo) | PASS (build+typecheck+secret scan) | PASS (vite preview: GET / = 200, title plataforma, assets 200) | **PASS** — deployment do commit 657fb86: READY, GET / = 200, title "Tupiniquim SaaS — Plataforma" (owner-verified) | PASS | PASS | NOT DEPLOYED | — |

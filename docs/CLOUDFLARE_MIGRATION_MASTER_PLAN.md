@@ -1,14 +1,28 @@
 # CLOUDFLARE MIGRATION MASTER PLAN
 
-Data: 2026-09-18 · Status: **PLANO — NÃO EXECUTAR**
-Pré-condição: só iniciar após `CODE_PRODUCT_COMPLETE = YES` (ATINGIDO — ver
-docs/PLATFORM_COMPLETION_REPORT.md e docs/MVP_COMMERCIAL_READINESS.md) e
-autorização explícita do owner (readiness: docs/CLOUDFLARE_MIGRATION_READINESS.md
-= YES). **Mesmo com SYSTEM_COMPLETE = YES, NÃO migrar automaticamente — parar
-em CLOUDFLARE_MIGRATION_READY = YES e aguardar a wave dedicada.**
-Estratégia do owner: Vercel permanece SOMENTE preview/dev/validação do central;
-projetos dedicados por vertical NÃO serão criados no Vercel — o publishing
-comercial definitivo acontece aqui, na Cloudflare.
+Data: 2026-09-18 · **REVISADO: alvo = WORKERS STATIC ASSETS (não Pages)** ·
+Execução: docs/CLOUDFLARE_EXECUTION_REPORT.md · Matrix: docs/CLOUDFLARE_WORKER_MATRIX.md
+
+## DECISÃO ARQUITETURAL REVISADA (Pages → Workers)
+
+O alvo original (Cloudflare Pages por app) foi **DESCARTADO como estratégia
+principal**: Pages em monorepo tem limite de projetos vinculados ao repositório
+que não acomoda com segurança os 6 deployables atuais (platform, bakery, pet,
+restaurant, metalart, heavy-machinery) + futuros (salon, religious-house, led).
+**Alvo canônico: UM Cloudflare Worker Static Assets por aplicação** — sem
+Worker server-side no MVP (sem main/fetch handler/KV/D1/R2/DO), Supabase
+permanece o backend. Zero-cost: STATIC ASSETS DIRECT SERVING; nada pago
+habilitado (BLOCKED_REQUIRES_PAID_CLOUDFLARE se surgir).
+
+Mapping: tupiniquim-saas (platform) · tupiniquim-bakery · tupiniquim-pet ·
+tupiniquim-restaurant · tupiniquim-metalart · tupiniquim-heavy-machinery —
+NUNCA Worker fake para app inexistente; NUNCA Worker por tenant (cliente =
+tenant no Supabase, não deploy).
+
+Pré-condição de origem: `CODE_PRODUCT_COMPLETE = YES` (ATINGIDO) e autorização
+expressa do owner — **DADA** (migration executada; ver execution report).
+DNS/custom domains continuam NOT AUTHORIZED (DOMAIN_CUTOVER =
+PENDING_OWNER_AUTHORIZATION). Vercel = rollback source intacto.
 
 ## 1. Princípios
 
@@ -21,28 +35,28 @@ comercial definitivo acontece aqui, na Cloudflare.
 - Supabase permanece o backend canônico (mmykyzzkcugxunmekwew) — a migração é
   de ENTREGA DE FRONTEND, não de backend.
 
-## 2. Project mapping (Vercel → Cloudflare)
+## 2. Worker mapping (executado)
 
-| Vercel Project | Alvo Cloudflare | Build | Output |
-|---|---|---|---|
-| sistema-saa-s-geral | Pages project `sistema-saas-geral` | `npm ci && npm run build:platform` | `apps/platform/dist` |
-| saas-bakery | Pages project `saas-bakery` | `npm ci && npm run build:bakery` | `apps/bakery/dist` |
-| saas-pet | Pages project `saas-pet` | `npm ci && npm run build:pet` | `apps/pet/dist` |
-| saas-restaurant | Pages project `saas-restaurant` | `npm ci && npm run build:restaurant` | `apps/restaurant/dist` |
-| saas-metalart | Pages project `saas-metalart` | `npm ci && npm run build --workspace=apps/metalart` | `apps/metalart/dist` |
-| saas-heavy-machinery | Pages project `saas-heavy-machinery` | `npm ci && npm run build:heavy-machinery` | `apps/heavy-machinery/dist` |
+| Vercel (rollback source) | Worker Static Assets | Build | Output | Config |
+|---|---|---|---|---|
+| sistema-saa-s-geral | `tupiniquim-saas` | `npm run build:platform` | `apps/platform/dist` | apps/platform/wrangler.jsonc |
+| (central publicou a bakery até o cutover) | `tupiniquim-bakery` | `npm run build:bakery` | `apps/bakery/dist` | apps/bakery/wrangler.jsonc |
+| — | `tupiniquim-pet` | `npm run build:pet` | `apps/pet/dist` | apps/pet/wrangler.jsonc |
+| — | `tupiniquim-restaurant` | `npm run build:restaurant` | `apps/restaurant/dist` | apps/restaurant/wrangler.jsonc |
+| — | `tupiniquim-metalart` | `npm run build --workspace=apps/metalart` | `apps/metalart/dist` | apps/metalart/wrangler.jsonc |
+| — | `tupiniquim-heavy-machinery` | `npm run build:heavy-machinery` | `apps/heavy-machinery/dist` | apps/heavy-machinery/wrangler.jsonc |
 
-Workers "when technically necessary": apenas se surgir requisito server-side no
-edge (ex.: proxy de revogação de mídia pública — ver FUTURE HARDENING do
-storage). Não previsto no MVP da migração.
+Workers server-side "when technically necessary": apenas requisito comprovado
+(ex.: proxy de revogação de mídia pública — FUTURE HARDENING do storage). Nada
+no MVP.
 
 ## 3. Build / CI
 
-- Connect do repo via Cloudflare Pages (Git integration), produção manual
-  (clone do padrão Vercel: promoção explícita, sem auto-deploy de main).
-- Preview deployments por branch (equivalente aos previews Vercel).
-- Node version pinada (>=22) via `.nvmrc`/env `NODE_VERSION`.
-- Instalação via npm ci (lockfile commitado).
+- Direct deploy via Wrangler (executado — execution report) + Workers Builds
+  (GitHub) opcional: docs/CLOUDFLARE_OWNER_ACTIONS.md (AÇÃO 2) — produção
+  manual (promoção explícita, sem auto-deploy de main), watch paths por app.
+- Node >=22; instalação via npm ci (lockfile commitado); wrangler fixado como
+  devDependency raiz.
 
 ## 4. Domínios / DNS
 
@@ -93,6 +107,7 @@ provado (vercel.json atual funciona sem rewrites).
 
 ## 9. Não executado nesta wave (explicitamente)
 
-- Nenhuma conta/project Cloudflare criado.
-- Nenhum DNS movido, nenhum domínio comprado.
-- Vercel permanece DESENVOLVIMENTO/PREVIEW/VALIDAÇÃO.
+- Nenhum DNS movido, nenhum domínio comprado, nenhum custom domain.
+- Vercel preservado intacto (rollback source).
+- DOMAIN_CUTOVER: PENDING_OWNER_AUTHORIZATION.
+- Execução (workers.dev): docs/CLOUDFLARE_EXECUTION_REPORT.md.

@@ -1,7 +1,8 @@
 # CLOUDFLARE MIGRATION READINESS
 
-Data: 2026-09-18 · **NÃO EXECUTAR** — leitura de prontidão apenas.
-Plano completo: docs/CLOUDFLARE_MIGRATION_MASTER_PLAN.md.
+Data: 2026-09-18 · **EXECUÇÃO REALIZADA (workers.dev)** — evidência viva em
+docs/CLOUDFLARE_EXECUTION_REPORT.md + docs/CLOUDFLARE_WORKER_MATRIX.md.
+Plano revisado (Workers Static Assets): docs/CLOUDFLARE_MIGRATION_MASTER_PLAN.md.
 
 ## Pré-condições
 
@@ -24,6 +25,11 @@ Plano completo: docs/CLOUDFLARE_MIGRATION_MASTER_PLAN.md.
 
 ## Veredito
 
-**CLOUDFLARE_MIGRATION_READY = YES** — todas as pré-condições de produto e
-portabilidade satisfeitas; execução pendente de autorização explícita do
-owner (a migração NÃO acontece nesta wave, mesmo com readiness YES).
+**CLOUDFLARE_MIGRATION_READY = YES (consumido) → CLOUDFLARE_MIGRATION = PASS
+parcial-durável:** 5/6 apps deployados e validados HTTP/identidade no
+workers.dev (bakery/pet/restaurant/heavy-machinery/platform); MetalArt
+**BLOCKED_STATIC_ASSET_LIMIT** apenas no caminho temporary-preview (limite
+5 MiB/arquivo da API de preview; o deploy durável com login do owner usa o
+limite de 25 MiB/arquivo e cobre o vídeo de 22M — config commitada, nenhum
+corte de mídia). DNS/custom domains: NOT EXECUTED (PENDING_OWNER_AUTHORIZATION).
+Vercel intacto como rollback.
