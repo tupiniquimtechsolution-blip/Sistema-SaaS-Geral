@@ -127,6 +127,20 @@
         "vite": "^6.3.5",
       },
     },
+    "apps/platform": {
+      "name": "tupiniquim-platform",
+      "dependencies": {
+        "react": "^18.2.0",
+        "react-dom": "^18.2.0",
+      },
+      "devDependencies": {
+        "@types/react": "^18.2.0",
+        "@types/react-dom": "^18.2.0",
+        "@vitejs/plugin-react": "^4.3.4",
+        "typescript": "^5.7.0",
+        "vite": "^6.3.5",
+      },
+    },
     "apps/restaurant": {
       "name": "tupiniquim-restaurant",
       "dependencies": {
@@ -699,6 +713,8 @@
     "tupiniquim-metalart": ["tupiniquim-metalart@workspace:apps/metalart"],
 
     "tupiniquim-pet": ["tupiniquim-pet@workspace:apps/pet"],
+
+    "tupiniquim-platform": ["tupiniquim-platform@workspace:apps/platform"],
 
     "tupiniquim-restaurant": ["tupiniquim-restaurant@workspace:apps/restaurant"],
 
