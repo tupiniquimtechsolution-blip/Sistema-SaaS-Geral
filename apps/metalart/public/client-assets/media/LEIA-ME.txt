@@ -1,0 +1,40 @@
+============================================================
+ METAL & ART — PASTA DE MÍDIAS (conteúdo real do Drive)
+============================================================
+
+COLOQUE AQUI os arquivos da pasta oficial do cliente:
+https://drive.google.com/drive/folders/1kdx8AvTpfgRugHaptm32c5k3GpL0W6Xi
+
+O site lê SOMENTE esta pasta. Nenhuma imagem gerada é usada.
+
+ESTRUTURA ESPERADA (crie as subpastas e renomeie conforme o mapa):
+
+  logo/
+    logo.jpg                     ← arquivo logo.jpg da pasta
+
+  fotos/
+    portoes/portao-deslizante.jpg    ← 1784984255 (portão preto)
+    portoes/portao-social.jpg        ← portão social (1771640508)
+    automacao/motor.jpg              ← 1774786200 (automação)
+    corrimaos/corrimao.jpg           ← 1771634438 / 1771639042
+    grades/grade-janela.jpg          ← 1771634656 (grades de janela)
+    portas-enrolar/porta.jpg         ← 1771634799 (porta/fechamento)
+    antes-depois/antes.jpg           ← 1774112432 (frame ANTES, mesmo ângulo)
+    antes-depois/depois.jpg          ← 1774112432 (frame DEPOIS, mesmo ângulo)
+    oficina/fabricacao.jpg           ← 1775044474 (instalação/bastidores)
+
+  social/
+    reel-aluminio.jpg                ← bastidor/reel troca de portão
+    reforma.jpg                      ← reel reforma de portão
+    grades-centro.jpg                ← grades instaladas (centro SP)
+    servico-concluido.jpg            ← serviço concluído
+
+  videos/   (opcional — MP4 reais da pasta)
+    1775044474.mp4                   ← instalação (seção processo)
+    1774786200.mp4                   ← automação (recortes)
+
+ENQUANTO UM ARQUIVO NÃO EXISTE: o slot fica com o fundo da marca
+(navy/blueprint). Nenhuma imagem quebrada aparece.
+
+MAPA COMPLETO E DETALHADO: src/config/assets.ts
+PASSO A PASSO: CLIENT_REPLACEMENT_GUIDE.md

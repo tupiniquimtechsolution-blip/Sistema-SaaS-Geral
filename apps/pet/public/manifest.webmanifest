@@ -1,0 +1,15 @@
+{
+  "name": "Amora Pet — Banho & Tosa, Produtos e Delivery",
+  "short_name": "Amora Pet",
+  "description": "Produtos, cuidados e carinho em um só lugar. Agende banho e tosa e receba em casa.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#FFF8F0",
+  "theme_color": "#E7884A",
+  "orientation": "portrait-primary",
+  "lang": "pt-BR",
+  "icons": [
+    { "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "/icon-maskable.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "maskable" }
+  ]
+}

@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Tupiniquim SaaS — Plataforma</title>
+    <meta
+      name="description"
+      content="Tupiniquim Vertical SaaS — plataforma multi-tenant modular: SaaS Core, tenancy, RBAC, entitlements e verticais comerciais independentes."
+    />
+    <style>
+      :root {
+        --bg: #0d1117;
+        --surface: #161b22;
+        --line: #2a3038;
+        --fg: #e6edf3;
+        --muted: #8b949e;
+        --accent: #f2b705;
+      }
+      * { box-sizing: border-box; }
+      html, body { margin: 0; padding: 0; }
+      body {
+        background: var(--bg);
+        color: var(--fg);
+        font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+        min-height: 100vh;
+      }
+      a { color: inherit; text-decoration: none; }
+      .wrap { max-width: 880px; margin: 0 auto; padding: 48px 24px 64px; }
+      .badge {
+        display: inline-block;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        padding: 4px 12px;
+        font-size: 12px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+      h1 { font-size: 34px; line-height: 1.15; margin: 18px 0 8px; }
+      h1 .accent { color: var(--accent); }
+      .lede { color: var(--muted); font-size: 16px; max-width: 640px; margin: 0 0 36px; }
+      .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 14px; }
+      .card {
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        padding: 16px 18px;
+        transition: border-color 0.15s ease;
+      }
+      .card:hover { border-color: var(--accent); }
+      .card h3 { margin: 0 0 4px; font-size: 15px; }
+      .card p { margin: 0; font-size: 13px; color: var(--muted); }
+      .card .tag {
+        float: right;
+        font-size: 10px;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        padding: 2px 8px;
+        border-radius: 999px;
+        border: 1px solid var(--line);
+        color: var(--muted);
+      }
+      .tag.ok { color: #7ee787; border-color: #2ea04366; }
+      .tag.blocked { color: #ffa198; border-color: #f8514966; }
+      .tag.soon { color: var(--muted); }
+      section h2 { font-size: 13px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); margin: 34px 0 12px; }
+      footer { margin-top: 44px; border-top: 1px solid var(--line); padding-top: 18px; color: var(--muted); font-size: 12.5px; }
+      .authnote { font-size: 13.5px; color: var(--muted); margin-top: 26px; }
+      .authnote code { background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 1px 6px; font-size: 12px; }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

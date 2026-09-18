@@ -1,0 +1,88 @@
+name: Monorepo Quality Gates
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: quality-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  repository-hygiene:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Reject nested Git repositories
+        shell: bash
+        run: |
+          set -euo pipefail
+          if find . -mindepth 2 -type d -name .git -print -quit | grep -q .; then
+            echo "::error::Nested .git directory found. Import verticals as subtree/snapshot, not nested repositories."
+            find . -mindepth 2 -type d -name .git -print
+            exit 1
+          fi
+
+      - name: Reject committed dotenv secrets
+        shell: bash
+        run: |
+          set -euo pipefail
+          bad=$(git ls-files | grep -E '(^|/)\.env($|\.)' | grep -v -E '(^|/)\.env\.example$' || true)
+          if [ -n "$bad" ]; then
+            echo "::error::Potential dotenv secret files are tracked:"
+            echo "$bad"
+            exit 1
+          fi
+
+      - name: Verify canonical governance files
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f AGENTS.md
+          test -f SECURITY.md
+          test -f .agents/skills/tupiniquim-toolbox/SKILL.md
+          test -f docs/MIGRATION_MANIFEST.md
+          test -f docs/PLANEJAMENTO_MESTRE_TUPINIQUIM_VERTICAL_SAAS.md
+
+  node-quality:
+    if: ${{ hashFiles('package.json') != '' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install locked dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -f package-lock.json ]; then
+            npm ci
+          else
+            echo "::error::Root package.json exists without package-lock.json. The canonical monorepo must use a locked install."
+            exit 1
+          fi
+
+      - name: Lint
+        run: npm run lint --if-present
+
+      - name: Typecheck
+        run: npm run typecheck --if-present
+
+      - name: Unit / integration tests
+        run: npm test --if-present
+
+      - name: Build
+        run: npm run build --if-present
+
+      - name: Production dependency audit
+        run: npm audit --omit=dev --audit-level=high

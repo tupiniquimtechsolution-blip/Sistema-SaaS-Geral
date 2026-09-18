@@ -1,0 +1,22 @@
+{
+  "name": "tupiniquim-tenancy",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "tupiniquim-saas-core": "*",
+    "tupiniquim-database": "*",
+    "tupiniquim-auth": "*"
+  },
+  "devDependencies": {
+    "@supabase/supabase-js": "^2.98.0",
+    "typescript": "^5.7.0",
+    "vitest": "^4.1.10"
+  }
+}
