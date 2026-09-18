@@ -1,4 +1,4 @@
-import { VERTICALS, GATES, PROJECTS, CORE_MODULES, readPreviewUrls } from "./data";
+import { VERTICALS, GATES, PROJECTS, CORE_MODULES, HOSTING_POLICY, readPreviewUrls } from "./data";
 import type { Vertical } from "./data";
 import { Badge, gateTone, maturityTone } from "./ui";
 
@@ -133,6 +133,7 @@ export function VerticalDetailView({ slug }: { slug: string }) {
     ["ROUTER", v.router],
     ["ENV (VITE_*)", v.env],
     ["SUPABASE", v.supabase],
+    ["CLIENTES", v.clients],
     ["TENANT MODEL", "Um cliente = um tenant no Supabase canônico — sem fork por cliente"],
     ["BRANDING MODEL", "tenant_brands/tenant_themes por tenant (leitura live já provada na Bakery)"],
     ["DEMO READINESS", v.demo],
@@ -266,9 +267,11 @@ export function DeploymentsView() {
           </tbody>
         </table>
         <p className="hint">
-          Vercel = desenvolvimento/preview nesta fase. Cloudflare é destino
-          futuro — plano em <code>docs/CLOUDFLARE_MIGRATION_MASTER_PLAN.md</code>{" "}
-          (não executado). PRODUCTION: NOT PROMOTED.
+          Política de hosting (decisão do owner): {HOSTING_POLICY.vercelRole}.
+          Projetos dedicados: {HOSTING_POLICY.dedicatedProjects}. Hosting
+          definitivo: {HOSTING_POLICY.finalHosting} — plano em{" "}
+          <code>docs/CLOUDFLARE_MIGRATION_MASTER_PLAN.md</code> (não executado).
+          Remote preview do central: {HOSTING_POLICY.centralRemotePreview}.
         </p>
       </section>
     </div>

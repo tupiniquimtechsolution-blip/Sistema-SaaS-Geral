@@ -28,6 +28,8 @@ export interface Vertical {
   /** Variáveis VITE_* consumidas pelo app (auditoria real do código). */
   env: string;
   supabase: string;
+  /** Clientes reais — nunca número inventado. */
+  clients: string;
   demo: string;
   commercial: string;
   /** Projeto Vercel correspondente e seu estado real. */
@@ -49,9 +51,10 @@ export const VERTICALS: Vertical[] = [
     router: "HashRouter",
     env: "VITE_DEMO_MODE · VITE_SUPABASE_URL · VITE_SUPABASE_PUBLISHABLE_KEY",
     supabase: "INTEGRADO — live read PASS (tenant/brand/theme/settings/entitlements)",
-    demo: "Preview via projeto central até cutover para projeto dedicado",
+    clients: "2 tenants QA (A/B) provisionados via RPC canônica; nenhum cliente comercial ainda",
+    demo: "LOCAL PREVIEW PASS · remote dedicado OPCIONAL (Cloudflare wave futura)",
     commercial: "PRIMEIRO VERTICAL END-TO-END — referência de integração",
-    project: "central (deployment 200 provado) · dedicado saas-bakery = OWNER_ACTION_REQUIRED",
+    project: "OPCIONAL / NOT REQUIRED — publishing comercial definitivo na wave Cloudflare",
     note:
       "Primeiro vertical validado contra o Supabase canônico. Não recebe privilégio arquitetural — é a primeira referência end-to-end.",
   },
@@ -67,9 +70,10 @@ export const VERTICALS: Vertical[] = [
     router: "HashRouter",
     env: "nenhuma (não consome VITE_*)",
     supabase: "NÃO INTEGRADO (legado standalone — preservado)",
-    demo: "Preview a criar (projeto dedicado)",
-    commercial: "VERTICAL PRINCIPAL — implementação premium preservada",
-    project: "saas-metalart = OWNER_ACTION_REQUIRED",
+    clients: "0",
+    demo: "LOCAL PREVIEW PASS · remote dedicado OPCIONAL (Cloudflare wave futura)",
+    commercial: "VERTICAL PRINCIPAL — implementação premium preservada; integração SaaS incremental (padrão bakery)",
+    project: "OPCIONAL / NOT REQUIRED — projeto Vercel dedicado não é requisito",
     note:
       "Vertical principal. Implementação premium importada intacta; integração SaaS futura sem redesenho.",
   },
@@ -85,10 +89,11 @@ export const VERTICALS: Vertical[] = [
     router: "HashRouter",
     env: "nenhuma",
     supabase: "NÃO INTEGRADO (legado demo)",
-    demo: "Preview a criar (projeto dedicado)",
-    commercial: "PRONTO PARA DEPLOY — integração SaaS futura",
-    project: "saas-pet = OWNER_ACTION_REQUIRED",
-    note: "App importado e compilável; aguarda projeto dedicado e integração SaaS.",
+    clients: "0",
+    demo: "LOCAL PREVIEW PASS · remote dedicado OPCIONAL (Cloudflare wave futura)",
+    commercial: "PRONTO PARA DEPLOY — integração SaaS futura (padrão bakery)",
+    project: "OPCIONAL / NOT REQUIRED — projeto Vercel dedicado não é requisito",
+    note: "App importado e compilável; CODE_READY/DEPLOYMENT_READY provados.",
   },
   {
     name: "Restaurante",
@@ -102,10 +107,11 @@ export const VERTICALS: Vertical[] = [
     router: "HashRouter",
     env: "nenhuma",
     supabase: "NÃO INTEGRADO (legado demo)",
-    demo: "Preview a criar (projeto dedicado)",
-    commercial: "PRONTO PARA DEPLOY — integração SaaS futura",
-    project: "saas-restaurant = OWNER_ACTION_REQUIRED",
-    note: "App importado e compilável; aguarda projeto dedicado e integração SaaS.",
+    clients: "0",
+    demo: "LOCAL PREVIEW PASS · remote dedicado OPCIONAL (Cloudflare wave futura)",
+    commercial: "PRONTO PARA DEPLOY — integração SaaS futura (padrão bakery)",
+    project: "OPCIONAL / NOT REQUIRED — projeto Vercel dedicado não é requisito",
+    note: "App importado e compilável; CODE_READY/DEPLOYMENT_READY provados.",
   },
   {
     name: "Máquinas Pesadas",
@@ -119,16 +125,17 @@ export const VERTICALS: Vertical[] = [
     router: "HashRouter",
     env: "nenhuma",
     supabase: "NÃO INTEGRADO (legado demo)",
-    demo: "Preview a criar (projeto dedicado)",
-    commercial: "PRONTO PARA DEPLOY — integração SaaS futura",
-    project: "saas-heavy-machinery = OWNER_ACTION_REQUIRED",
-    note: "App importado e compilável; aguarda projeto dedicado e integração SaaS.",
+    clients: "0",
+    demo: "LOCAL PREVIEW PASS · remote dedicado OPCIONAL (Cloudflare wave futura)",
+    commercial: "PRONTO PARA DEPLOY — integração SaaS futura (padrão bakery)",
+    project: "OPCIONAL / NOT REQUIRED — projeto Vercel dedicado não é requisito",
+    note: "App importado e compilável; CODE_READY/DEPLOYMENT_READY provados.",
   },
   {
     name: "Casa/Templo Religioso",
     slug: "religious-house",
     state: "blocked",
-    source: "— (source externo bloqueado)",
+    source: "— (source externo bloqueado; nenhum material local no monorepo)",
     app: "MISSING_APP",
     build: "MISSING",
     typecheck: "MISSING",
@@ -136,6 +143,7 @@ export const VERTICALS: Vertical[] = [
     router: "—",
     env: "—",
     supabase: "—",
+    clients: "0",
     demo: "—",
     commercial: "—",
     project: "NÃO CRIAR (nada inventado)",
@@ -147,7 +155,7 @@ export const VERTICALS: Vertical[] = [
     name: "Salão",
     slug: "salon",
     state: "not-ready",
-    source: "— (sem implementação)",
+    source: "— (sem implementação; branch chatgpt/integrate-salon-vanessa NÃO existe no remote — auditado via fetch --prune)",
     app: "MISSING_APP",
     build: "MISSING",
     typecheck: "MISSING",
@@ -155,11 +163,12 @@ export const VERTICALS: Vertical[] = [
     router: "—",
     env: "—",
     supabase: "—",
+    clients: "0",
     demo: "—",
     commercial: "NOT READY",
     project: "NÃO CRIAR (nada inventado)",
     note:
-      "Futuro tenant Vanessa será CLIENTE/CONFIGURAÇÃO — nunca a identidade da plataforma.",
+      "Vanessa Braz será TENANT/template do vertical salon — nunca um vertical separado. Nenhum material importável encontrado; blocker concreto registrado.",
   },
   {
     name: "Painéis de LED",
@@ -173,6 +182,7 @@ export const VERTICALS: Vertical[] = [
     router: "—",
     env: "—",
     supabase: "—",
+    clients: "0",
     demo: "—",
     commercial: "—",
     project: "NÃO CRIAR (nada inventado)",
@@ -289,6 +299,22 @@ export const PROJECTS: PlatformProject[] = [
     status: "NÃO CRIAR — blockers externos reais; nada inventado",
   },
 ];
+
+/**
+ * Catálogo canônico (code/product completeness semantics — 2026-09-18):
+ * Vercel é APENAS preview/dev/validação do central; projetos dedicados por
+ * vertical são OPCIONAIS e NÃO SÃO requisito de completude. O publishing
+ * comercial definitivo acontece na futura wave Cloudflare
+ * (docs/CLOUDFLARE_MIGRATION_MASTER_PLAN.md). Remote preview do central
+ * verificado pelo owner externamente: commit 657fb86 → READY, GET / = 200,
+ * title "Tupiniquim SaaS — Plataforma".
+ */
+export const HOSTING_POLICY = {
+  vercelRole: "PREVIEW / DEVELOPMENT / VALIDAÇÃO DO CENTRAL (apenas)",
+  dedicatedProjects: "OPTIONAL / NOT REQUIRED para completude do produto",
+  finalHosting: "CLOUDFLARE — wave futura, após CODE_PRODUCT_COMPLETE",
+  centralRemotePreview: "PASS (owner-verified: deployment de 657fb86, READY, HTTP 200, title plataforma)",
+} as const;
 
 /** URLs de preview públicas (sem secrets) — VITE_VERTICAL_PREVIEW_URLS. */
 export function readPreviewUrls(env: Record<string, string | undefined>): Record<string, string> {
