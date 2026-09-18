@@ -27,6 +27,21 @@ apenas valores publishable/browser.
 | Env validation | READY | env-doctor + key-probe metadata-only; key publishable aceita |
 | Remote migration snapshot | BLOCKED | CLI/credencial read-only ausente (BLOCKED_REMOTE_SNAPSHOT_CLI_ACCESS) — não impede preview de leitura |
 
+## BUILD STATE vs USER-FACING PREVIEW STATE (regra permanente)
+
+São estados DIFERENTES e não intercambiáveis:
+
+| Data | VERCEL BUILD STATE | USER-FACING PREVIEW STATE | Evidência |
+|---|---|---|---|
+| Antes desta wave | READY (build completava) | **FAIL — GET / = 404 NOT_FOUND** (nenhum output publicado; framework=null, root sem build) | Log externo do owner (build ~781ms, sem output) |
+| Pós-95fb0a6 (vercel.json bakery) | READY esperado | **AGUARDANDO REDEPLOY** — validação HTTP pendente (não declarada PASS sem prova) | vercel.json versionado; build local provado (npm ci + build:bakery → dist/index.html + assets) |
+
+A wave BIG RUN MASTER (2026-09-18) estabeleceu a arquitetura final:
+**o projeto central NÃO é a Padaria** — ele passará a publicar a shell da
+plataforma (apps/platform) após o cutover; Bakery terá projeto dedicado
+`saas-bakery`. Ordem do cutover preservada em docs/VERCEL_MASTER_TOPOLOGY.md
+(Fases A→B→C→D, sem downtime do preview funcional).
+
 ## Veredito
 
 **READY** para o primeiro preview SaaS integrado (postura de leitura, com

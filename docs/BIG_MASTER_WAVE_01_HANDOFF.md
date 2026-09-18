@@ -78,6 +78,9 @@ LIVE READ CAPABLE — apps/bakery/src/business/saas-adapter.ts: `mapLiveTenantTo
 ## LIVE SUPABASE INTEGRATION (WAVE INTEGRAÇÃO REAL 01)
 DOCUMENTED + IMPLEMENTED — ver docs/LIVE_SUPABASE_INTEGRATION.md. packages/database (client explícito, service_role rejeitado em runtime), packages/auth (sessão real, sem mock), packages/tenancy (seleção de tenant restrita às memberships ativas do usuário autenticado — browser selection é UX, RLS é enforcement), política demo fallback como regra de plataforma, harness cross-tenant read-only pronto. Env contract: VITE_SUPABASE_URL / VITE_SUPABASE_PUBLISHABLE_KEY / VITE_DEMO_MODE (guard de plataforma bloqueia criação de .env.example no sandbox — contrato documentado no doc de integração)
 
+## VERCEL TOPOLOGY (BIG RUN MASTER — 2026-09-18)
+DOCUMENTED + PREPARED — ver docs/VERCEL_MASTER_TOPOLOGY.md / VERCEL_TOPOLOGY_AUDIT.md / VERCEL_ENV_MATRIX.md / TENANT_DOMAIN_ARCHITECTURE.md / DEPLOYMENT_RELEASE_MATRIX.md. Modelo: projeto central = PLATAFORMA (nova shell mínima apps/platform — build/typecheck PASS, sem copiar visual de vertical), cada vertical = projeto Vercel dedicado (saas-bakery/pet/restaurant/metalart/heavy-machinery), Project ≠ Tenant (sem fork por cliente), Supabase único mmykyzzkcugxunmekwew, Preview/Production separados (custom environments = FUTURE). Auditoria de builds locais: platform/bakery/pet/restaurant/metalart/heavy-machinery BUILD+TYPECHECK PASS; religious-house/salon/led = MISSING_APP (nada inventado). HashRouter em todos os apps → nenhum rewrite SPA necessário. Secret scan dos dists: PASS. Team rename = BLOCKED_VERCEL_TEAM_RENAME_PERMISSION. Criação dos projetos dedicados + redeploys = ação do owner (sem credencial Vercel no sandbox); Bakery permanece servida pelo projeto central até cutover A→B→C→D.
+
 ## REMOTE SNAPSHOT
 BLOCKED_REMOTE_SNAPSHOT_CLI_ACCESS — Supabase CLI ausente/sem credencial read-only no sandbox; integração da aplicação NÃO bloqueada; ledger mantém as 4 migrations REMOTE_ONLY/NEEDS_EXPORT; use REMOTE_STATE_SNAPSHOTTED (não SOURCE_FILE_MATCHED) quando o dump for obtido
 
@@ -127,10 +130,14 @@ BLOCKED_REMOTE_SNAPSHOT_CLI_ACCESS — Supabase CLI ausente/sem credencial read-
 ## PRÓXIMA AÇÃO EXATA
 1. RESOLVIDO 2026-09-17: cross-tenant DB real = PASS (58/58) + storage isolation = PASS (12/12 private, cross-write 4/4 negado) + bakery live read = PASS com VITE_DEMO_MODE=false. Evidência: docs/CROSS_TENANT_RLS_EVIDENCE.md + docs/STORAGE_CROSS_TENANT_EVIDENCE.md.
 2. RESOLVIDO 2026-09-18: migration 20260918132842_fix_tenant_public_read_policy APLICADA pelo owner e validada empiricamente pós-apply (storage harness 42/42: upsert own ALLOW, isolamento intacto, residual=0). Tabela before/after completa em docs/PUBLIC_STORAGE_POLICY_FIX.md (REMOTE APPLY STATUS: APPLIED).
-3. Export read-only das 4 migrations REMOTE_ONLY (supabase db dump / migration list) contra mmykyzzkcugxunmekwew → commit em supabase/remote-snapshot/ + atualizar docs/REMOTE_MIGRATION_LEDGER.md de NEEDS_EXPORT para REMOTE_STATE_SNAPSHOTTED (a migration local de storage já está alinhada ao ledger remoto: 20260918132842 fix_tenant_public_read_policy).
-4. Quando acesso ao Templo for liberado: subtree import para apps/religious-house seguindo docs/migrations/religious-house.md.
-5. Media strategy MetalArt: inventário vídeo/foto (site vs source material), plano Supabase Storage/CDN — preservação visual primeiro (requer public storage funcional resolvido).
-6. CRM horizontal: definir contrato de consumo do SaaS Core (packages/saas-core já exporta tudo via index.ts).
+3. (OWNER, Vercel dashboard — permissão de team necessária) Fase B do cutover: criar projeto dedicado `saas-bakery` (root do repo, build `npm run build:bakery`, output `apps/bakery/dist`, env `VITE_DEMO_MODE=false`) e validar HTTP 200 + render; em paralelo, redeploy do projeto central e validar o preview bakery atual. Depois Fase C/D: criar `saas-pet`/`saas-restaurant`/`saas-metalart`/`saas-heavy-machinery` (comandos auditados em docs/VERCEL_TOPOLOGY_AUDIT.md), validar HTTP por app e só então repontuar o projeto central para apps/platform (build `npm run build:platform`, output `apps/platform/dist`).
+4. Export read-only das 4 migrations REMOTE_ONLY (supabase db dump / migration list) contra mmykyzzkcugxunmekwew → commit em supabase/remote-snapshot/ + atualizar docs/REMOTE_MIGRATION_LEDGER.md de NEEDS_EXPORT para REMOTE_STATE_SNAPSHOTTED (a migration local de storage já está alinhada ao ledger remoto: 20260918132842 fix_tenant_public_read_policy).
+5. Quando acesso ao Templo for liberado: subtree import para apps/religious-house seguindo docs/migrations/religious-house.md.
+6. Media strategy MetalArt: inventário vídeo/foto (site vs source material), plano Supabase Storage/CDN — preservação visual primeiro (requer public storage funcional resolvido).
+7. CRM horizontal: definir contrato de consumo do SaaS Core (packages/saas-core já exporta tudo via index.ts).
+
+## VERCEL PREVIEW GATE
+CENTRAL PROJECT: vercel.json (95fb0a6) configura npm ci → build:bakery → apps/bakery/dist; BUILD STATE vs USER-FACING PREVIEW STATE diferenciados em docs/VERCEL_PREVIEW_READINESS.md (READY ≠ HTTP 200; validação HTTP real é obrigatória). VERCEL_TEAM: legado "Caboclo Tupinambá e Flecha Dourada" (rename BLOCKED_VERCEL_TEAM_RENAME_PERMISSION; alvo conceitual Tupiniquim Tech Solution).
 
 ## COMMITS
 - a7c2bbb docs: update canonical scope to include MetalArt, Templo, CRM horizontal
