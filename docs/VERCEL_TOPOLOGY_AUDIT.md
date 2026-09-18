@@ -36,7 +36,7 @@ manipulável por este agente — nenhuma credencial Vercel no sandbox).
 
 | APP | package.json | BUILD (local) | TYPECHECK | ROUTER | SPA REWRITES? | ENV VITE_* consumida |
 |---|---|---|---|---|---|---|
-| apps/platform | tupiniquim-platform | PASS (vite, 147 kB) | PASS | nenhuma (tela única) | NÃO | `VITE_VERTICAL_PREVIEW_URLS` (não-secret) |
+| apps/platform | tupiniquim-platform | PASS (vite, 162 kB — control plane completo) | PASS | hash routing interno (6 views; rotas após /#/) | NÃO | `VITE_VERTICAL_PREVIEW_URLS` (não-secret) |
 | apps/bakery | tupiniquim-bakery | PASS (vite) | PASS | HashRouter | NÃO | `VITE_DEMO_MODE` (adapter; live path via packages/tenancy) |
 | apps/pet | tupiniquim-pet | PASS (vite) | PASS | HashRouter | NÃO | nenhuma |
 | apps/restaurant | tupiniquim-restaurant | PASS (vite) | PASS | HashRouter | NÃO | nenhuma |

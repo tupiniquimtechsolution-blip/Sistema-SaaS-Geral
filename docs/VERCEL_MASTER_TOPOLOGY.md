@@ -19,6 +19,15 @@ WORKSPACE (team Vercel — identidade organizacional neutra; alvo conceitual
    └── saas-led                  → SOMENTE quando o source real existir
 ```
 
+## Central app (estado atual)
+
+apps/platform é o **control plane** do SaaS (não apenas uma landing): 6 views
+(Dashboard, Verticais + dossiê, Core com maturidade honesta, Tenants,
+Deployments, Status), navegação por hash, zero secrets, zero backend falso.
+Evidência e veredito: docs/PLATFORM_COMPLETION_REPORT.md. Migração futura de
+hosting (Vercel → Cloudflare) planejada em docs/CLOUDFLARE_MIGRATION_MASTER_PLAN.md
+— NÃO executar até SYSTEM_COMPLETE.
+
 ## Regras invariáveis
 
 1. **Vercel Project ≠ Tenant.** Um projeto publica uma aplicação; cada cliente

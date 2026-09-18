@@ -38,7 +38,7 @@ São estados DIFERENTES e não intercambiáveis:
 
 A wave BIG RUN MASTER (2026-09-18) estabeleceu a arquitetura final:
 **o projeto central NÃO é a Padaria** — ele passará a publicar a shell da
-plataforma (apps/platform) após o cutover; Bakery terá projeto dedicado
+plataforma (apps/platform — agora control plane completo: 6 views, typecheck/build/HTTP local PASS; ver docs/PLATFORM_COMPLETION_REPORT.md) após o cutover; Bakery terá projeto dedicado
 `saas-bakery`. Ordem do cutover preservada em docs/VERCEL_MASTER_TOPOLOGY.md
 (Fases A→B→C→D, sem downtime do preview funcional).
 
