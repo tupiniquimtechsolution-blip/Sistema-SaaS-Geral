@@ -41,10 +41,22 @@ WORKSPACE (team Vercel — identidade organizacional neutra; alvo conceitual
 
 ## Estado por projeto
 
+**Cutover do projeto central (2026-09-18):** `vercel.json` repontado de
+`build:bakery`/`apps/bakery/dist` para `build:platform`/`apps/platform/dist`.
+Correção de diagnóstico: o deployment do commit b8babe9 ficou READY com
+GET / = 200 (URL de deployment confirmada pelo owner) — mas servia **Bakery**
+porque o vercel.json ainda apontava para `build:bakery` (o 404 registrado
+antes referia-se ao alias de produção antes de qualquer promoção). Com o
+cutover, o projeto central passa a publicar a PLATAFORMA; a Bakery continua
+servida pelo deployment validado até o projeto dedicado `saas-bakery` ser
+criado e validado pelo owner (instruções exatas em docs/VERCEL_OWNER_ACTIONS.md)
+— preservando o preview funcional (migrate/validate/cutover/deprecate, sem
+downtime desnecessário).
+
 Ver `docs/VERCEL_TOPOLOGY_AUDIT.md` (estado real + ações) e
 `docs/DEPLOYMENT_RELEASE_MATRIX.md` (gates por app). A criação/configuração dos
 projetos dedicados no dashboard Vercel é ação do owner (permissão de team
-necessária); os comandos exatos estão na tabela de AUDIT.
+necessária); os comandos exatos estão em docs/VERCEL_OWNER_ACTIONS.md.
 
 ## Git integration (target)
 

@@ -17,12 +17,32 @@ declare const process: {
  *                              the / document itself must be 200 — server-side proof)
  *
  * Usage (no secrets needed — public URLs only):
- *   bun scripts/preview-http-gate.ts <url> [url2 ...]
- *   bun scripts/preview-http-gate.ts            # defaults to the known project aliases
+ *   bun scripts/preview-http-gate.ts                          # PRODUCTION_ALIAS targets only
+ *   bun scripts/preview-http-gate.ts production:<url>         # alias + platform-identity title check
+ *   bun scripts/preview-http-gate.ts preview:<url>            # branch preview (generic app checks)
+ *   bun scripts/preview-http-gate.ts deployment:<url>         # unique deployment URL (generic app checks)
+ *
+ * Target kinds are DISTINCT (BIG MASTER WAVE §7): the production alias does NOT
+ * represent the branch preview. MASTER PASS for a branch uses only
+ * BRANCH_PREVIEW / DEPLOYMENT_URL evidence; PRODUCTION stays NOT PROMOTED.
  *
  * Exit code 0 only if EVERY url passes. Missing app/dist must be built first
- * (npm run build:bakery) — assets are read from apps/<app>/dist/index.html.
+ * (npm run build:<app>) — assets are read from apps/<app>/dist/index.html.
  */
+
+type TargetKind = "PRODUCTION_ALIAS" | "BRANCH_PREVIEW" | "DEPLOYMENT_URL";
+
+type Target = { kind: TargetKind; url: string };
+
+function parseTarget(raw: string): Target {
+  const idx = raw.indexOf(":");
+  const prefix = idx > 0 ? raw.slice(0, idx) : "";
+  const url = idx > 0 ? raw.slice(idx + 1) : raw;
+  if (prefix === "production") return { kind: "PRODUCTION_ALIAS", url };
+  if (prefix === "preview") return { kind: "BRANCH_PREVIEW", url };
+  if (prefix === "deployment") return { kind: "DEPLOYMENT_URL", url };
+  return { kind: "DEPLOYMENT_URL", url: raw }; // plain URL = unique deployment
+}
 
 type Check = {
   name: string;
@@ -72,9 +92,9 @@ function extractAssetUrls(doc: string, docUrl: string): string[] {
   return urls;
 }
 
-async function validatePreview(rawUrl: string): Promise<void> {
-  const url = rawUrl.replace(/\/+$/, "") + "/";
-  console.log(`\n=== PREVIEW HTTP GATE: ${url} ===`);
+async function validatePreview(target: Target): Promise<void> {
+  const url = target.url.replace(/\/+$/, "") + "/";
+  console.log(`\n=== PREVIEW HTTP GATE [${target.kind}]: ${url} ===`);
 
   // 1. GET / — must be 200 and contain the app document
   let doc: string;
@@ -138,14 +158,35 @@ async function validatePreview(rawUrl: string): Promise<void> {
   const guesses = ["bakery", "padaria", "tupiniquim saas", "sistema saas geral", "pet", "restaurant", "metalart", "heavy"];
   const found = guesses.filter((g) => lower.includes(g));
   console.log(`[INFO] content markers found: ${found.length ? found.join(", ") : "(none of the known markers)"}`);
+
+  // 6. platform identity (PRODUCTION_ALIAS of the central project only): the
+  //    PRIMARY identity comes from <title> — body mentions of verticals are
+  //    legitimate (the platform lists its vertical products as cards).
+  if (target.kind === "PRODUCTION_ALIAS") {
+    const title = /<title>([^<]*)<\/title>/i.exec(doc)?.[1]?.trim() ?? "(no title)";
+    const isPlatform = /tupiniquim saas|sistema saas geral/i.test(title);
+    const isVertical = /fornalha|padaria|bakery|templo|metalart|pet|restaurante/i.test(title);
+    add(
+      "central identity is PLATFORM (title), not a vertical",
+      isPlatform && !isVertical,
+      `title="${title}"`,
+    );
+  }
 }
 
-const DEFAULT_TARGETS = [
-  "https://sistema-saa-s-geral.vercel.app", // central project (currently still bakery preview or 404)
-  "https://sistema-saas-geral.vercel.app", // alt spelling
+const DEFAULT_TARGETS: Target[] = [
+  // PRODUCTION alias of the central project. NOTE: until the owner promotes a
+  // production deployment this alias is expected to 404 — branch previews live
+  // on unique deployment URLs and are validated explicitly via
+  // `bun scripts/preview-http-gate.ts deployment:<url>` after each commit.
+  { kind: "PRODUCTION_ALIAS", url: "https://sistema-saa-s-geral.vercel.app" },
+  { kind: "PRODUCTION_ALIAS", url: "https://sistema-saas-geral.vercel.app" }, // alt spelling
 ];
 
-const targets = process.argv.slice(2).length > 0 ? process.argv.slice(2) : DEFAULT_TARGETS;
+const targets: Target[] =
+  process.argv.slice(2).length > 0
+    ? process.argv.slice(2).map(parseTarget)
+    : DEFAULT_TARGETS;
 
 for (const t of targets) {
   await validatePreview(t);

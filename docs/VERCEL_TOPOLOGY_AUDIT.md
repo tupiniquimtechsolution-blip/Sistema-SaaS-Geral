@@ -17,7 +17,7 @@ manipulável por este agente — nenhuma credencial Vercel no sandbox).
 
 | PROJECT | REPOSITORY | BRANCH | ROOT | BUILD | OUTPUT | PREVIEW | PRODUCTION | DOMAIN | STATUS | ACTION |
 |---|---|---|---|---|---|---|---|---|---|---|
-| sistema-saa-s-geral | tupiniquimtechsolution-blip/Sistema-SaaS-Geral | freebuff/big-master-wave-01-monorepo | repo root (framework=null) | — (nenhum antes de 95fb0a6) | — | READY mas **GET / = 404** (usário-facing FAIL); **reconfirmado 2026-09-18 via scripts/preview-http-gate.ts (0/10, ambos os aliases)** | n/a | vercel.app default | **MISCONFIGURED — redeploy pós-95fb0a6 ainda não publicado** | Após 95fb0a6 (`vercel.json` → bakery): redeploy Preview e validar HTTP; Fase C do cutover (§9 do MASTER TOPOLOGY); depois Fase D = repontuar este projeto para apps/platform |
+| sistema-saa-s-geral | tupiniquimtechsolution-blip/Sistema-SaaS-Geral | freebuff/big-master-wave-01-monorepo | repo root (framework=null) | `npm run build:platform` (vercel.json, commit cutover) | `apps/platform/dist` | Deployment b8babe9 **READY + GET / = 200** (owner-confirmed, URL `sistema-saa-s-geral-h0ktuxbaf.vercel.app`) — mas servia **Bakery** pois o vercel.json ainda apontava para `build:bakery` | n/a (NOT PROMOTED) | vercel.app default | **CUTOVER EXECUTADO NO REPO** — vercel.json repontado para platform; validar o NOVO deployment (branch preview) com `preview-http-gate.ts deployment:<url>`; produção só depois de promoção explícita | Novo deployment do commit do cutover deve ser validado por URL de deployment (não pelo production alias); criação do `saas-bakery` dedicado em docs/VERCEL_OWNER_ACTIONS.md |
 
 ## PROJETOS ALVO (a criar pelo owner — comandos/valores reais auditados no repo)
 
@@ -58,9 +58,22 @@ matrix. Nenhuma promoção de Production executada.
 ## HTTP VALIDATION GATE (evidência §29)
 
 Harness durável: `scripts/preview-http-gate.ts` (sem secrets; alvos por CLI ou
-aliases padrão). Validação 2026-09-18: **0/10 checks PASS** — GET / = 404 nos
-dois aliases (sistema-saa-s-geral, sistema-saas-geral); markers
-DEPLOYMENT_NOT_FOUND / NOT_FOUND; nenhum asset servido. Interpretação: o
-redeploy do projeto central pós-95fb0a6 (vercel.json → build:bakery) ainda não
-ocorreu no dashboard do owner. USER-FACING PREVIEW permanece **FAIL** —
-nunca declarar PASS com base em "Vercel READY".
+aliases padrão). **DIAGNÓSTICO CORRIGIDO (2026-09-18):** a leitura anterior de
+0/10 (404 nos aliases) era válida para AQUELE momento, mas a interpretação
+"redeploy não publicado" ficou OBSOLETA — o owner confirmou externamente que
+o deployment do commit b8babe9 ficou **READY com GET / = 200**
+(URL `sistema-saa-s-geral-h0ktuxbaf.vercel.app`), porém servia
+**Fornalha/Bakery** porque o `vercel.json` do commit anterior ainda apontava
+para `npm run build:bakery` / `apps/bakery/dist`. Evidência Bakery pré-cutover
+preservada: HTTP 200 + assets 200 provados pelo owner nessa URL.
+
+**Cutover executado no repo:** `vercel.json` → `npm run build:platform` /
+`apps/platform/dist` (build + typecheck locais PASS; title da dist:
+"Tupiniquim SaaS — Plataforma", zero markers de vertical como identidade).
+
+**Regras do harness (target kinds distintos):** `PRODUCTION_ALIAS` (não
+representa a branch preview; plataforma exige promoção), `BRANCH_PREVIEW` e
+`DEPLOYMENT_URL`. O MASTER PASS desta branch usa somente
+BRANCH_PREVIEW/DEPLOYMENT_URL — validar o próximo deployment do commit do
+cutover via `bun scripts/preview-http-gate.ts deployment:<url>` (GET / = 200,
+title plataforma, assets 200). PRODUCTION permanece NOT PROMOTED.

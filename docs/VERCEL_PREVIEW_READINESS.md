@@ -34,7 +34,7 @@ São estados DIFERENTES e não intercambiáveis:
 | Data | VERCEL BUILD STATE | USER-FACING PREVIEW STATE | Evidência |
 |---|---|---|---|
 | Antes desta wave | READY (build completava) | **FAIL — GET / = 404 NOT_FOUND** (nenhum output publicado; framework=null, root sem build) | Log externo do owner (build ~781ms, sem output) |
-| Pós-95fb0a6 (vercel.json bakery) | READY esperado | **FAIL — validação HTTP executada (2026-09-18, `scripts/preview-http-gate.ts`): GET / = 404 em ambos os aliases (sistema-saa-s-geral / sistema-saas-geral .vercel.app), 0/10 checks** → o redeploy pós-95fb0a6 ainda não foi publicado pelo owner (sem credencial Vercel no sandbox). Re-executar o gate após o redeploy — não declarar PASS sem HTTP 200 + assets |
+| Pós-95fb0a6 (vercel.json bakery) | READY — **PROVADO**: deployment b8babe9 READY com GET / = 200 (owner-confirmed; leitura anterior "404/redeploy pendente" refere-se ao production alias e está CORRIGIDA) | Servia **Bakery** (comportamento correto naquele commit — vercel.json apontava `build:bakery`); com o **cutover** (`build:platform`/`apps/platform/dist`), o próximo deployment do projeto central serve a plataforma — validar o NOVO deployment por URL (`bun scripts/preview-http-gate.ts deployment:<url>`), não pelo alias de produção | vercel.json versionado; build local provado (npm ci + build:platform → dist/index.html + assets; title "Tupiniquim SaaS — Plataforma") |
 
 A wave BIG RUN MASTER (2026-09-18) estabeleceu a arquitetura final:
 **o projeto central NÃO é a Padaria** — ele passará a publicar a shell da
