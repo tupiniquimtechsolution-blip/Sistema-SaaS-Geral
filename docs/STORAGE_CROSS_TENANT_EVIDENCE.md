@@ -38,8 +38,16 @@ Projeto: `mmykyzzkcugxunmekwew` (estado remoto = fonte de verdade)
 | tenant-public | `<A>/qa/public-a.png` | B | A | upload cross | DENY | RLS violation | PASS |
 | tenant-public | `<A>/qa/public-a.png` | A | A | read own (auth) | ALLOW | NOT RUN — objeto não existe (upload negado) | n/a |
 | tenant-public | `<B>/qa/public-b.png` | B | B | read own (auth) | ALLOW | NOT RUN — objeto não existe (upload negado) | n/a |
-| tenant-public | `<A>/qa/public-a.png` | anônimo | A | public GET | ALLOW (se status permitido) | **DENY (404/403)** | **FAIL (funcional)** |
-| tenant-public | `<B>/qa/public-b.png` | anônimo | B | B | public GET | ALLOW (se status permitido) | **DENY (404/403)** | **FAIL (funcional)** |
+| tenant-public | `<A>/qa/public-a.png` | anônimo | A | public GET (rota /object/public/) | ALLOW (se status permitido)* | **DENY (404/403)** | **FAIL (funcional)** |
+| tenant-public | `<B>/qa/public-b.png` | anônimo | B | public GET (rota /object/public/) | ALLOW (se status permitido)* | **DENY (404/403)** | **FAIL (funcional)** |
+
+\* Contexto semântico (fato empírico provado nesta evidência): a rota
+`/storage/v1/object/public/...` de um bucket `public=true` serve objetos
+**sem avaliar a policy RLS SELECT** (`tenant_public_read` não é consultada
+nessa rota — o mesmo objeto foi NEGADO via anon list() governado por RLS e
+SERVIDO pela rota pública simultaneamente). A política de status de tenant
+na migration candidata afeta apenas operações storage.objects governadas por
+RLS (SELECT/list/upsert), não a rota pública direta.
 
 ## Classificação oficial (zero leak standard)
 
@@ -89,8 +97,12 @@ EMPIRICAL PROOF (harness, rodada 2):
 
 MIGRATION CANDIDATA (LOCAL, NÃO APLICADA):
   supabase/migrations/20260917120000_fix_tenant_public_read_policy.sql
-  substitui SOMENTE tenant_public_read. Ver docs/PUBLIC_STORAGE_POLICY_FIX.md
-  (REMOTE APPLY STATUS: NOT APPLIED).
+  substitui SOMENTE tenant_public_read. Efeitos: repara SELECT/list RLS-
+  governed e o fluxo de upsert. NÃO revoga a rota pública direta
+  /object/public/ de bucket public=true — essa rota não avalia RLS.
+  Revogação imediata por status de tenant = FUTURE HARDENING (private bucket
+  + signed URL, ou authenticated/proxy delivery). Ver
+  docs/PUBLIC_STORAGE_POLICY_FIX.md (REMOTE APPLY STATUS: NOT APPLIED).
 ```
 
 Contexto capturado pelo harness: `tenant-status — A=trialing B=trialing (live read — policy-finding context)`.

@@ -89,8 +89,11 @@ A nova policy preserva e corrige:
 - public READ somente para objetos de bucket `tenant-public`;
 - somente paths cujo primeiro segmento é um tenant UUID válido
   (`storage_tenant_id(name) IS NOT NULL` — rejeita paths malformados/traversal);
-- somente tenants com status permitido (`demo`, `trialing`, `active`) — tenant
-  desabilitado deixa de servir mídia publicamente;
+- somente tenants com status permitido (`demo`, `trialing`, `active`) —
+  a policy restringe visibility em operações storage.objects governadas por
+  RLS (SELECT/list e fluxos internos dependentes, como upsert). A rota
+  pública direta de bucket `public=true` NÃO é revogada por essa policy
+  (ver FUTURE HARDENING abaixo);
 - NENHUM public write, cross-tenant write, private read ou acesso privado
   cross-tenant é introduzido (FOR SELECT exclusivo; write continua nas policies
   de mídia existentes; private continua em `tenant_private_read`).
@@ -110,11 +113,31 @@ resolvido); cross-write permanece DENY.
 | public:anonymous read (rota pública) | ALLOW | ALLOW (inalterado) |
 | private:* (todos) | PASS | PASS (inalterado) |
 
+## FUTURE HARDENING (NON-BLOCKING)
+
+Fato empírico já provado no harness: `tenant-public` possui `public=true` e a
+rota `/storage/v1/object/public/...` serve objetos **sem depender da policy
+RLS SELECT** (mesmo objeto: anon list via storage.objects = EMPTY pela policy
+quebrada, enquanto a rota pública o servia).
+
+Consequência: esta migration **NÃO** garante revogação imediata de mídia
+quando um tenant sair de demo/trialing/active (ex.: suspended/disabled) — a
+URL pública direta continua servindo o objeto.
+
+Se houver requisito de revogação imediata de mídia quando tenant for
+suspended/disabled, avaliar (NÃO implementar nesta Wave):
+
+- bucket privado + signed URL; ou
+- authenticated/proxy delivery.
+
 ## NON-GOALS
 
 - Não alterar `tenant_media_insert/update/delete`, `tenant_private_read` ou
   qualquer outra policy/tabela/função.
 - Não migrar mídia para CDN, não alterar buckets, limites ou MIME allowlist.
+- Não implementar revogação imediata de mídia pública por status de tenant
+  (a rota /object/public/ de bucket public=true não é governada por RLS —
+  ver FUTURE HARDENING).
 - Não reprovisionar tenants QA nem alterar subscriptions/status.
 - Não tocar em dados religiosos sensíveis.
 

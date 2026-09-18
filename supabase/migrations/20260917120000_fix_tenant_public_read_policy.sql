@@ -22,8 +22,15 @@
 --   - only bucket tenant-public;
 --   - only objects whose FIRST PATH SEGMENT is a valid tenant UUID
 --     (storage_tenant_id(name) IS NOT NULL — rejects malformed/traversal paths);
---   - only tenants whose status ∈ ('demo','trialing','active') — a disabled
---     tenant's public media stops being publicly served;
+--   - only tenants whose status ∈ ('demo','trialing','active') — this restricts
+--     visibility in RLS-governed storage.objects operations (SELECT/list and
+--     internally dependent flows such as upsert).
+--     SEMANTIC LIMIT (empirically proven): tenant-public is a public=true
+--     bucket and the direct route /storage/v1/object/public/... serves
+--     objects WITHOUT evaluating this RLS policy. This policy does NOT
+--     revoke the direct public URL; immediate revocation of public media
+--     for suspended/disabled tenants is FUTURE HARDENING (non-blocking —
+--     see docs/PUBLIC_STORAGE_POLICY_FIX.md).
 --   - NO public write, NO cross-tenant write, NO private-bucket read
 --     (those remain governed by the untouched write policies + private read).
 --
