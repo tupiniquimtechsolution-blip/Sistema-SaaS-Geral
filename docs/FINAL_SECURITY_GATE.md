@@ -1,7 +1,9 @@
 # FINAL SECURITY GATE
 
-Data: 2026-09-18 · Revalidação live executada nesta rodada (BIG MASTER WAVE).
-Separação obrigatória: **release blockers** vs **security debt não-bloqueante**.
+Data: 2026-09-18 · Revalidação live executada nesta rodada (BIG MASTER WAVE);
+re-executado novamente no fechamento do produto (bundle secret scan PASS após
+as últimas mudanças da platform). Separação obrigatória: **release blockers**
+vs **security debt não-bloqueante**.
 
 ## Release blockers — NENHUM EM ABERTO
 

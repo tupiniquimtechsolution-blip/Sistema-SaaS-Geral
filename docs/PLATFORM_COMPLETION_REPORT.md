@@ -63,15 +63,28 @@ COMING_SOON declarados honestamente na view Core do control plane.
 
 ## PASSO 6 — deployments
 
-- Central: cutover executado (vercel.json → build:platform); deployment do
-  commit 04818dd pendente de acionamento/validação HTTP pelo owner.
-- Dedicados: instruções exatas em docs/VERCEL_OWNER_ACTIONS.md
-  (OWNER_ACTION_REQUIRED — sandbox sem credencial Vercel).
+- Central: cutover executado (vercel.json → build:platform). **REMOTE PREVIEW
+  VERIFICADO PELO OWNER (fato externo, 2026-09-18):** deployment do commit
+  `657fb86` — `sistema-saa-s-geral-pd4osf8ql.vercel.app` — **READY, GET / = 200,
+  title "Tupiniquim SaaS — Plataforma"** → PLATFORM REMOTE PREVIEW = PASS;
+  CENTRAL CONTENT = PLATFORM; BAKERY REMOVED FROM CENTRAL = PASS.
+- Dedicados por vertical: **OPTIONAL / NOT REQUIRED** (decisão do owner —
+  Vercel permanece apenas preview/dev/validação; publishing comercial
+  definitivo na wave Cloudflare). Apps permanecem DEPLOYMENT_READY com build
+  e preview local provados.
 - PRODUCTION: NOT PROMOTED (nenhuma promoção automática).
 
-## Veredito
+## Veredito (atualizado — nova semântica de completude)
 
-**SYSTEM_COMPLETE = PARTIAL** — todos os componentes repo-side PASS; itens
-restantes exigem exclusivamente ações do owner no dashboard Vercel (deployment
-do central + criação dos projetos dedicados) ou envolvem blockers externos
-documentados (LED/Templo/Salon). Nenhum blocker técnico em aberto no código.
+- **CODE_PRODUCT_COMPLETE = YES** — platform, core, auth, tenancy, RBAC,
+  entitlements, storage, security, verticais MVP, tenant model, branding model,
+  domain architecture, builds, tests, local previews, release docs — tudo PASS
+  ou MVP_PASS (docs/MVP_COMMERCIAL_READINESS.md).
+- **FINAL_HOSTING_COMPLETE = NO (by design)** — acontece na futura wave
+  Cloudflare (CLOUDFLARE_MIGRATION_READY = YES; docs/
+  CLOUDFLARE_MIGRATION_READINESS.md). Ausência de projeto Vercel dedicado NÃO
+  bloqueia completude do produto.
+- Blockers externos classificados sem implementação falsa: Salon (sem material
+  importável — branch chatgpt/integrate-salon-vanessa não existe no remote,
+  auditado via fetch --prune), Religious House (EXTERNAL_BLOCKED / POST-MVP
+  IMPORT), LED (DEFERRED_EXTERNAL_SOURCE).

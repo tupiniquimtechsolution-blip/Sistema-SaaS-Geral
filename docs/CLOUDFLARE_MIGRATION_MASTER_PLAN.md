@@ -1,9 +1,14 @@
 # CLOUDFLARE MIGRATION MASTER PLAN
 
 Data: 2026-09-18 · Status: **PLANO — NÃO EXECUTAR**
-Pré-condição: só iniciar após `SYSTEM_COMPLETE = YES` ou `PARTIAL` com
-somente blockers externos documentados e todos os componentes comercialmente
-necessários PASS (ver docs/SAAS_RELEASE_READINESS.md).
+Pré-condição: só iniciar após `CODE_PRODUCT_COMPLETE = YES` (ATINGIDO — ver
+docs/PLATFORM_COMPLETION_REPORT.md e docs/MVP_COMMERCIAL_READINESS.md) e
+autorização explícita do owner (readiness: docs/CLOUDFLARE_MIGRATION_READINESS.md
+= YES). **Mesmo com SYSTEM_COMPLETE = YES, NÃO migrar automaticamente — parar
+em CLOUDFLARE_MIGRATION_READY = YES e aguardar a wave dedicada.**
+Estratégia do owner: Vercel permanece SOMENTE preview/dev/validação do central;
+projetos dedicados por vertical NÃO serão criados no Vercel — o publishing
+comercial definitivo acontece aqui, na Cloudflare.
 
 ## 1. Princípios
 

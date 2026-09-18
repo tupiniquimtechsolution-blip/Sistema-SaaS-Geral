@@ -137,6 +137,34 @@ BLOCKED_REMOTE_SNAPSHOT_CLI_ACCESS — Supabase CLI ausente/sem credencial read-
 7. Media strategy MetalArt: inventário vídeo/foto (site vs source material), plano Supabase Storage/CDN — preservação visual primeiro (requer public storage funcional resolvido).
 8. CRM horizontal: definir contrato de consumo do SaaS Core (packages/saas-core já exporta tudo via index.ts).
 
+## BIG RUN MASTER WAVE — FECHAMENTO REAL DO PRODUTO (2026-09-18, terceira rodada)
+- **FATO EXTERNO VERIFICADO PELO OWNER:** deployment do commit 657fb86
+  (sistema-saa-s-geral-pd4osf8ql.vercel.app) READY, GET / = 200, title
+  "Tupiniquim SaaS — Plataforma" → PLATFORM REMOTE PREVIEW = PASS · CENTRAL
+  CONTENT = PLATFORM · BAKERY REMOVED FROM CENTRAL = PASS. Blocker anterior
+  (acionamento do central) RESOLVIDO.
+- **Estratégia de hosting (decisão do owner):** NÃO criar projetos Vercel
+  dedicados por vertical — Vercel = apenas preview/dev/validação do central;
+  publishing comercial definitivo na wave Cloudflare. Nova semântica:
+  CODE_PRODUCT_COMPLETE ≠ FINAL_HOSTING_COMPLETE.
+- **Salon auditado:** branch chatgpt/integrate-salon-vanessa NÃO existe no
+  remote (git fetch --prune + listagem); nenhum material importável no
+  monorepo → blocker concreto registrado; Vanessa Braz permanece TENANT/template
+  do vertical salon (nunca vertical separado). Nada inventado.
+- **Religious House:** nenhum material local → EXTERNAL_BLOCKED / POST-MVP
+  IMPORT. **LED:** DEFERRED_EXTERNAL_SOURCE. Nenhum bloqueia o MVP.
+- **Vendor lock-in auditado:** 0 referências Vercel-specific no código →
+  HOSTING PORTABILITY = PASS (docs/HOSTING_PORTABILITY_AUDIT.md).
+- **Tenant commercial flow classificado** etapa a etapa (docs/
+  MVP_COMMERCIAL_READINESS.md): IMPLEMENTED p/ tenant/vertical/plano/usuários/
+  permissões/entitlements/isolamento; MVP_PASS p/ branding + domínio manual;
+  BILLING ENGINE = POST-MVP (modelo plan/entitlement já suporta).
+- **Painel atualizado:** HOSTING_POLICY + clients reais por vertical + blocker
+  concreto do Salon + decisions de hosting; typecheck/build/secret scan PASS.
+- **VEREDITO: CODE_PRODUCT_COMPLETE = YES · MVP_COMMERCIAL_READY = YES ·
+  CLOUDFLARE_MIGRATION_READY = YES (NÃO migrar — aguardar autorização;
+  FINAL_HOSTING_COMPLETE = by design na wave Cloudflare).**
+
 ## BIG RUN MASTER WAVE — CONCLUSÃO INTEGRAL (2026-09-18, segunda rodada)
 - apps/platform evoluído de shell mínima para **CONTROL PLANE** (feat(platform)): navegação hash com 6 views — Dashboard (contadores reais), Verticais + dossiê por vertical (SOURCE/APP/BUILD/TYPECHECK/TEST/ROUTER/ENV/SUPABASE/TENANT/BRANDING/DEMO/COMMERCIAL/PROJETO), Core (maturidade IMPLEMENTED/FOUNDATION/COMING_SOON com evidência), Tenants, Deployments (matriz real), Status (gates). Sem backend falso, sem métricas inventadas; identidade "Tupiniquim SaaS — Plataforma"; typecheck + build PASS; HTTP local 200 (vite preview) + assets 200.
 - Matriz por vertical revalidada: bakery/pet/restaurant/metalart/heavy-machinery typecheck + build PASS (re-executados); testes de pacote sem regressão (86/3/3/13).

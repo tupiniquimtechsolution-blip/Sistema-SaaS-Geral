@@ -1,20 +1,36 @@
 # DEPLOYMENT RELEASE MATRIX
 
-Data: 2026-09-18 · Branch `freebuff/big-master-wave-01-monorepo` · HEAD 95fb0a6
-Estados: PASS · FAIL · BLOCKED · NOT RUN · MISSING · NOT READY (honestos —
-nenhum PASS sem execução; HTTP de preview só é PASS com prova real).
+Data: 2026-09-18 · **ATUALIZADA (fechamento do produto — nova semântica)** ·
+Branch `freebuff/big-master-wave-01-monorepo`
+Estados: PASS · FAIL · BLOCKED · NOT RUN · MISSING · NOT READY · OPTIONAL ·
+NOT DEPLOYED (honestos — nenhum PASS sem execução).
 
-| APP | SOURCE | BUILD | TYPECHECK | PREVIEW (Vercel) | HTTP REAL | SUPABASE | PRODUCTION READY | BLOCKER |
+## Semântica (decisão do owner)
+
+| Coluna | Significado |
+|---|---|
+| CODE_READY | build/typecheck/segredos/contratos OK — independe de hosting |
+| LOCAL_PREVIEW | preview local HTTP provado |
+| TEMP_REMOTE_PREVIEW | deployment Vercel temporário — OPCIONAL (não é requisito) |
+| CLOUDFLARE_READY | pronto para o mapping do migration plan |
+| COMMERCIAL_READY | pronto para receber tenants (branding/plano/domínio manual) |
+| FINAL_HOSTING | publishing definitivo — wave Cloudflare futura |
+
+Projetos Vercel dedicados por vertical: **NOT REQUIRED**. Remote preview do
+central verificado pelo owner: commit 657fb86 → READY, HTTP 200, title
+"Tupiniquim SaaS — Plataforma".
+
+| APP | SOURCE | CODE_READY | LOCAL_PREVIEW | TEMP_REMOTE_PREVIEW | CLOUDFLARE_READY | COMMERCIAL_READY | FINAL_HOSTING | BLOCKER |
 |---|---|---|---|---|---|---|---|---|
-| **Platform** (apps/platform — CONTROL PLANE completo) | apps/platform | PASS (vite, 162 kB; 6 views) | PASS | projeto central `sistema-saa-s-geral` — **CUTOVER EXECUTADO** (vercel.json → build:platform/apps/platform/dist) | LOCAL PASS (vite preview: GET / = 200, title plataforma, assets 200) — deployment do commit pendente de acionamento pelo owner; validar por URL (`preview-http-gate.ts deployment:<url>`); alias de produção = 404 até promoção (esperado) | n/a (sem backend no control plane) | NOT READY | Aguardando: deployment do commit do cutover + validação HTTP; promoção é do owner |
-| **Bakery** | apps/bakery (subtree PadocaAppPremium) | PASS | PASS | projeto central até aqui — **HTTP 200 PROVADO pelo owner** no deployment b8babe9 (servia Bakery); dedicado `saas-bakery` a criar (docs/VERCEL_OWNER_ACTIONS.md) | PASS (deployment b8babe9: GET / = 200, owner-confirmed, conteúdo Fornalha/Bakery correto para o commit) | LIVE READ PASS · gates 58/58 + 42/42 preservados | NOT READY | Cutover Fase B/C (projeto dedicado) pendente de criação pelo owner |
-| **Pet** | apps/pet (subtree SitePetPremium) | PASS | PASS | `saas-pet` a criar | NOT RUN | não integrado (legado demo) | NOT READY | Criação do projeto + validação HTTP |
-| **Restaurant** | apps/restaurant (subtree RestauranteSite) | PASS | PASS | `saas-restaurant` a criar | NOT RUN | não integrado | NOT READY | Criação do projeto + validação HTTP |
-| **MetalArt** | apps/metalart (subtree premium PR#1) | PASS | PASS | `saas-metalart` a criar | NOT RUN | não integrado | NOT READY | Criação do projeto + validação HTTP |
-| **Heavy Machinery** | apps/heavy-machinery (subtree BigMachines) | PASS | PASS | `saas-heavy-machinery` a criar | NOT RUN | não integrado | NOT READY | Criação do projeto + validação HTTP |
-| **Religious House** | MISSING_APP (placeholder) | MISSING | MISSING | — | — | — | BLOCKED | BLOCKED_FREEBUFF_REPOSITORY_ACCESS_TEMPLO |
-| **Salon** | MISSING_APP | MISSING | MISSING | — | — | — | NOT READY | Sem implementação no monorepo (não inventar) |
-| **LED** | MISSING_APP (só README) | MISSING | MISSING | — | — | — | BLOCKED | BLOCKED_SOURCE_REPOSITORY_LED |
+| **Platform** | apps/platform (control plane completo) | PASS (build+typecheck+secret scan) | PASS (vite preview: GET / = 200, title plataforma, assets 200) | **PASS** — deployment do commit 657fb86: READY, GET / = 200, title "Tupiniquim SaaS — Plataforma" (owner-verified) | PASS | PASS | NOT DEPLOYED | — |
+| **Bakery** | apps/bakery (subtree PadocaAppPremium) | PASS | PASS | OPTIONAL (central já a publicou com HTTP 200 até o cutover) | PASS | PASS (integração e2e: live read + tenants QA) | NOT DEPLOYED | — |
+| **Pet** | apps/pet | PASS | PASS | OPTIONAL | PASS | PASS (integração SaaS incremental, padrão bakery) | NOT DEPLOYED | — |
+| **Restaurant** | apps/restaurant | PASS | PASS | OPTIONAL | PASS | PASS (idem) | NOT DEPLOYED | — |
+| **MetalArt** | apps/metalart (premium PR#1) | PASS | PASS | OPTIONAL | PASS | PASS (idem — vertical principal) | NOT DEPLOYED | — |
+| **Heavy Machinery** | apps/heavy-machinery | PASS | PASS | OPTIONAL | PASS | PASS (idem) | NOT DEPLOYED | — |
+| **Salon** | — (sem material importável) | BLOCKED | — | — | — | NOT READY | — | branch chatgpt/integrate-salon-vanessa NÃO existe no remote (auditado via fetch --prune); nenhum código Salon no monorepo — Vanessa Braz = futuro TENANT/template do vertical salon, nunca vertical separado |
+| **Religious House** | — | EXTERNAL_BLOCKED / POST-MVP IMPORT | — | — | — | — | — | BLOCKED_FREEBUFF_REPOSITORY_ACCESS_TEMPLO (nenhum material local) |
+| **LED** | — (só README) | DEFERRED_EXTERNAL_SOURCE | — | — | — | — | — | BLOCKED_SOURCE_REPOSITORY_LED |
 
 ## Testes da plataforma (preservados — 2026-09-18)
 
