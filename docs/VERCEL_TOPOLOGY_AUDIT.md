@@ -17,7 +17,7 @@ manipulável por este agente — nenhuma credencial Vercel no sandbox).
 
 | PROJECT | REPOSITORY | BRANCH | ROOT | BUILD | OUTPUT | PREVIEW | PRODUCTION | DOMAIN | STATUS | ACTION |
 |---|---|---|---|---|---|---|---|---|---|---|
-| sistema-saa-s-geral | tupiniquimtechsolution-blip/Sistema-SaaS-Geral | freebuff/big-master-wave-01-monorepo | repo root (framework=null) | — (nenhum antes de 95fb0a6) | — | READY mas **GET / = 404** (usário-facing FAIL) | n/a | vercel.app default | **MISCONFIGURED** | Após 95fb0a6 (`vercel.json` → bakery): redeploy Preview e validar HTTP; Fase C do cutover (§9 do MASTER TOPOLOGY); depois Fase D = repontuar este projeto para apps/platform |
+| sistema-saa-s-geral | tupiniquimtechsolution-blip/Sistema-SaaS-Geral | freebuff/big-master-wave-01-monorepo | repo root (framework=null) | — (nenhum antes de 95fb0a6) | — | READY mas **GET / = 404** (usário-facing FAIL); **reconfirmado 2026-09-18 via scripts/preview-http-gate.ts (0/10, ambos os aliases)** | n/a | vercel.app default | **MISCONFIGURED — redeploy pós-95fb0a6 ainda não publicado** | Após 95fb0a6 (`vercel.json` → bakery): redeploy Preview e validar HTTP; Fase C do cutover (§9 do MASTER TOPOLOGY); depois Fase D = repontuar este projeto para apps/platform |
 
 ## PROJETOS ALVO (a criar pelo owner — comandos/valores reais auditados no repo)
 
@@ -54,3 +54,13 @@ configurar — nenhum catch-all cego adicionado).
 Nenhum domínio custom registrado nesta Wave (§16 do prompt: preparação apenas).
 Proteção de deployment e aliases ficam registrados como FUTURE no release
 matrix. Nenhuma promoção de Production executada.
+
+## HTTP VALIDATION GATE (evidência §29)
+
+Harness durável: `scripts/preview-http-gate.ts` (sem secrets; alvos por CLI ou
+aliases padrão). Validação 2026-09-18: **0/10 checks PASS** — GET / = 404 nos
+dois aliases (sistema-saa-s-geral, sistema-saas-geral); markers
+DEPLOYMENT_NOT_FOUND / NOT_FOUND; nenhum asset servido. Interpretação: o
+redeploy do projeto central pós-95fb0a6 (vercel.json → build:bakery) ainda não
+ocorreu no dashboard do owner. USER-FACING PREVIEW permanece **FAIL** —
+nunca declarar PASS com base em "Vercel READY".

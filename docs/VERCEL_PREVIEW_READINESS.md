@@ -34,7 +34,7 @@ São estados DIFERENTES e não intercambiáveis:
 | Data | VERCEL BUILD STATE | USER-FACING PREVIEW STATE | Evidência |
 |---|---|---|---|
 | Antes desta wave | READY (build completava) | **FAIL — GET / = 404 NOT_FOUND** (nenhum output publicado; framework=null, root sem build) | Log externo do owner (build ~781ms, sem output) |
-| Pós-95fb0a6 (vercel.json bakery) | READY esperado | **AGUARDANDO REDEPLOY** — validação HTTP pendente (não declarada PASS sem prova) | vercel.json versionado; build local provado (npm ci + build:bakery → dist/index.html + assets) |
+| Pós-95fb0a6 (vercel.json bakery) | READY esperado | **FAIL — validação HTTP executada (2026-09-18, `scripts/preview-http-gate.ts`): GET / = 404 em ambos os aliases (sistema-saa-s-geral / sistema-saas-geral .vercel.app), 0/10 checks** → o redeploy pós-95fb0a6 ainda não foi publicado pelo owner (sem credencial Vercel no sandbox). Re-executar o gate após o redeploy — não declarar PASS sem HTTP 200 + assets |
 
 A wave BIG RUN MASTER (2026-09-18) estabeleceu a arquitetura final:
 **o projeto central NÃO é a Padaria** — ele passará a publicar a shell da
