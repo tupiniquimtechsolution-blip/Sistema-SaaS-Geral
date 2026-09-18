@@ -299,24 +299,45 @@ export async function runStorageSmoke(
   add("public:anonymous read A", true, `ACTUAL=${anonA} (object: ${anonAPath.split("/").pop()}) (empirical — availability, not isolation)`);
   add("public:anonymous read B", true, `ACTUAL=${anonB} (object: ${anonBPath.split("/").pop()}) (empirical — availability, not isolation)`);
 
-  // RLS-GOVERNED SELECT probe: storage list() is a direct storage.objects DB
-  // query — it ALWAYS evaluates tenant_public_read (no public-URL bypass like
-  // download() on public buckets, which the storage server may serve from the
-  // /object/public/ route). With the broken tenant_public_read expression
-  // (storage_tenant_id applied to the tenant NAME, per live pg_policies), an
-  // anon list over a folder containing an existing public object must return
-  // EMPTY. Non-empty here would contradict the pg_policies inspection.
+  // RLS-GOVERNED SELECT probes (post-apply 20260918132842): storage list() is a
+  // direct storage.objects DB query — it evaluates tenant_public_read (no
+  // public-URL bypass like download() on public buckets, which the storage
+  // server may serve from the /object/public/ route).
+  //   - AUTHENTICATED own list: object's own folder must show the object
+  //     (this is what makes upsert's internal SELECT work — proven PASS).
+  //   - ANON list: recorded as an honest OBSERVATION either way — public
+  //     delivery for end users is the /object/public/ route (RLS-independent,
+  //     empirically ALLOW), and an anon directory listing is not a product
+  //     requirement. Neither outcome is a leak (empty = more restrictive).
   if (!aIns.error) {
+    const authList = await clientA.storage.from(PUBLIC_BUCKET).list(`${tenantA}/${QA_FOLDER}`, { search: `public-insert-only-${runId}`, limit: 10 });
+    const authVis = !authList.error && (authList.data ?? []).length > 0;
+    add(
+      "public:auth-list governed (RLS SELECT)",
+      authVis,
+      `ACTUAL=${authList.error ? `ERROR (${authList.error.message})` : authVis ? "OBJECT VISIBLE" : "EMPTY"} — authenticated own folder lists the object`,
+    );
+
     const anonClient = await createClientFn(env.url, env.key);
     const anonList = await anonClient.storage.from(PUBLIC_BUCKET).list(`${tenantA}/${QA_FOLDER}`, { search: `public-insert-only-${runId}`, limit: 10 });
-    const visible = !anonList.error && (anonList.data ?? []).length > 0;
+    const anonVis = !anonList.error && (anonList.data ?? []).length > 0;
     add(
       "public:anon-list governed (RLS SELECT)",
       true,
-      `ACTUAL=${anonList.error ? `ERROR (${anonList.error.message})` : visible ? "OBJECT VISIBLE" : "EMPTY (denied)"} — EXPECTED=EMPTY while tenant_public_read is broken (${anonList.error ? "error" : "0 rows"})`,
+      `ACTUAL=${anonList.error ? `ERROR (${anonList.error.message})` : anonVis ? "OBJECT VISIBLE" : "EMPTY (restricted)"} — post-apply observation; public delivery is via /object/public/ route (RLS-independent). Neither outcome is a leak.`,
+    );
+
+    const crossList = await clientA.storage.from(PUBLIC_BUCKET).list(`${tenantB}/${QA_FOLDER}`, { search: `public-insert-only-${runId}`, limit: 10 });
+    const crossVis = !crossList.error && (crossList.data ?? []).length > 0;
+    add(
+      "public:cross-list A→B (RLS SELECT)",
+      true,
+      `ACTUAL=${crossList.error ? `ERROR (${crossList.error.message})` : crossVis ? "OBJECT VISIBLE" : "EMPTY"} — informational: public model means objects of allowed-status tenants are readable by anyone; listing ≠ write`,
     );
   } else {
+    add("public:auth-list governed (RLS SELECT)", true, "NOT RUN — insert-only object does not exist");
     add("public:anon-list governed (RLS SELECT)", true, "NOT RUN — insert-only object does not exist");
+    add("public:cross-list A→B (RLS SELECT)", true, "NOT RUN — insert-only object does not exist");
   }
 
   // ---------------- CLEANUP ----------------
@@ -355,15 +376,30 @@ export async function runStorageSmoke(
       item[0]?.error ?? r.error?.message ?? (removed ? "removed (verified gone via list)" : `STILL PRESENT (list=${gone})`),
     );
   }
-  // residual verification — searches the whole qa/ prefix for any QA remainder.
-  const gonePrivA = await listGone(clientA, PRIVATE_BUCKET, tenantA, "storage-a.png");
-  const gonePrivB = await listGone(clientB, PRIVATE_BUCKET, tenantB, "storage-b.png");
-  const gonePubA = await listGone(clientA, PUBLIC_BUCKET, tenantA, "public");
-  const gonePubB = await listGone(clientB, PUBLIC_BUCKET, tenantB, "public");
+  // residual verification — sweep the WHOLE dedicated qa/ folder per
+  // bucket/tenant (limit 100) instead of searching only this run's filename:
+  // earlier runs used unique runIds, and per-run cleanup left their objects
+  // behind (observed live). qa/ is QA-dedicated under the tenant UUID, so the
+  // sweep can never touch real tenant media.
+  const sweepAndVerify = async (client: Client, bucket: string, tenantId: string) => {
+    const l = await client.storage.from(bucket).list(`${tenantId}/${QA_FOLDER}`, { limit: 100 });
+    if (l.error) return `LIST_ERROR(${l.error.message})`;
+    const names = (l.data ?? []).map((o) => o.name);
+    for (const n of names) {
+      await client.storage.from(bucket).remove([`${tenantId}/${QA_FOLDER}/${n}`]);
+    }
+    const after = await client.storage.from(bucket).list(`${tenantId}/${QA_FOLDER}`, { limit: 100 });
+    if (after.error) return `LIST_ERROR(${after.error.message})`;
+    return (after.data ?? []).length === 0 ? "gone" : "PRESENT";
+  };
+  const resPrivA = await sweepAndVerify(clientA, PRIVATE_BUCKET, tenantA);
+  const resPrivB = await sweepAndVerify(clientB, PRIVATE_BUCKET, tenantB);
+  const resPubA = await sweepAndVerify(clientA, PUBLIC_BUCKET, tenantA);
+  const resPubB = await sweepAndVerify(clientB, PUBLIC_BUCKET, tenantB);
   add(
     "QA_STORAGE_RESIDUAL",
-    gonePrivA === "gone" && gonePrivB === "gone" && gonePubA === "gone" && gonePubB === "gone",
-    `private A=${gonePrivA} private B=${gonePrivB} public A=${gonePubA} public B=${gonePubB} (searches the qa/ prefix for any public-* remainder)`,
+    resPrivA === "gone" && resPrivB === "gone" && resPubA === "gone" && resPubB === "gone",
+    `private A=${resPrivA} private B=${resPrivB} public A=${resPubA} public B=${resPubB} (whole dedicated qa/ folder swept per tenant — idempotent across runs with unique runIds)`,
   );
 
   // ---- CLASSIFIED SUMMARY (per wave rules: isolation ≠ availability) ----

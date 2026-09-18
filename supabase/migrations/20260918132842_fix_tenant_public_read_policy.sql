@@ -1,10 +1,14 @@
--- fix_tenant_public_read_policy.sql — FORWARD-ONLY, LOCAL PREPARATION
+-- fix_tenant_public_read_policy.sql — APPLIED REMOTELY (forward-only)
 -- Sistema SaaS Geral — Supabase canônico: mmykyzzkcugxunmekwew
 --
--- ⚠️  STATUS: NOT APPLIED — prepared locally 2026-09-17, pending owner approval.
--- ⚠️  This file has NEVER been pushed/applied to the remote database.
--- ⚠️  Do NOT run `supabase db push` / `supabase migration up` without explicit
---     owner authorization (see docs/PUBLIC_STORAGE_POLICY_FIX.md).
+-- ✅ STATUS: APPLIED — remote migration 20260918132842_fix_tenant_public_read_policy
+--    was applied by the owner (ChatGPT) directly in the canonical Supabase
+--    project on 2026-09-18 (read-only validation confirms the live
+--    tenant_public_read no longer contains the broken storage_tenant_id(t.name)
+--    expression). Do NOT re-apply; the local filename below is aligned with the
+--    remote migration ledger to prevent accidental re-application via
+--    `supabase db push` / `supabase migration up`.
+--    See docs/PUBLIC_STORAGE_POLICY_FIX.md (REMOTE APPLY STATUS: APPLIED).
 --
 -- ROOT CAUSE (CONFIRMED via live pg_policies inspection + empirical harness):
 --   tenant_public_read evaluates storage_tenant_id(t.name) against the TENANT
