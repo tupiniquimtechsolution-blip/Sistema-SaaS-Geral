@@ -148,8 +148,8 @@ export interface PageRevisionRow {
   status: PageRevisionStatus;
   snapshot: PageRevisionSnapshot;
   source_revision_id: string | null;
-  created_by: string;
-  updated_by: string;
+  created_by: string | null;
+  updated_by: string | null;
   submitted_by: string | null;
   approved_by: string | null;
   published_by: string | null;

@@ -11,8 +11,8 @@ create table if not exists public.page_revisions (
     check (status in ('draft', 'in_review', 'approved', 'published', 'rolled_back')),
   snapshot jsonb not null,
   source_revision_id uuid references public.page_revisions(id) on delete set null,
-  created_by uuid not null references auth.users(id) on delete restrict,
-  updated_by uuid not null references auth.users(id) on delete restrict,
+  created_by uuid references auth.users(id) on delete set null,
+  updated_by uuid references auth.users(id) on delete set null,
   submitted_by uuid references auth.users(id) on delete set null,
   approved_by uuid references auth.users(id) on delete set null,
   published_by uuid references auth.users(id) on delete set null,
@@ -100,7 +100,7 @@ begin
   v_slug := btrim(new.snapshot #>> '{page,slug}');
   v_title := btrim(new.snapshot #>> '{page,title}');
 
-  if v_slug is null or v_slug !~ '^[a-z0-9]+(?:-[a-z0-9]+)*$' then
+  if v_slug is null or v_slug !~ '^[a-z0-9]+(-[a-z0-9]+)*$' then
     raise exception 'revision snapshot requires canonical slug';
   end if;
 
@@ -171,7 +171,7 @@ begin
   if new.tenant_id <> old.tenant_id
      or new.page_id <> old.page_id
      or new.revision <> old.revision
-     or new.created_by <> old.created_by
+     or new.created_by is distinct from old.created_by
      or new.created_at <> old.created_at
      or new.source_revision_id is distinct from old.source_revision_id then
     raise exception 'revision identity is immutable';
@@ -226,6 +226,7 @@ revoke all on function public.builder_page_revision_guard() from public;
 revoke all on function public.builder_page_revision_guard() from anon;
 revoke all on function public.builder_page_revision_guard() from authenticated;
 
+drop trigger if exists builder_page_revision_guard_trigger on public.page_revisions;
 create trigger builder_page_revision_guard_trigger
 before insert or update on public.page_revisions
 for each row execute function public.builder_page_revision_guard();
@@ -287,6 +288,7 @@ revoke all on function public.builder_project_published_revision() from public;
 revoke all on function public.builder_project_published_revision() from anon;
 revoke all on function public.builder_project_published_revision() from authenticated;
 
+drop trigger if exists builder_project_published_revision_trigger on public.page_revisions;
 create trigger builder_project_published_revision_trigger
 after update on public.page_revisions
 for each row execute function public.builder_project_published_revision();
