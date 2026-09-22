@@ -8,7 +8,7 @@ import { IBag, IBike, ICard, ICash, ICheck, IChevron, IPix, IWhatsApp } from "..
 const STEPS = ["Entrega", "Dados", "Pagamento", "Confirmação"];
 
 export default function Checkout() {
-  const { business, cart, clearCart, subtotal, coupon, createOrder } = useApp();
+  const { business, cart, clearCart, subtotal, coupon, createOrder, persistenceMode, notify } = useApp();
   const { discount, fee, total } = useCartTotals();
   const navigate = useNavigate();
   useSEO(`Finalizar pedido | ${business.name}`);
@@ -23,6 +23,7 @@ export default function Checkout() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [confirmed, setConfirmed] = useState<Order | null>(null);
   const [pixCopied, setPixCopied] = useState(false);
+  const [submitError, setSubmitError] = useState("");
 
   const days = useMemo(() => buildScheduleOptions(business.openingHours), [business.openingHours]);
   const open = isOpenNow(business.openingHours);
@@ -60,7 +61,17 @@ export default function Checkout() {
   };
 
   const finish = () => {
+    setSubmitError("");
     if (!validateStep(2)) return;
+
+    // Fail closed: modo live só confirma depois de um write remoto autorizado.
+    if (persistenceMode === "live") {
+      const message = "O envio online do pedido live ainda não está habilitado. Nenhum pedido foi registrado ou cobrado.";
+      setSubmitError(message);
+      notify(message);
+      return;
+    }
+
     const payLabel =
       payment === "pix" ? "Pix (na confirmação)" :
       payment === "card" ? "Cartão (link seguro)" :
@@ -324,6 +335,7 @@ export default function Checkout() {
                 )}
                 {errors.payment && <p className="text-[12.5px] font-bold text-terra">{errors.payment}</p>}
                 <p className="text-[12px] leading-relaxed text-inksoft">Nenhum dado de cartão é armazenado neste site — o processamento acontece no gateway.</p>
+                {submitError && <p role="alert" className="rounded-lg border border-terra/30 bg-terra/8 px-3 py-2.5 text-[12.5px] font-semibold text-terra">{submitError}</p>}
 
                 <div className="flex gap-3 pt-2">
                   <button onClick={() => setStep(1)} className="btn !border !border-ink/20 !text-ink">Voltar</button>
