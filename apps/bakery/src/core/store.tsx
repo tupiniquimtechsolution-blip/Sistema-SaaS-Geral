@@ -1,18 +1,22 @@
 /* ============================================================
    ESTADO GLOBAL — carrinho, pedidos, admin overrides, toasts
-   Persistência local por tenant (multi-tenant ready).
+   Persistência local por tenant somente quando explicitamente demo.
    ============================================================ */
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import type { AdminOverrides, BusinessConfig, CartItem, Order, Product } from "../business/types";
 import { businessConfig } from "../business/config";
 import { products as catalog } from "../business/products";
+import { getDemoMode } from "../business/saas-adapter";
 import { applyTheme } from "./theme";
 import { cartItemTotal, cartItemUnit, track, uid } from "./utils";
 
 interface Toast { id: string; message: string; tone?: "default" | "success" }
 
+type PersistenceMode = "demo" | "live";
+
 interface AppState {
+  persistenceMode: PersistenceMode;
   business: BusinessConfig;
   products: Product[];
   getProduct: (slug: string) => Product | undefined;
@@ -62,13 +66,21 @@ function save(key: string, value: unknown) {
 
 export function AppProvider({ children }: { children: ReactNode }) {
   const tenant = businessConfig.tenantId;
+  const persistenceMode: PersistenceMode = getDemoMode() ? "demo" : "live";
 
+  // Carrinho/cupom são estado efêmero de UX e podem permanecer locais em live.
   const [cart, setCart] = useState<CartItem[]>(() => load(`${tenant}.cart`, []));
   const [coupon, setCoupon] = useState<{ code: string; value: number } | null>(() =>
     load(`${tenant}.coupon`, null)
   );
-  const [orders, setOrders] = useState<Order[]>(() => load(`${tenant}.orders`, []));
-  const [admin, setAdminState] = useState<AdminOverrides>(() => load(`${tenant}.admin`, {}));
+
+  // Dados operacionais nunca usam localStorage como fonte canônica em live.
+  const [orders, setOrders] = useState<Order[]>(() =>
+    persistenceMode === "demo" ? load(`${tenant}.orders`, []) : []
+  );
+  const [admin, setAdminState] = useState<AdminOverrides>(() =>
+    persistenceMode === "demo" ? load(`${tenant}.admin`, {}) : {}
+  );
   const [cartOpen, setCartOpen] = useState(false);
   const [cartBump, setCartBump] = useState(0);
   const [toasts, setToasts] = useState<Toast[]>([]);
@@ -76,8 +88,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => save(`${tenant}.cart`, cart), [cart, tenant]);
   useEffect(() => save(`${tenant}.coupon`, coupon), [coupon, tenant]);
-  useEffect(() => save(`${tenant}.orders`, orders), [orders, tenant]);
-  useEffect(() => save(`${tenant}.admin`, admin), [admin, tenant]);
+  useEffect(() => {
+    if (persistenceMode === "demo") save(`${tenant}.orders`, orders);
+  }, [orders, persistenceMode, tenant]);
+  useEffect(() => {
+    if (persistenceMode === "demo") save(`${tenant}.admin`, admin);
+  }, [admin, persistenceMode, tenant]);
 
   /* ---------- Config mesclada com overrides do admin ---------- */
   const business = useMemo<BusinessConfig>(() => {
@@ -197,6 +213,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   /* ---------- Pedidos ---------- */
   const createOrder = useCallback((order: Omit<Order, "code" | "createdAt" | "status">) => {
+    if (persistenceMode !== "demo") {
+      // Fail closed: live checkout só poderá confirmar após write remoto autorizado.
+      throw new Error("live_order_write_unavailable");
+    }
     const full: Order = {
       ...order,
       code: `FO-${String(Date.now()).slice(-6)}`,
@@ -206,17 +226,25 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setOrders((prev) => [full, ...prev]);
     track("purchase", { code: full.code, total: full.total, fulfillment: full.fulfillment });
     return full;
-  }, []);
+  }, [persistenceMode]);
 
   /* ---------- Admin ---------- */
   const setAdmin = useCallback((patch: Partial<AdminOverrides>) => {
+    if (persistenceMode !== "demo") {
+      notify("Alterações do painel live estão bloqueadas até a persistência remota estar configurada.");
+      return;
+    }
     setAdminState((prev) => ({ ...prev, ...patch }));
-  }, []);
+  }, [notify, persistenceMode]);
 
   const resetAdmin = useCallback(() => {
+    if (persistenceMode !== "demo") {
+      notify("O painel live não usa overrides locais.");
+      return;
+    }
     setAdminState({});
     notify("Configurações restauradas", "success");
-  }, [notify]);
+  }, [notify, persistenceMode]);
 
   /* ---------- Fly to cart ---------- */
   const registerFly = useCallback((from: DOMRect) => {
@@ -224,6 +252,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const value: AppState = {
+    persistenceMode,
     business,
     products,
     getProduct,
