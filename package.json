@@ -17,10 +17,11 @@
     "build:restaurant": "npm run build --workspace=apps/restaurant",
     "build:heavy-machinery": "npm run build --workspace=apps/heavy-machinery",
     "build:platform": "npm run build --workspace=apps/platform",
-    "typecheck": "npm run typecheck --if-present",
-    "lint": "npm run lint --if-present",
-    "test": "npm test --if-present",
-    "build:all": "npm run build --if-present"
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "lint": "npm run lint --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
+    "build": "npm run build --workspaces --if-present",
+    "build:all": "npm run build --workspaces --if-present"
   },
   "devDependencies": {
     "wrangler": "4.135.0"
