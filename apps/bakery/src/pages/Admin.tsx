@@ -6,17 +6,18 @@ import { formatBRL, useSEO } from "../core/utils";
 import { ICheck, IFlame, ISpark, IWhatsApp } from "../components/icons";
 
 /* ============================================================
-   PAINEL DA CASA — demo do motor white-label
-   Tudo aqui grava AdminOverrides (persistido por tenant) e o
-   site inteiro reage: nome, tema, produtos, integrações.
-   Em produção, esta tela consome a API do painel.
+   PAINEL DA CASA — motor white-label
+   Demo: AdminOverrides persistidos localmente por tenant.
+   Live: escrita local bloqueada até o adapter remoto autenticado.
    ============================================================ */
 export default function Admin() {
-  const { business, admin, setAdmin, resetAdmin, products } = useApp();
+  const { business, admin, setAdmin, resetAdmin, products, persistenceMode } = useApp();
   useSEO(`Painel da casa | ${business.name}`);
   const [tab, setTab] = useState<"identidade" | "produtos" | "canais">("identidade");
+  const liveLocked = persistenceMode === "live";
 
   const leads = (() => {
+    if (liveLocked) return [] as { type: string; details: string; name: string; date: string; slot: string; ts: number }[];
     try { return JSON.parse(localStorage.getItem(`${business.tenantId}.leads`) ?? "[]") as { type: string; details: string; name: string; date: string; slot: string; ts: number }[]; }
     catch { return []; }
   })();
@@ -26,7 +27,14 @@ export default function Admin() {
   };
 
   const Toggle = ({ on, onClick, label }: { on: boolean; onClick: () => void; label: string }) => (
-    <button onClick={onClick} role="switch" aria-checked={on} aria-label={label} className={`relative h-7 w-12 rounded-full transition-colors ${on ? "bg-accent" : "bg-coffee"}`}>
+    <button
+      onClick={onClick}
+      disabled={liveLocked}
+      role="switch"
+      aria-checked={on}
+      aria-label={label}
+      className={`relative h-7 w-12 rounded-full transition-colors disabled:cursor-not-allowed disabled:opacity-45 ${on ? "bg-accent" : "bg-coffee"}`}
+    >
       <span className={`absolute top-1 h-5 w-5 rounded-full bg-flour transition-all ${on ? "left-6" : "left-1"}`} />
     </button>
   );
@@ -37,16 +45,22 @@ export default function Admin() {
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
             <p className="flex items-center gap-2.5 text-[11.5px] font-extrabold uppercase tracking-[0.3em] text-accent">
-              <span className="h-px w-8 bg-accent" /> painel da casa · modo demonstração
+              <span className="h-px w-8 bg-accent" /> painel da casa · {liveLocked ? "modo live" : "modo demonstração"}
             </p>
             <h1 className="font-display mt-3 text-4xl font-medium text-paper md:text-5xl">Comande o forno.</h1>
           </div>
-          <button onClick={resetAdmin} className="btn btn-ghost !py-2.5 text-[13px]">Restaurar padrão</button>
+          <button onClick={resetAdmin} disabled={liveLocked} className="btn btn-ghost !py-2.5 text-[13px] disabled:cursor-not-allowed disabled:opacity-45">Restaurar padrão</button>
         </div>
-        <p className="mt-3 max-w-2xl text-[14px] leading-relaxed text-dim">
-          Tudo que mudar aqui atualiza o site em tempo real e fica salvo neste navegador — é o motor white-label
-          funcionando. Em produção, este painel grava no backend por <code className="text-accent">tenant_id</code>.
-        </p>
+
+        {liveLocked ? (
+          <div role="status" className="mt-4 max-w-3xl rounded-[var(--radius)] border border-caramel/40 bg-surface/70 px-4 py-3 text-[13px] leading-relaxed text-dim">
+            <strong className="text-paper">Escrita live protegida.</strong> Este painel não grava overrides no navegador. As alterações ficam bloqueadas até a persistência autenticada por Supabase/RLS estar conectada.
+          </div>
+        ) : (
+          <p className="mt-3 max-w-2xl text-[14px] leading-relaxed text-dim">
+            Tudo que mudar aqui atualiza o site em tempo real e fica salvo neste navegador — modo demonstração do motor white-label.
+          </p>
+        )}
 
         <div className="mt-8 flex gap-2">
           {([["identidade", "Identidade & tema"], ["produtos", "Produtos"], ["canais", "Canais & encomendas"]] as const).map(([id, label]) => (
@@ -60,19 +74,19 @@ export default function Admin() {
               <h2 className="text-[12px] font-extrabold uppercase tracking-[0.22em] text-accent">Identidade</h2>
               <label className="block">
                 <span className="text-[12.5px] font-bold text-dim">Nome da casa</span>
-                <input defaultValue={admin.name ?? business.name} onBlur={(e) => setAdmin({ name: e.target.value || undefined })} className="field mt-1.5" />
+                <input disabled={liveLocked} defaultValue={admin.name ?? business.name} onBlur={(e) => setAdmin({ name: e.target.value || undefined })} className="field mt-1.5 disabled:cursor-not-allowed disabled:opacity-55" />
               </label>
               <label className="block">
                 <span className="text-[12.5px] font-bold text-dim">Tagline</span>
-                <input defaultValue={admin.tagline ?? business.tagline} onBlur={(e) => setAdmin({ tagline: e.target.value || undefined })} className="field mt-1.5" />
+                <input disabled={liveLocked} defaultValue={admin.tagline ?? business.tagline} onBlur={(e) => setAdmin({ tagline: e.target.value || undefined })} className="field mt-1.5 disabled:cursor-not-allowed disabled:opacity-55" />
               </label>
               <label className="block">
                 <span className="text-[12.5px] font-bold text-dim">Anúncio do topo</span>
-                <input defaultValue={admin.announcement ?? business.announcement} onBlur={(e) => setAdmin({ announcement: e.target.value })} className="field mt-1.5" />
+                <input disabled={liveLocked} defaultValue={admin.announcement ?? business.announcement} onBlur={(e) => setAdmin({ announcement: e.target.value })} className="field mt-1.5 disabled:cursor-not-allowed disabled:opacity-55" />
               </label>
               <label className="block">
                 <span className="text-[12.5px] font-bold text-dim">WhatsApp (com DDD)</span>
-                <input defaultValue={admin.whatsapp ?? business.contact.whatsapp} onBlur={(e) => setAdmin({ whatsapp: e.target.value || undefined })} className="field mt-1.5" />
+                <input disabled={liveLocked} defaultValue={admin.whatsapp ?? business.contact.whatsapp} onBlur={(e) => setAdmin({ whatsapp: e.target.value || undefined })} className="field mt-1.5 disabled:cursor-not-allowed disabled:opacity-55" />
               </label>
             </div>
 
@@ -83,7 +97,7 @@ export default function Admin() {
                 {Object.entries(THEME_PRESETS).map(([key, p]) => {
                   const on = (admin.palette ?? business.branding.palette) === key;
                   return (
-                    <button key={key} onClick={() => setAdmin({ palette: key })} className={`flex items-center gap-3.5 rounded-[calc(var(--radius)*0.8)] border-2 px-4 py-3 text-left transition-all ${on ? "border-accent bg-accent/10" : "border-line hover:border-caramel/60"}`}>
+                    <button disabled={liveLocked} key={key} onClick={() => setAdmin({ palette: key })} className={`flex items-center gap-3.5 rounded-[calc(var(--radius)*0.8)] border-2 px-4 py-3 text-left transition-all disabled:cursor-not-allowed disabled:opacity-55 ${on ? "border-accent bg-accent/10" : "border-line hover:border-caramel/60"}`}>
                       <span className="flex gap-1.5">
                         {[p.tokens["--accent"], p.tokens["--bg"], p.tokens["--paper-text"]].map((c, i) => (
                           <span key={i} className="h-5 w-5 rounded-full ring-1 ring-paper/20" style={{ background: c }} />
@@ -128,20 +142,22 @@ export default function Admin() {
                       </td>
                       <td className="px-4 py-3">
                         <input
+                          disabled={liveLocked}
                           type="number" step="0.5" min="0"
                           defaultValue={ov?.price ?? p.price}
                           onBlur={(e) => setProduct(p.id, { price: Number(e.target.value) || p.price })}
-                          className="field !w-24 !py-1.5 text-[13px]"
+                          className="field !w-24 !py-1.5 text-[13px] disabled:cursor-not-allowed disabled:opacity-55"
                           aria-label={`Preço de ${p.name}`}
                         />
                       </td>
                       <td className="hidden px-4 py-3 sm:table-cell">
                         <input
+                          disabled={liveLocked}
                           type="number" step="0.5" min="0"
                           defaultValue={ov?.promotionalPrice ?? p.promotionalPrice ?? ""}
                           placeholder="—"
                           onBlur={(e) => setProduct(p.id, { promotionalPrice: e.target.value === "" ? null : Number(e.target.value) })}
-                          className="field !w-24 !py-1.5 text-[13px]"
+                          className="field !w-24 !py-1.5 text-[13px] disabled:cursor-not-allowed disabled:opacity-55"
                           aria-label={`Promoção de ${p.name}`}
                         />
                       </td>
@@ -175,18 +191,21 @@ export default function Admin() {
                 <label className="block">
                   <span className="text-[12.5px] font-bold text-dim">URL oficial do iFood</span>
                   <input
+                    disabled={liveLocked}
                     defaultValue={admin.integrations?.ifoodUrl ?? business.integrations.ifood.url}
                     onBlur={(e) => setAdmin({ integrations: { ...(admin.integrations ?? {}), ifoodUrl: e.target.value } })}
-                    className="field mt-1.5" placeholder="https://www.ifood.com.br/delivery/…"
+                    className="field mt-1.5 disabled:cursor-not-allowed disabled:opacity-55" placeholder="https://www.ifood.com.br/delivery/…"
                   />
                 </label>
               )}
-              <p className="text-[12px] leading-relaxed text-dim">O hub “Como você prefere pedir?” mostra somente os canais ativos — ligue/desligue e confira na home.</p>
+              <p className="text-[12px] leading-relaxed text-dim">O hub “Como você prefere pedir?” mostra somente os canais ativos.</p>
             </div>
 
             <div className="rounded-[var(--radius)] border border-line bg-surface/60 p-6">
               <h2 className="text-[12px] font-extrabold uppercase tracking-[0.22em] text-accent">Encomendas recebidas</h2>
-              {leads.length === 0 ? (
+              {liveLocked ? (
+                <p className="mt-4 text-[13.5px] leading-relaxed text-dim">Leads locais de demonstração não são exibidos em modo live. A fila operacional será ligada ao backend canônico antes da liberação de escrita.</p>
+              ) : leads.length === 0 ? (
                 <p className="mt-4 text-[13.5px] text-dim">Nenhuma solicitação ainda. Faça uma na página de encomendas para testar.</p>
               ) : (
                 <ul className="mt-4 space-y-2.5">
@@ -199,7 +218,7 @@ export default function Admin() {
                   ))}
                 </ul>
               )}
-              <Link to="/encomendas" className="btn btn-ghost mt-5 w-full !py-3 text-[13px]">Testar fluxo de encomenda</Link>
+              {!liveLocked && <Link to="/encomendas" className="btn btn-ghost mt-5 w-full !py-3 text-[13px]">Testar fluxo de encomenda</Link>}
             </div>
           </div>
         )}
