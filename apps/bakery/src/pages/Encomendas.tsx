@@ -5,7 +5,7 @@ import { buildScheduleOptions, formatBRL, track, useSEO, waLink } from "../core/
 import { ICalendar, ICheck, IClock, IUser, IWhatsApp, INote, ISpark } from "../components/icons";
 
 export default function Encomendas() {
-  const { business, notify } = useApp();
+  const { business, notify, persistenceMode } = useApp();
   useSEO(`Encomendas | ${business.name}`, "Bolos confeitados, coffee breaks, cestas e mesas de festa sob encomenda.");
 
   const [type, setType] = useState<string>(ORDER_TYPES[0].id);
@@ -18,6 +18,7 @@ export default function Encomendas() {
   const [note, setNote] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [done, setDone] = useState(false);
+  const [submitError, setSubmitError] = useState("");
 
   const days = useMemo(() => {
     const opts = buildScheduleOptions(business.openingHours);
@@ -27,6 +28,7 @@ export default function Encomendas() {
   const typeLabel = ORDER_TYPES.find((t) => t.id === type)?.label ?? "";
 
   const submit = () => {
+    setSubmitError("");
     const e: Record<string, string> = {};
     if (details.trim().length < 5) e.details = "Descreva o que você precisa.";
     if (!qty || Number(qty) < 1) e.qty = "Quantidade?";
@@ -52,7 +54,17 @@ export default function Encomendas() {
       "Podem confirmar disponibilidade e valor?",
     ].filter(Boolean).join("\n");
 
-    // registra a solicitação localmente (arquitetura pronta para backend)
+    if (persistenceMode !== "demo") {
+      // Fail closed: não registrar lead operacional local como se fosse backend live.
+      setSubmitError("A persistência live de encomendas ainda não está habilitada. Nenhuma solicitação foi registrada no sistema.");
+      if (business.integrations.whatsapp.enabled) {
+        notify("A solicitação não foi salva no sistema; continue pelo WhatsApp.");
+        window.open(waLink(business.integrations.whatsapp.number || business.contact.whatsapp, msg), "_blank");
+      }
+      return;
+    }
+
+    // Modo demo: persistência local explícita, nunca usada como fonte canônica live.
     try {
       const key = `${business.tenantId}.leads`;
       const leads = JSON.parse(localStorage.getItem(key) ?? "[]");
@@ -192,6 +204,7 @@ export default function Encomendas() {
             <button onClick={submit} className="btn btn-primary mt-6 w-full !py-4 text-[15px]">
               {business.cta.order}
             </button>
+            {submitError && <p role="alert" className="mt-3 rounded-lg border border-terra/30 bg-terra/8 px-3 py-2 text-[12.5px] font-semibold text-terra">{submitError}</p>}
             <p className="mt-2.5 text-center text-[11.5px] text-inksoft">Sem compromisso — o valor fecha na conversa.</p>
           </div>
         </div>
