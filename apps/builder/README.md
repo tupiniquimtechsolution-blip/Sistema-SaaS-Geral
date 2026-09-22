@@ -1,14 +1,22 @@
 # Site Builder / Preview Studio
 
-Status: **EM ANDAMENTO — scaffold arquitetural**.
+Status: **EM ANDAMENTO — domínio executável iniciado; app React/Vite ainda não criado**.
 
 ## Objetivo
 
 App separado do Control Plane para configurar sites por tenant sem fork. Deve permitir selecionar tenant/vertical, editar branding/conteúdo/mídia/contatos/integrações, gerar preview privado, aprovar uma revisão e solicitar publicação.
 
-## Primeira entrega técnica
+## Estado técnico verificado em 2026-09-22
 
-Este diretório é criado como marcador de produto deliberado, sem `package.json` fictício, para não quebrar o lockfile/CI antes da implementação executável. A próxima alteração deve criar o app React/Vite somente junto da atualização válida do workspace/lockfile e dos testes correspondentes.
+O diretório continua sem `package.json` deliberadamente: o monorepo exige `npm ci` com `package-lock.json` sincronizado, então o app React/Vite só deve nascer junto da atualização válida do workspace/lockfile.
+
+A implementação real da Task/Wave do Builder foi iniciada no SaaS Core, sem criar uma arquitetura paralela:
+
+- `packages/saas-core/src/builder.ts` define escopo `tenantId + verticalKey`, lifecycle de revisão e criação imutável da próxima revisão;
+- o boundary de autorização reutiliza `assertTenantPermission` e aceita somente permissões já existentes no catálogo canônico;
+- `packages/saas-core/src/builder.test.ts` cobre isolamento cross-tenant, default deny por permissão, revisão → aprovação → publicação e rollback;
+- nenhuma permissão `builder.*` foi inventada;
+- nenhuma migration, DNS, Cloudflare ou Supabase de produção foi alterado.
 
 ## Arquitetura
 
@@ -19,7 +27,8 @@ Este diretório é criado como marcador de produto deliberado, sem `package.json
 - Persistência: Supabase com RLS; nenhuma service role no browser.
 - Drafts: revisionados por tenant.
 - Preview: read-only, privado/revogável.
-- Publish: permissão específica + audit log + deploy adapter Cloudflare.
+- Publish: autorização server-side baseada no catálogo canônico + audit log + deploy adapter Cloudflare; não inventar permission key local.
+- Rollback: preservar revisão publicada anterior como âncora de retorno.
 
 ## Módulos previstos
 
@@ -52,10 +61,14 @@ src/
 - audit trail;
 - upload ownership/MIME/tamanho;
 - preview cross-tenant DENY;
-- publish permission;
+- autorização de publish validada server-side;
 - rollback de revision;
 - typecheck/unit/integration/build;
-- E2E de criar draft→preview→aprovar→publicar em ambiente seguro;
+- E2E de criar draft → preview → aprovar → publicar em ambiente seguro;
 - a11y e responsive.
+
+## Próxima fatia executável
+
+Criar `apps/builder` como workspace React/Vite usando o lockfile reconciliado na mesma alteração. O primeiro fluxo de UI deve consumir `packages/auth` + `packages/tenancy`, bloquear acesso sem sessão/membership válida e começar por tenant selector + leitura de brand/theme/settings. Persistência de draft e publicação entram somente após contrato de banco/RLS validado.
 
 Ver `docs/project-bible/ARCHITECTURE_AND_STRUCTURE.md` e `docs/project-bible/ROADMAP_AND_TASKS.md`.
