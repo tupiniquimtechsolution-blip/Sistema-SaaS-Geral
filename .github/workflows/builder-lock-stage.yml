@@ -1,0 +1,39 @@
+name: Builder lockfile stage
+
+on:
+  push:
+    branches:
+      - automation/builder-actions-1-8-stage
+
+permissions:
+  contents: write
+
+jobs:
+  reconcile-lockfile:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Reconcile package lock only
+        run: npm install --package-lock-only --ignore-scripts
+      - name: Verify Builder workspace is locked
+        run: |
+          node - <<'NODE'
+          const lock = require('./package-lock.json');
+          if (!lock.packages?.['apps/builder']) throw new Error('apps/builder missing from lockfile');
+          if (lock.packages?.['node_modules/tupiniquim-builder']?.resolved !== 'apps/builder') throw new Error('builder workspace link missing from lockfile');
+          NODE
+      - name: Remove staging workflow and commit generated lock
+        run: |
+          rm .github/workflows/builder-lock-stage.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add package-lock.json .github/workflows/builder-lock-stage.yml
+          git diff --cached --quiet && exit 0
+          git commit -m "chore(builder): reconcile workspace lockfile"
+          git push origin HEAD:${GITHUB_REF_NAME}

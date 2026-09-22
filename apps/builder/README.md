@@ -1,74 +1,32 @@
-# Site Builder / Preview Studio
+# Tupiniquim Site Builder / Preview Studio
 
-Status: **EM ANDAMENTO — domínio executável iniciado; app React/Vite ainda não criado**.
+Workspace React 18 + Vite + TypeScript para edição multi-tenant controlada.
 
-## Objetivo
+## Slice atual
 
-App separado do Control Plane para configurar sites por tenant sem fork. Deve permitir selecionar tenant/vertical, editar branding/conteúdo/mídia/contatos/integrações, gerar preview privado, aprovar uma revisão e solicitar publicação.
+- sessão real via `tupiniquim-auth`;
+- memberships, tenant selection, brand, theme, settings e entitlements via `tupiniquim-tenancy`;
+- cliente Supabase browser via `tupiniquim-database` e somente publishable key;
+- vertical key validada pelo contrato `assertBuilderScope` de `tupiniquim-saas-core`;
+- estados explícitos: loading, unauthorized, forbidden, empty e selected;
+- snapshot read-only; nenhuma mutation de tenant neste slice;
+- private_settings não são renderizadas no painel;
+- RLS permanece autoridade de enforcement.
 
-## Estado técnico verificado em 2026-09-22
+## Variáveis de ambiente
 
-O diretório continua sem `package.json` deliberadamente: o monorepo exige `npm ci` com `package-lock.json` sincronizado, então o app React/Vite só deve nascer junto da atualização válida do workspace/lockfile.
+- `VITE_SUPABASE_URL`
+- `VITE_SUPABASE_PUBLISHABLE_KEY`
 
-A implementação real da Task/Wave do Builder foi iniciada no SaaS Core, sem criar uma arquitetura paralela:
+Nunca usar `service_role` no browser. A factory compartilhada rejeita marcadores de chave privilegiada.
 
-- `packages/saas-core/src/builder.ts` define escopo `tenantId + verticalKey`, lifecycle de revisão e criação imutável da próxima revisão;
-- o boundary de autorização reutiliza `assertTenantPermission` e aceita somente permissões já existentes no catálogo canônico;
-- `packages/saas-core/src/builder.test.ts` cobre isolamento cross-tenant, default deny por permissão, revisão → aprovação → publicação e rollback;
-- nenhuma permissão `builder.*` foi inventada;
-- nenhuma migration, DNS, Cloudflare ou Supabase de produção foi alterado.
+## Gates
 
-## Arquitetura
-
-- UI: React/Vite alinhado ao monorepo.
-- Auth: reutilizar `packages/auth`.
-- Tenant context: reutilizar `packages/tenancy`.
-- Banco/config: `packages/database` + contratos do SaaS Core.
-- Persistência: Supabase com RLS; nenhuma service role no browser.
-- Drafts: revisionados por tenant.
-- Preview: read-only, privado/revogável.
-- Publish: autorização server-side baseada no catálogo canônico + audit log + deploy adapter Cloudflare; não inventar permission key local.
-- Rollback: preservar revisão publicada anterior como âncora de retorno.
-
-## Módulos previstos
-
-```text
-src/
-  app/
-  features/
-    tenant-selector/
-    brand-studio/
-    content-studio/
-    media-manager/
-    integrations/
-    preview/
-    publishing/
-  domain/
-    site-draft.ts
-    revision.ts
-  adapters/
-    saas-core/
-    cloudflare/
-  components/
-  styles/
+```bash
+npm run lint --workspace=apps/builder
+npm run typecheck --workspace=apps/builder
+npm test --workspace=apps/builder
+npm run build --workspace=apps/builder
 ```
 
-## Gates antes de marcar MVP_PASS
-
-- auth/membership reais;
-- draft tenant-aware com RLS;
-- schema validation;
-- audit trail;
-- upload ownership/MIME/tamanho;
-- preview cross-tenant DENY;
-- autorização de publish validada server-side;
-- rollback de revision;
-- typecheck/unit/integration/build;
-- E2E de criar draft → preview → aprovar → publicar em ambiente seguro;
-- a11y e responsive.
-
-## Próxima fatia executável
-
-Criar `apps/builder` como workspace React/Vite usando o lockfile reconciliado na mesma alteração. O primeiro fluxo de UI deve consumir `packages/auth` + `packages/tenancy`, bloquear acesso sem sessão/membership válida e começar por tenant selector + leitura de brand/theme/settings. Persistência de draft e publicação entram somente após contrato de banco/RLS validado.
-
-Ver `docs/project-bible/ARCHITECTURE_AND_STRUCTURE.md` e `docs/project-bible/ROADMAP_AND_TASKS.md`.
+Persistência de drafts, RLS específico do Builder e preview privado pertencem ao slice seguinte e só devem avançar após estes gates ficarem verdes.
