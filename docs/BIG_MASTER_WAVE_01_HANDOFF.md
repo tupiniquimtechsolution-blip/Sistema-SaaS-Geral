@@ -78,17 +78,21 @@ LIVE READ CAPABLE — apps/bakery/src/business/saas-adapter.ts: `mapLiveTenantTo
 ## LIVE SUPABASE INTEGRATION (WAVE INTEGRAÇÃO REAL 01)
 DOCUMENTED + IMPLEMENTED — ver docs/LIVE_SUPABASE_INTEGRATION.md. packages/database (client explícito, service_role rejeitado em runtime), packages/auth (sessão real, sem mock), packages/tenancy (seleção de tenant restrita às memberships ativas do usuário autenticado — browser selection é UX, RLS é enforcement), política demo fallback como regra de plataforma, harness cross-tenant read-only pronto. Env contract: VITE_SUPABASE_URL / VITE_SUPABASE_PUBLISHABLE_KEY / VITE_DEMO_MODE (guard de plataforma bloqueia criação de .env.example no sandbox — contrato documentado no doc de integração)
 
+## VERCEL TOPOLOGY (BIG RUN MASTER — 2026-09-18)
+DOCUMENTED + PREPARED — ver docs/VERCEL_MASTER_TOPOLOGY.md / VERCEL_TOPOLOGY_AUDIT.md / VERCEL_ENV_MATRIX.md / TENANT_DOMAIN_ARCHITECTURE.md / DEPLOYMENT_RELEASE_MATRIX.md. Modelo: projeto central = PLATAFORMA (nova shell mínima apps/platform — build/typecheck PASS, sem copiar visual de vertical), cada vertical = projeto Vercel dedicado (saas-bakery/pet/restaurant/metalart/heavy-machinery), Project ≠ Tenant (sem fork por cliente), Supabase único mmykyzzkcugxunmekwew, Preview/Production separados (custom environments = FUTURE). Auditoria de builds locais: platform/bakery/pet/restaurant/metalart/heavy-machinery BUILD+TYPECHECK PASS; religious-house/salon/led = MISSING_APP (nada inventado). HashRouter em todos os apps → nenhum rewrite SPA necessário. Secret scan dos dists: PASS. Team rename = BLOCKED_VERCEL_TEAM_RENAME_PERMISSION. Criação dos projetos dedicados + redeploys = ação do owner (sem credencial Vercel no sandbox); Bakery permanece servida pelo projeto central até cutover A→B→C→D.
+
 ## REMOTE SNAPSHOT
 BLOCKED_REMOTE_SNAPSHOT_CLI_ACCESS — Supabase CLI ausente/sem credencial read-only no sandbox; integração da aplicação NÃO bloqueada; ledger mantém as 4 migrations REMOTE_ONLY/NEEDS_EXPORT; use REMOTE_STATE_SNAPSHOTTED (não SOURCE_FILE_MATCHED) quando o dump for obtido
 
 ## CROSS-TENANT DATABASE TEST
-NOT RUN — sem identidades controladas A/B provisionadas (release blocker documentado nas duas linhas)
+**PASS — 2026-09-17 (LIVE, publishable key, projeto mmykyzzkcugxunmekwew).** Identidades A/B provisionadas via RPC canônica `create_tenant_with_owner(p_name, p_slug, p_vertical_id)` (assinatura real descoberta por introspecção — a versão de branch com p_demo NÃO existe no remoto). Gate completo 58/58: matriz de leitura A→A/A→B/B→B/B→A negada cross-tenant em 11 tabelas (tenants, brands, themes, settings, memberships, subscriptions, entitlements, features, contacts, products, bookings); write isolation (QA_RLS_ em contacts): create own ALLOW, create cross DENY por RLS, update cross 0 rows affected; membership isolation e entitlement isolation provadas do banco real. Evidência completa: docs/CROSS_TENANT_RLS_EVIDENCE.md. Storage cross-tenant: PARTIAL (harness pendente, não mascara DB). RELEASE BLOCKER: NO. DATABASE MUTATIONS: apenas dados QA prefixados QA_RLS_ (removidos pelo próprio dono no fim do gate) + tenants/memberships QA via RPC canônica
 
 ## TESTES/GATES
 - packages/tenancy: **13/13** PASS (membership filtering, seleção/deny, multi-membership, default-deny, precedência, demo fallback policy); typecheck PASS
 - packages/database: **3/3** PASS (service_role rejection, client build, config validation); typecheck PASS
 - packages/auth: **3/3** PASS (projeção, null user, metadata leak); typecheck PASS
-- scripts typecheck PASS; harness probe: TEST = NOT RUN (sem env)
+- scripts typecheck PASS; **cross-tenant LIVE: PASS 58/58 (2026-09-17)**; smoke A/B PASS; bakery live read PASS (VITE_DEMO_MODE=false, tenant QA e63de944, brand/theme/settings/entitlements live, sem fallback Fornalha) — reconfirmado 2026-09-18 (RLS gate 58/58 + bakery live read PASS pós-apply)
+- **storage harness: PASS 42/42 (2026-09-18, pós-apply)** — PRIVATE 12/12, PUBLIC upsert own ALLOW (A/B), insert-only ALLOW, cross-write DENY, anon GET ALLOW, auth-list governed PASS, residual=0 via varredura da pasta qa/ dedicada
 - bakery: typecheck PASS + **build PASS** (vite; warning chunk three.js preexistente)
 - metalart typecheck PASS (packages compartilhados não quebram)
 - saas-core: **86/86** unit tests PASS (vitest); typecheck PASS (68→86 após correção live)
@@ -103,7 +107,7 @@ NOT RUN — sem identidades controladas A/B provisionadas (release blocker docum
 - MetalArt: typecheck PASS (bun tsc --noEmit); bakery: typecheck PASS com adapter READ CONTRACT READY
 - bakery/pet/restaurant/heavy-machinery: typecheck + build PASS (sessões anteriores)
 - Install raiz: npm arborist quebra com edge case vitest-peer (erro edgesOut); bun install funciona (191 pacotes) — usar bun para tooling do saas-core
-- RLS/cross-tenant em banco real: NOT RUN (sem execução remota nesta wave, por decisão)
+- RLS/cross-tenant em banco real: **PASS (2026-09-17, live)** — ver CROSS-TENANT DATABASE TEST acima
 - E2E: NOT RUN
 - Lint: NOT RUN
 
@@ -121,14 +125,64 @@ NOT RUN — sem identidades controladas A/B provisionadas (release blocker docum
 - BLOCKED_REMOTE_SCHEMA_SNAPSHOT — dump remoto (read-only) exige acesso Supabase não exercido nesta sessão (4 migrations NEEDS_EXPORT no ledger)
 - RESOLVIDO: BLOCKED_CANONICAL_DECISION — §21 RATIFICADO em 2026-09-15
 - BLOCKED billing provider — sem credencial
+- RESOLVIDO (2026-09-18): PUBLIC STORAGE FUNCTIONALITY — root cause CONFIRMED e CORRIGIDO via migration 20260918132842_fix_tenant_public_read_policy aplicada pelo owner no Supabase canônico (validação read-only externa: expressão antiga storage_tenant_id(t.name) eliminada; live usa storage_tenant_id(storage.objects.name)/storage_tenant_id(name); tenant_media_insert/update/delete e tenant_private_read UNCHANGED, 5 policies antes/depois, nenhuma duplicada). AFTER empírico: upsert own ALLOW (A/B), insert-only ALLOW, cross DENY, anon GET ALLOW, auth-list governed vê objeto próprio; anon-list = EMPTY registrado como observação honesta (rota pública é RLS-independent; nem EMPTY nem VISIBLE é leak). MIGRATION REAPPLIED: NO — arquivo local renomeado de 20260917120000 para 20260918132842 (SQL byte-idêntico) para alinhar com o ledger remoto. SEMÂNTICA DA ROTA PÚBLICA: /object/public/ de bucket public=true não avalia RLS; revogação imediata p/ tenant suspended/disabled = FUTURE HARDENING NON-BLOCKING (private bucket + signed URL ou authenticated/proxy delivery). Evidência: docs/STORAGE_CROSS_TENANT_EVIDENCE.md + docs/PUBLIC_STORAGE_POLICY_FIX.md (REMOTE APPLY STATUS: APPLIED)
 
 ## PRÓXIMA AÇÃO EXATA
-1. Provisionar identidades controladas A/B no Supabase (etapa controlada do owner; NÃO criar à mão em auth.users) e rodar `scripts/cross-tenant-smoke.ts` com SUPABASE_URL/PUBLISHABLE_KEY + credenciais em env → converter cross-tenant de NOT RUN para PASS/FAIL real.
-2. Export read-only das 4 migrations REMOTE_ONLY (supabase db dump / migration list) contra mmykyzzkcugxunmekwew → commit em supabase/remote-snapshot/ + atualizar docs/REMOTE_MIGRATION_LEDGER.md de NEEDS_EXPORT para REMOTE_STATE_SNAPSHOTTED.
-3. Preencher VITE_SUPABASE_URL / VITE_SUPABASE_PUBLISHABLE_KEY / VITE_DEMO_MODE=false (produção) no ambiente do bakery e exerciciar loadBakeryLiveConfig de ponta a ponta.
-4. Quando acesso ao Templo for liberado: subtree import para apps/religious-house seguindo docs/migrations/religious-house.md.
-5. Media strategy MetalArt: inventário vídeo/foto (site vs source material), plano Supabase Storage/CDN — preservação visual primeiro.
-6. CRM horizontal: definir contrato de consumo do SaaS Core (packages/saas-core já exporta tudo via index.ts).
+1. RESOLVIDO 2026-09-17: cross-tenant DB real = PASS (58/58) + storage isolation = PASS (12/12 private, cross-write 4/4 negado) + bakery live read = PASS com VITE_DEMO_MODE=false. Evidência: docs/CROSS_TENANT_RLS_EVIDENCE.md + docs/STORAGE_CROSS_TENANT_EVIDENCE.md.
+2. RESOLVIDO 2026-09-18: migration 20260918132842_fix_tenant_public_read_policy APLICADA pelo owner e validada empiricamente pós-apply (storage harness 42/42: upsert own ALLOW, isolamento intacto, residual=0). Tabela before/after completa em docs/PUBLIC_STORAGE_POLICY_FIX.md (REMOTE APPLY STATUS: APPLIED).
+3. (OWNER, Vercel dashboard) Acionar o deployment da branch para o commit do cutover no projeto central `sistema-saa-s-geral` e informar a URL de deployment — eu valido com `bun scripts/preview-http-gate.ts deployment:<url>` (critério: GET / = 200, title "Tupiniquim SaaS — Plataforma", assets 200; BAKERY REMOVED FROM CENTRAL = YES). Em paralelo, criar o projeto dedicado `saas-bakery` conforme docs/VERCEL_OWNER_ACTIONS.md (instruções exatas) e me passar a URL para validação. Depois: demais verticais (matriz de configs em VERCEL_OWNER_ACTIONS.md) — sempre validar HTTP por app.
+4. PRODUCTION: NOT PROMOTED — o alias `sistema-saa-s-geral.vercel.app` permanece 404 até promoção explícita pelo owner (comportamento esperado; nunca usar o alias como evidência de branch preview).
+5. Export read-only das 4 migrations REMOTE_ONLY (supabase db dump / migration list) contra mmykyzzkcugxunmekwew → commit em supabase/remote-snapshot/ + atualizar docs/REMOTE_MIGRATION_LEDGER.md de NEEDS_EXPORT para REMOTE_STATE_SNAPSHOTTED (a migration local de storage já está alinhada ao ledger remoto: 20260918132842 fix_tenant_public_read_policy).
+6. Quando acesso ao Templo for liberado: subtree import para apps/religious-house seguindo docs/migrations/religious-house.md.
+7. Media strategy MetalArt: inventário vídeo/foto (site vs source material), plano Supabase Storage/CDN — preservação visual primeiro (requer public storage funcional resolvido).
+8. CRM horizontal: definir contrato de consumo do SaaS Core (packages/saas-core já exporta tudo via index.ts).
+
+## BIG RUN MASTER WAVE — MIGRAÇÃO FINAL VERCEL → CLOUDFLARE (2026-09-18, quarta rodada — AUTORIZAÇÃO EXPRESSA DO OWNER)
+- **Alvo revisado:** WORKERS STATIC ASSETS (Pages descartado p/ monorepo — limite de projetos/repo). 6 configs `apps/<app>/wrangler.jsonc` (STATIC ASSETS ONLY — WORKER_MAIN: NONE em todos, zero server-side, zero features pagas) + `_headers` por app + `.wrangler/` no .gitignore + wrangler 4.135.0 devDependency fixada (npm ci revalidado).
+- **Deploys via `wrangler deploy --temporary`** (sandbox sem login durável): bakery cab8d1ae · pet c5e7dd3b · restaurant 61fd4383 · heavy-machinery c2e855a5 · platform bce46574 — todos com `scripts/cloudflare-gate.ts` (HTTP 200 + title/identity + assets + SPA fallback) **PASS**. URLs: tupiniquim-{bakery,pet,restaurant,heavy-machinery,saas}.dramatic-condition.workers.dev.
+- **MetalArt: BLOCKED_STATIC_ASSET_LIMIT** — vídeo 10,9M excede o limite de 5 MiB/arquivo do caminho temporary (CF 10304). Deploy durável (login do owner) usa 25 MiB/arquivo → vídeo de 22M passa. NENHUM corte de mídia (regra AGENTS). Config commitada.
+- **Platform por último (§26):** rebuild com VITE_VERTICAL_PREVIEW_URLS reais (5/5 cards → demos workers.dev; cards bloqueados sem link fake) + redeploy bce46574 + gate PASS. Supabase revalidado live (BAKERY LIVE READ = PASS); DATABASE MUTATIONS: NONE.
+- **Vercel PRESERVADO** (rollback source; vercel.json intacto; NENHUMA alteração DNS/custom domain/nameserver). Rollback: docs/CLOUDFLARE_ROLLBACK_RUNBOOK.md. Ações do owner: docs/CLOUDFLARE_OWNER_ACTIONS.md (login durável, deploys definitivos, Workers Builds opcional).
+- **VEREDITO: CLOUDFLARE_MIGRATION = PASS (workers.dev, 5/6 + platform) · CLOUDFLARE_FRONTEND_HOSTING = PASS · DOMAIN_CUTOVER = PENDING_OWNER_AUTHORIZATION · FINAL_HOSTING_COMPLETE = YES para workers.dev (durável após login do owner)**
+
+## BIG RUN MASTER WAVE — FECHAMENTO REAL DO PRODUTO (2026-09-18, terceira rodada)
+- **FATO EXTERNO VERIFICADO PELO OWNER:** deployment do commit 657fb86
+  (sistema-saa-s-geral-pd4osf8ql.vercel.app) READY, GET / = 200, title
+  "Tupiniquim SaaS — Plataforma" → PLATFORM REMOTE PREVIEW = PASS · CENTRAL
+  CONTENT = PLATFORM · BAKERY REMOVED FROM CENTRAL = PASS. Blocker anterior
+  (acionamento do central) RESOLVIDO.
+- **Estratégia de hosting (decisão do owner):** NÃO criar projetos Vercel
+  dedicados por vertical — Vercel = apenas preview/dev/validação do central;
+  publishing comercial definitivo na wave Cloudflare. Nova semântica:
+  CODE_PRODUCT_COMPLETE ≠ FINAL_HOSTING_COMPLETE.
+- **Salon auditado:** branch chatgpt/integrate-salon-vanessa NÃO existe no
+  remote (git fetch --prune + listagem); nenhum material importável no
+  monorepo → blocker concreto registrado; Vanessa Braz permanece TENANT/template
+  do vertical salon (nunca vertical separado). Nada inventado.
+- **Religious House:** nenhum material local → EXTERNAL_BLOCKED / POST-MVP
+  IMPORT. **LED:** DEFERRED_EXTERNAL_SOURCE. Nenhum bloqueia o MVP.
+- **Vendor lock-in auditado:** 0 referências Vercel-specific no código →
+  HOSTING PORTABILITY = PASS (docs/HOSTING_PORTABILITY_AUDIT.md).
+- **Tenant commercial flow classificado** etapa a etapa (docs/
+  MVP_COMMERCIAL_READINESS.md): IMPLEMENTED p/ tenant/vertical/plano/usuários/
+  permissões/entitlements/isolamento; MVP_PASS p/ branding + domínio manual;
+  BILLING ENGINE = POST-MVP (modelo plan/entitlement já suporta).
+- **Painel atualizado:** HOSTING_POLICY + clients reais por vertical + blocker
+  concreto do Salon + decisions de hosting; typecheck/build/secret scan PASS.
+- **VEREDITO: CODE_PRODUCT_COMPLETE = YES · MVP_COMMERCIAL_READY = YES ·
+  CLOUDFLARE_MIGRATION_READY = YES (NÃO migrar — aguardar autorização;
+  FINAL_HOSTING_COMPLETE = by design na wave Cloudflare).**
+
+## BIG RUN MASTER WAVE — CONCLUSÃO INTEGRAL (2026-09-18, segunda rodada)
+- apps/platform evoluído de shell mínima para **CONTROL PLANE** (feat(platform)): navegação hash com 6 views — Dashboard (contadores reais), Verticais + dossiê por vertical (SOURCE/APP/BUILD/TYPECHECK/TEST/ROUTER/ENV/SUPABASE/TENANT/BRANDING/DEMO/COMMERCIAL/PROJETO), Core (maturidade IMPLEMENTED/FOUNDATION/COMING_SOON com evidência), Tenants, Deployments (matriz real), Status (gates). Sem backend falso, sem métricas inventadas; identidade "Tupiniquim SaaS — Plataforma"; typecheck + build PASS; HTTP local 200 (vite preview) + assets 200.
+- Matriz por vertical revalidada: bakery/pet/restaurant/metalart/heavy-machinery typecheck + build PASS (re-executados); testes de pacote sem regressão (86/3/3/13).
+- Gates de segurança re-executados LIVE: RLS 58/58 · Storage 42/42 · bakery live read PASS.
+- NOVO gate durável: scripts/bundle-secret-scan.ts (markers + fingerprints de env nos 6 dists; valores nunca impressos) — PASS.
+- Novos docs: PLATFORM_COMPLETION_REPORT · SAAS_RELEASE_READINESS · FINAL_SECURITY_GATE · CLOUDFLARE_MIGRATION_MASTER_PLAN (PLANO — não executar; Cloudflare só após SYSTEM_COMPLETE).
+- SYSTEM_COMPLETE = PARTIAL: restante = ações do owner no dashboard Vercel (deployment do central pós-cutover + projetos dedicados) e blockers externos (LED/Templo/Salon).
+
+## VERCEL PREVIEW GATE
+CENTRAL PROJECT: **CUTOVER EXECUTADO (2026-09-18)** — vercel.json agora configura npm ci → `npm run build:platform` → `apps/platform/dist` (antes: build:bakery/apps/bakery/dist). DIAGNÓSTICO CORRIGIDO: o deployment do commit b8babe9 ficou **READY com GET / = 200** (owner-confirmed, URL `sistema-saa-s-geral-h0ktuxbaf.vercel.app`) — a leitura anterior "redeploy não publicado/404" referia-se ao alias de produção e está OBSOLETA; o problema real era o **conteúdo**: o projeto central ainda servia Fornalha/Bakery porque o vercel.json apontava para `build:bakery`. Com o cutover, o próximo deployment publica a PLATAFORMA (title "Tupiniquim SaaS — Plataforma"; build + typecheck locais PASS). Harness `scripts/preview-http-gate.ts` atualizado com target kinds distintos: PRODUCTION_ALIAS (não representa a branch preview), BRANCH_PREVIEW e DEPLOYMENT_URL — MASTER PASS desta branch usa somente deployment/preview URLs; PRODUCTION = NOT PROMOTED. VERCEL_TEAM: legado "Caboclo Tupinambá e Flecha Dourada" (rename BLOCKED_VERCEL_TEAM_RENAME_PERMISSION; alvo conceitual Tupiniquim Tech Solution). Owner actions para projetos dedicados: docs/VERCEL_OWNER_ACTIONS.md (saas-bakery + matriz por vertical; nada de projeto fake p/ religious-house/salon/led).
 
 ## COMMITS
 - a7c2bbb docs: update canonical scope to include MetalArt, Templo, CRM horizontal
@@ -144,3 +198,8 @@ NOT RUN — sem identidades controladas A/B provisionadas (release blocker docum
 - (docs push: branch sincronizada com remote em 7d0927b; push inicial 3434068..7d0927b executado)
 - (reconciliação: docs/SUPABASE_RECONCILIATION_FREEBUFF_VS_CHATGPT.md criada — commit desta wave)
 - (commits anteriores: workspace root, core contracts, gitignore+led placeholder, db schema+seed, imports subtree bakery/pet/restaurant/heavy-machinery)
+- f894df6 fix(qa): align tenant provisioner with live RPC signature (p_plan_id DEFAULT 'starter')
+- b03763c test(security): full live RLS gate and bakery live-read gates
+- 15331dc docs(qa): record live cross-tenant RLS evidence and Vercel preview readiness
+- 1f04835 test(security): add QA cleanup verification for RLS gate
+- (storage wave: cross-tenant-storage-smoke + evidence — commit desta rodada)

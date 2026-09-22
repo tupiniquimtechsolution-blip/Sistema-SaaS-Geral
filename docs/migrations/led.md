@@ -1,37 +1,35 @@
-# Migration — LED / Visual Communication
+# Migração LED — provenance e blocker atual
 
-- Source repository: `UNKNOWN`
-- Destination: `apps/led`
-- Import status: `BLOCKED_SOURCE_REPOSITORY_LED`
+## Fonte canônica
 
-The canonical LED company repository was not found among the repositories accessible through the connected GitHub account during preparation.
+- Repositório: `https://github.com/tupiniquimtechsolution-blip/LED`
+- Encontrado/confirmado pelo owner em 22/09/2026.
+- Acesso GitHub: confirmado.
+- Estado observado: repositório existente com `size = 0` no momento da auditoria.
 
-## Allowed work before source identification
+## Reconciliação de blocker
 
-Only shared/generic contracts may be implemented, such as:
+`BLOCKED_SOURCE_REPOSITORY_LED` → **RESOLVED** quanto à localização.
 
-- solution catalog;
-- technical specification;
-- configuration request;
-- site survey;
-- lead;
-- quote/proposal;
-- project/installation;
-- warranty;
-- support.
+Novo blocker:
 
-## Prohibited until source is known
+`BLOCKED_LED_SOURCE_CONTENT_EMPTY`
 
-Do not invent:
+O repositório canônico existe, porém não há conteúdo de aplicação para importar/reconciliar. Não criar site fictício e não preencher `apps/led` com implementação inventada.
 
-- company branding;
-- logos;
-- real products;
-- technical claims;
-- prices;
-- reviews;
-- client cases;
-- contact information;
-- original layout.
+## Próxima ação
 
-When the repository is identified, update this file with source repo/branch/HEAD and execute the same provenance/layout/PDF gates used by the other verticals.
+1. popular/restaurar o source real no repositório `LED` ou identificar commit/branch externo legítimo;
+2. auditar stack, mídia, licenças, env e segurança;
+3. importar via estratégia segura/provenance;
+4. aplicar Tupiniquim Toolbox;
+5. integrar ao SaaS Core como vertical configurável;
+6. build/typecheck/security/smoke antes de qualquer deploy.
+
+## Gate
+
+- repository located: PASS
+- source content: MISSING/BLOCKED
+- import: NOT RUN
+- SaaS integration: NOT RUN
+- Cloudflare deploy: NOT RUN
