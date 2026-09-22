@@ -69,3 +69,19 @@ em modo preview com janela de claim (~59 min) no dashboard. URLs workers.dev
 respondem e passaram nos gates. Para deploys DURÁVEIS (conta do owner,
 versions/rollouts gerenciáveis): `npx wrangler login` + re-deploy sem
 `--temporary` (docs/CLOUDFLARE_OWNER_ACTIONS.md).
+
+## 2026-09-22 — Durable GitHub build connection
+
+- Owner conectou Cloudflare Workers Builds ao GitHub para o repositório
+  `tupiniquimtechsolution-blip/Sistema-SaaS-Geral`.
+- Worker canário: `tupiniquim-bakery`.
+- Production branch configurada: `freebuff/big-master-wave-01-monorepo`.
+- Root directory: `/` (monorepo root).
+- Build command alvo: `npm ci && npm run build:bakery`.
+- Deploy command alvo: `npx wrangler deploy --config apps/bakery/wrangler.jsonc`.
+- Version command alvo: `npx wrangler versions upload --config apps/bakery/wrangler.jsonc`.
+- Retries anteriores continuaram executando o commit/build original sem
+  `package.json` na raiz; por isso não provam falha da branch configurada.
+- Este commit existe também para disparar um **novo push build** na production
+  branch correta, em vez de repetir o build antigo.
+- Supabase, Vercel, DNS e domínios permanecem intocados.
