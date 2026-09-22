@@ -1,0 +1,48 @@
+name: Salon Vanessa Gates
+
+on:
+  push:
+    branches:
+      - chatgpt/integrate-salon-vanessa
+    paths:
+      - 'apps/salon/**'
+      - 'packages/**'
+      - 'supabase/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/salon.yml'
+  pull_request:
+    paths:
+      - 'apps/salon/**'
+      - 'packages/**'
+      - 'supabase/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/salon.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  salon-quality:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install locked dependencies
+        run: npm ci
+
+      - name: Typecheck Salon
+        run: npm run typecheck:salon
+
+      - name: Build Salon
+        run: npm run build:salon
+
+      - name: Production dependency audit
+        run: npm audit --omit=dev --audit-level=high
