@@ -56,7 +56,7 @@ function tenantResult(input?: {
         ? { tenant_id: tenant.id, locale: "pt-BR", timezone: "America/Sao_Paulo", currency: "BRL" }
         : null,
       subscription: null,
-      effectiveEntitlements: tenant ? [{ key: "cms", value: true, source: "plan" }] : [],
+      effectiveEntitlements: tenant ? [{ key: "booking.enabled", value: true }] : [],
     },
   } as Awaited<ReturnType<BuilderAccessDependencies["resolveTenantContext"]>>;
 }
