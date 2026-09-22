@@ -3,6 +3,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { onAuthStateChange, signInWithPassword, signOut } from "tupiniquim-auth";
 import type { TenantContextResult } from "tupiniquim-tenancy";
 import { loadBuilderAccess, type BuilderAccessState } from "./access";
+import { DraftStudio } from "./DraftStudio";
 
 interface AppProps {
   client: SupabaseClient;
@@ -126,6 +127,7 @@ export function App({ client }: AppProps) {
   }
 
   const { context, memberships } = state;
+  const selectedTenantId = context.tenant?.id ?? tenantId;
   return (
     <main className="shell">
       <header className="topbar">
@@ -134,7 +136,7 @@ export function App({ client }: AppProps) {
       </header>
 
       <section className="selection-card">
-        <TenantSelector memberships={memberships} tenantId={context.tenant?.id ?? tenantId} verticalKey={verticalKey} onTenant={setTenantId} onVertical={setVerticalKey} onApply={applySelection} />
+        <TenantSelector memberships={memberships} tenantId={selectedTenantId} verticalKey={verticalKey} onTenant={setTenantId} onVertical={setVerticalKey} onApply={applySelection} />
       </section>
 
       <section className="grid" aria-label="Contexto somente leitura">
@@ -156,7 +158,9 @@ export function App({ client }: AppProps) {
         <ReadOnlyCard title="Entitlements" value={context.effectiveEntitlements} />
       </section>
 
-      <footer className="guardrail">Modo somente leitura · tenant validado por membership · RLS permanece autoridade de enforcement</footer>
+      {selectedTenantId ? <DraftStudio client={client} tenantId={selectedTenantId} userId={state.userId} /> : null}
+
+      <footer className="guardrail">Tenant validado por membership · draft writes dependem de cms.write · RLS permanece autoridade de enforcement</footer>
     </main>
   );
 }

@@ -16,6 +16,7 @@ export type BuilderAccessState =
     }
   | {
       status: "selected";
+      userId: string;
       memberships: TenantContextResult["memberships"];
       context: TenantContextResult["context"];
       verticalKey: string | null;
@@ -85,6 +86,7 @@ export async function loadBuilderAccess(
 
   return {
     status: "selected",
+    userId: session.user.id,
     memberships: result.memberships,
     context: result.context,
     verticalKey,

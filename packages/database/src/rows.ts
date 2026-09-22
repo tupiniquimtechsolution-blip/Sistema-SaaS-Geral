@@ -2,9 +2,8 @@
  * Row contracts of the LIVE canonical Supabase schema (project mmykyzzkcugxunmekwew).
  *
  * Source of truth: the remote database. These interfaces mirror the columns the
- * application reads (see docs/SUPABASE_RECONCILIATION_FREEBUFF_VS_CHATGPT.md and
- * docs/REMOTE_MIGRATION_LEDGER.md). They are READ-MODEL types only: the browser
- * never writes these tables in this wave (DATABASE MUTATIONS = NONE).
+ * application reads and, for explicitly supported CMS draft operations, writes
+ * through the publishable-key client under database RLS.
  */
 
 /** public.tenants */
@@ -93,6 +92,34 @@ export interface PlanRow {
   name: string;
   is_public: boolean;
   is_active: boolean;
+}
+
+/** public.pages */
+export interface PageRow {
+  id: string;
+  tenant_id: string;
+  slug: string;
+  title: string;
+  status: "draft" | "published" | "archived" | string;
+  seo: Record<string, unknown>;
+  published_at: string | null;
+  created_by: string | null;
+  updated_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+/** public.page_sections */
+export interface PageSectionRow {
+  id: string;
+  page_id: string;
+  tenant_id: string;
+  section_type: string;
+  position: number;
+  is_enabled: boolean;
+  content: Record<string, unknown>;
+  created_at: string;
+  updated_at: string;
 }
 
 /** jsonb-decoded entitlement value as stored in public.* tables */
