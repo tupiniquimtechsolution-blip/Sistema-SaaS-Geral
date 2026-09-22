@@ -1,87 +1,117 @@
-# BÍBLIA DO PROJETO — TUPINIQUIM VERTICAL SAAS
+# Bíblia do Projeto — Tupiniquim Vertical SaaS
 
-**Data-base:** 22/09/2026  
-**Repositório canônico:** `tupiniquimtechsolution-blip/Sistema-SaaS-Geral`  
-**Branch ativa:** `freebuff/big-master-wave-01-monorepo`  
-**Fonte de verdade técnica:** GitHub + evidência executada; Notion e Miro espelham o estado operacional.
+**Projeto:** `tupiniquimtechsolution-blip/Sistema-SaaS-Geral`  
+**Branch operacional:** `freebuff/big-master-wave-01-monorepo`  
+**Atualização:** 22/09/2026  
+**Governança:** GitHub/evidência → Notion/Agenor → Miro → chat/handoff.
 
-## 1. Missão
+Esta pasta é o **dossiê canônico do produto**, cobrindo estratégia, arquitetura, segurança, operação, roadmap, preço, riscos e Definition of Done. Documentos históricos fora desta pasta continuam válidos como evidência, mas qualquer conflito de estado atual deve ser reconciliado aqui com GitHub real.
 
-Construir uma plataforma SaaS white-label multi-tenant para transformar verticais de negócio em produtos configuráveis e comercializáveis sem fork por cliente. O cliente nasce como **tenant + configuração**, reutilizando o mesmo SaaS Core.
+## 1. Visão do produto
 
-## 2. Taxonomia canônica
+O Tupiniquim Vertical SaaS é uma plataforma multi-tenant para lançar e operar sites/aplicações verticais premium, reutilizando um SaaS Core compartilhado.
 
-- **Sistema-SaaS-Geral / Tupiniquim Vertical SaaS:** produto completo.
-- **SaaS Core:** contratos compartilhados de tenant, auth, membership, RBAC, RLS, planos, entitlements, CMS, mídia, integrações, auditoria e operação.
-- **Control Plane (`apps/platform`):** painel interno de gestão/status. Não é editor visual para clientes.
-- **Site Builder / Preview Studio (`apps/builder`, em construção):** edição de branding, conteúdo, mídia, seções e configurações por tenant; preview privado; aprovação; publicação.
-- **Vertical:** produto-base por segmento (Bakery, Pet, Restaurant, MetalArt, Heavy Machinery, Religious House, Salon, LED etc.).
-- **Tenant:** cliente final configurado dentro de um vertical.
-- **CRM Tupiniquim:** aplicação horizontal, não vertical.
+Princípio central:
 
-## 3. Princípios imutáveis
+> **Novo cliente = tenant + configuração. Nunca fork por padrão.**
 
-1. Novo cliente = tenant/configuração, nunca fork ordinário.
-2. Layout premium de cada vertical é preservado; SaaS adiciona engrenagem, não redesign arbitrário.
-3. Default deny; isolamento server-side; RLS e testes cross-tenant obrigatórios.
-4. Dados demonstrativos nunca podem se passar por dados reais.
-5. Segredos ficam server-side e fora do Git.
-6. Supabase canônico permanece compartilhado salvo decisão explícita de isolamento dedicado.
-7. Vercel permanece rollback enquanto a migração Cloudflare não estiver encerrada.
-8. DNS/nameserver/domínio real só muda com autorização explícita do owner.
-9. Sem force-push, reset destrutivo, migração destrutiva ou enfraquecimento de teste para obter verde.
+Componentes principais:
+- `apps/platform`: control plane interno;
+- `apps/builder`: Site Builder / Preview Studio;
+- `apps/<vertical>`: experiências públicas/operacionais por nicho;
+- `packages/*`: contratos compartilhados;
+- Supabase: auth/database/storage/RLS;
+- Cloudflare: hosting alvo;
+- Vercel: rollback temporário durante migração.
 
-## 4. Estado comprovado
+## 2. Índice canônico
 
-### Core
-- `saas-core`: **86/86 PASS**.
-- `database`: **3/3 PASS**.
-- `auth`: **3/3 PASS**.
-- `tenancy`: **13/13 PASS**.
-- banco cross-tenant: **58/58 PASS**.
-- storage: **42/42 PASS**.
-- secret scan: **PASS**.
+### Produto, arquitetura e estrutura
+- [`ARCHITECTURE_AND_STRUCTURE.md`](./ARCHITECTURE_AND_STRUCTURE.md)
+- [`VERTICAL_SOURCE_MATRIX.md`](./VERTICAL_SOURCE_MATRIX.md)
+- [`TOOLBOX_AUDIT_2026-09-22.md`](./TOOLBOX_AUDIT_2026-09-22.md)
 
-Esses gates comprovam a fundação multi-tenant, mas **não significam conclusão comercial total**.
+### Roadmap e execução
+- [`ROADMAP_AND_TASKS.md`](./ROADMAP_AND_TASKS.md)
+- [`STATUS_AND_WAVE_LEDGER.md`](./STATUS_AND_WAVE_LEDGER.md)
+- [`DEFINITION_OF_DONE.md`](./DEFINITION_OF_DONE.md)
 
-### Verticais
-- Bakery: código/preview/integração avançados; fechamento ponta a ponta ainda em andamento.
-- Pet: código disponível e deploy previamente validado pelo owner; smoke final consolidado ainda precisa entrar na matriz durável.
-- Restaurant: código pronto; validação durável consolidada pendente.
-- MetalArt: vertical principal; código pronto; deploy durável informado pelo owner nesta wave, porém matriz final precisa registrar URL/gates.
-- Heavy Machinery: código pronto; deploy final/smoke consolidado pendente.
-- Religious House: site standalone já publicado; importação/reconciliação como `apps/religious-house` pendente.
-- Salon: Vanessa Braz é tenant/template de referência; Issue #4 + PR draft #5 existentes; integração real em `apps/salon` pendente.
-- LED: repositório canônico localizado em `https://github.com/tupiniquimtechsolution-blip/LED`; **repo existe, mas está vazio (size=0)**. Bloqueio antigo de localização foi resolvido e substituído por `BLOCKED_LED_SOURCE_CONTENT_EMPTY`.
+### Segurança, LGPD e riscos
+- [`QUALITY_SECURITY_LGPD.md`](./QUALITY_SECURITY_LGPD.md)
+- [`RISK_DECISION_REGISTER.md`](./RISK_DECISION_REGISTER.md)
+
+### Operação e release
+- [`OPERATIONS_AND_RELEASE.md`](./OPERATIONS_AND_RELEASE.md)
+- documentos Cloudflare em `docs/CLOUDFLARE_*`
+- evidências RLS/storage nos documentos de segurança existentes.
+
+### Comercial
+- [`COMMERCIAL_PRICING.md`](./COMMERCIAL_PRICING.md)
+- [`COMMERCIAL_OFFER_CATALOG.md`](./COMMERCIAL_OFFER_CATALOG.md)
+
+### Prompt operacional
+- [`../prompts/PROJECT_BIBLE_MASTER_EXECUTION_PROMPT.md`](../prompts/PROJECT_BIBLE_MASTER_EXECUTION_PROMPT.md)
+
+## 3. Estado técnico comprovado
+
+| Gate | Estado |
+|---|---|
+| SaaS Core unit | PASS 86/86 |
+| Database package | PASS 3/3 |
+| Auth package | PASS 3/3 |
+| Tenancy package | PASS 13/13 |
+| Cross-tenant DB | PASS 58/58 |
+| Storage | PASS 42/42 |
+| Bakery live read | PASS |
+| Secret scan documentado | PASS |
+| E2E comercial final | NOT RUN |
+| Builder funcional | IN PROGRESS |
+| Onboarding tenant sem fork | NOT RUN |
+| Billing de produção | BLOCKED/NOT RUN |
+| Domínio real | NOT RUN / owner-gated |
+| Release comercial completo | NOT READY |
+
+## 4. Estado dos verticais
+
+- Bakery: implementação presente; fechamento ponta a ponta em andamento.
+- Pet: implementação presente; validações de release devem ser consolidadas.
+- Restaurant: implementação presente; validações de release devem ser consolidadas.
+- Heavy Machinery: implementação presente; validações de release devem ser consolidadas.
+- MetalArt: implementação presente; validação Cloudflare/mídia/release em fechamento.
+- Salon: Vanessa Braz é tenant/template; integração Core ainda em andamento.
+- Religious House: fonte/site real existem; importação Core ainda pendente.
+- LED: repo canônico identificado em `tupiniquimtechsolution-blip/LED`, mas fonte executável versionada está ausente; importação bloqueada sem inventar implementação.
 
 ## 5. Sequência executiva aprovada
 
-`#5 Builder → #9 onboarding → #7 Salon → #6 Religious House → #8 deploy matrix final`.
+1. Site Builder / Preview Studio.
+2. Onboarding de tenant sem fork.
+3. Salon / Vanessa.
+4. Religious House.
+5. Matriz de deploy/smoke Cloudflare.
+6. Billing.
+7. Domínio/SSL.
+8. E2E/a11y/performance/security.
+9. Pacote comercial + primeiro tenant pago.
 
-O Builder é prioridade porque reduz trabalho repetitivo em todos os verticais: branding, conteúdo, mídia, contatos, integrações e publicação passam a ser configurações de tenant.
+## 6. Dados Vanessa confirmados pelo owner
 
-## 6. Definition of Done comercial
+- Instagram: `https://www.instagram.com/vanessabraz_belezaeautoestima/`
+- WhatsApp/telefone: `(11) 98814-9152`
+- E.164: `5511988149152`
+- Endereço: `Rua Redenção 88`
+- Cidade/UF/CEP: não fornecidos; não inferir.
 
-O produto só será declarado comercializável quando:
-- onboarding criar tenant sem fork;
-- branding/conteúdo/mídia forem editáveis por configuração;
-- preview privado e aprovação funcionarem;
-- publicação Cloudflare for repetível e auditável;
-- planos/entitlements/billing estiverem operacionais;
-- domínio/SSL tiverem fluxo operacional;
-- smoke/E2E/a11y/performance/security passarem nos verticais vendidos;
-- LGPD/termos/privacidade/onboarding/suporte estiverem documentados;
-- existir pelo menos um tenant novo provisionado pelo fluxo padrão, sem edição manual de código específica para o cliente.
+A mídia visual deve preservar e mesclar o acervo legítimo disponível. Proveniência de imagens “geradas por IA” precisa estar registrada antes de rotulá-las como tal.
 
-## 7. Índice documental
+## 7. Release comercial
 
-- `ARCHITECTURE_AND_STRUCTURE.md` — arquitetura e organização de pastas.
-- `ROADMAP_AND_TASKS.md` — fases, waves, concluído, pendente e bloqueios.
-- `COMMERCIAL_PRICING.md` — benchmark e hipótese comercial precificável.
-- `QUALITY_SECURITY_LGPD.md` — Toolbox, segurança, privacidade e gates.
-- `OPERATIONS_AND_RELEASE.md` — onboarding, deploy, rollback, suporte e release.
-- `../prompts/SAAS_PROGRAM_MASTER_EXECUTION_PROMPT.md` — prompt operacional master.
+O produto só está pronto para venda repetível quando um tenant novo puder atravessar, sem fork:
 
-## 8. Regra de atualização
+`criação → vertical → plano/entitlements → branding/conteúdo/mídia → preview → aprovação → publicação → domínio → cobrança → suporte → auditoria`.
 
-Qualquer mudança de estado técnico deve seguir: **GitHub/evidência → Notion/Agenor → Miro → resposta no chat**. PASS sem execução é proibido.
+Até essa prova existir, `COMMERCIAL_RELEASE = NOT READY`.
+
+## 8. Regra de documentação
+
+Toda mudança que altere arquitetura, preço, risco, status de wave, source de vertical ou gate de release deve atualizar a Bíblia na mesma wave. Estados antigos não devem ser apagados quando forem evidência histórica; devem ser marcados como superseded/obsolete quando necessário.
