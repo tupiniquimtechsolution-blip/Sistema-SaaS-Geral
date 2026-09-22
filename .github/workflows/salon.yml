@@ -8,6 +8,7 @@ on:
       - 'apps/salon/**'
       - 'packages/**'
       - 'supabase/**'
+      - 'tests/postgres/salon_booking_integrity.real.sql'
       - 'package.json'
       - 'package-lock.json'
       - '.github/workflows/salon.yml'
@@ -16,6 +17,7 @@ on:
       - 'apps/salon/**'
       - 'packages/**'
       - 'supabase/**'
+      - 'tests/postgres/salon_booking_integrity.real.sql'
       - 'package.json'
       - 'package-lock.json'
       - '.github/workflows/salon.yml'
@@ -46,3 +48,32 @@ jobs:
 
       - name: Production dependency audit
         run: npm audit --omit=dev --audit-level=high
+
+  salon-postgres-integrity:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      PGHOST: localhost
+      PGPORT: 5432
+      PGUSER: postgres
+      PGPASSWORD: postgres
+      PGDATABASE: postgres
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Prove tenant integrity and booking overlap in real Postgres
+        run: psql -v ON_ERROR_STOP=1 -f tests/postgres/salon_booking_integrity.real.sql
