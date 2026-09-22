@@ -8,7 +8,8 @@ on:
       - 'apps/salon/**'
       - 'packages/**'
       - 'supabase/**'
-      - 'tests/postgres/salon_booking_integrity.real.sql'
+      - 'scripts/provisioning/vanessa_braz_tenant.sql'
+      - 'tests/postgres/salon_*.real.sql'
       - 'package.json'
       - 'package-lock.json'
       - '.github/workflows/salon.yml'
@@ -17,7 +18,8 @@ on:
       - 'apps/salon/**'
       - 'packages/**'
       - 'supabase/**'
-      - 'tests/postgres/salon_booking_integrity.real.sql'
+      - 'scripts/provisioning/vanessa_braz_tenant.sql'
+      - 'tests/postgres/salon_*.real.sql'
       - 'package.json'
       - 'package-lock.json'
       - '.github/workflows/salon.yml'
@@ -77,3 +79,11 @@ jobs:
 
       - name: Prove tenant integrity and booking overlap in real Postgres
         run: psql -v ON_ERROR_STOP=1 -f tests/postgres/salon_booking_integrity.real.sql
+
+      - name: Create isolated provisioning test database
+        run: createdb salon_provisioning
+
+      - name: Prove Salon registry and Vanessa provisioning are idempotent
+        env:
+          PGDATABASE: salon_provisioning
+        run: psql -v ON_ERROR_STOP=1 -f tests/postgres/salon_tenant_provisioning.real.sql
