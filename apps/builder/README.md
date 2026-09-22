@@ -11,21 +11,28 @@ Workspace React 18 + Vite + TypeScript para edição multi-tenant controlada.
 - estados explícitos: loading, unauthorized, forbidden, empty e selected;
 - `private_settings` não são renderizadas no painel;
 - Draft Studio usando as tabelas canônicas `pages` e `page_sections`;
-- criação/edição de drafts e seções de texto sob RLS `cms.write`;
-- preview privado limitado ao caminho de `status = draft` e tenant selecionado;
+- workflow versionado `draft → in_review → approved → published` com retorno seguro a draft;
+- snapshots de revisão separados da projeção pública;
+- uma única revisão aberta e uma única revisão publicada por página;
+- publicação projeta o snapshot aprovado em `pages/page_sections` dentro da mesma transação PostgreSQL;
+- publicação anterior vira histórico `rolled_back`, sem apagar snapshot;
+- rollback restaura um snapshot histórico como **novo draft**, exigindo novo review/approval antes de republicar;
+- RLS e `cms.write` permanecem autoridade de enforcement;
 - renderização de preview sem `dangerouslySetInnerHTML`;
-- RLS permanece autoridade de enforcement; o cliente não usa service role.
+- cliente não usa `service_role`.
 
-## RLS validada no schema remoto
+## Contrato de revisão
 
-No projeto canônico, `pages` e `page_sections` já possuem policies de escrita para `authenticated` condicionadas a `has_tenant_permission(tenant_id, 'cms.write')`. Leitura de drafts só ocorre para `is_tenant_member(tenant_id)`; conteúdo publicado mantém o caminho público já existente. Nenhuma migration paralela foi criada neste slice.
+`page_revisions` é um ledger tenant-scoped. Identidade, número da revisão e snapshots fora de `draft` são imutáveis. O banco rejeita transições que pulem o lifecycle. A projeção pública só acontece na transição `approved → published`.
+
+A migration `builder_revision_workflow_v1` é forward-only a partir do schema remoto canônico. Ela deve ser aplicada via Supabase migration somente depois dos gates do código; não reexecuta a migration histórica `0001_multi_tenant_schema.sql`.
 
 ## Variáveis de ambiente
 
 - `VITE_SUPABASE_URL`
 - `VITE_SUPABASE_PUBLISHABLE_KEY`
 
-Nunca usar `service_role` no browser. A factory compartilhada rejeita marcadores de chave privilegiada.
+Nunca usar `service_role` no browser.
 
 ## Gates
 
@@ -34,6 +41,7 @@ npm run lint --workspace=apps/builder
 npm run typecheck --workspace=apps/builder
 npm test --workspace=apps/builder
 npm run build --workspace=apps/builder
+npm test --workspace=packages/database
 ```
 
-O próximo slice deve evoluir versionamento/rollback e publicação sem enfraquecer o isolamento tenant ou editar conteúdo publicado fora do workflow aprovado.
+Próximo slice após validação remota: auditoria UX do workflow, edição/reordenação completa das seções versionadas e resolução do alerta HIGH preexistente do GitHub Advanced Security antes de merge/release.

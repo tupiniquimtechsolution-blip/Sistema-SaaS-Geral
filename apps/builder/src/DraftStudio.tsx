@@ -1,14 +1,13 @@
 import { useCallback, useEffect, useState } from "react";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import {
-  addDraftTextSection,
   createTenantDraftPage,
-  fetchPrivateDraftPage,
-  fetchTenantDraftPages,
-  updateTenantDraftPage,
-  type DraftPageBundle,
+  fetchTenantBuilderPages,
+  fetchTenantPageBundle,
+  type PageBundle,
   type PageRow,
 } from "tupiniquim-database";
+import { RevisionWorkflow } from "./RevisionWorkflow";
 
 interface DraftStudioProps {
   client: SupabaseClient;
@@ -17,17 +16,16 @@ interface DraftStudioProps {
 }
 
 export function DraftStudio({ client, tenantId, userId }: DraftStudioProps) {
-  const [drafts, setDrafts] = useState<PageRow[]>([]);
+  const [pages, setPages] = useState<PageRow[]>([]);
   const [selectedId, setSelectedId] = useState("");
-  const [preview, setPreview] = useState<DraftPageBundle | null>(null);
+  const [preview, setPreview] = useState<PageBundle | null>(null);
   const [form, setForm] = useState({ slug: "", title: "" });
-  const [sectionText, setSectionText] = useState("");
   const [message, setMessage] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
-  const reloadDrafts = useCallback(async () => {
-    const next = await fetchTenantDraftPages(client, tenantId);
-    setDrafts(next);
+  const reloadPages = useCallback(async () => {
+    const next = await fetchTenantBuilderPages(client, tenantId);
+    setPages(next);
     setSelectedId((current) => current || next[0]?.id || "");
   }, [client, tenantId]);
 
@@ -36,14 +34,20 @@ export function DraftStudio({ client, tenantId, userId }: DraftStudioProps) {
       setPreview(null);
       return;
     }
-    setPreview(await fetchPrivateDraftPage(client, tenantId, pageId));
+    setPreview(await fetchTenantPageBundle(client, tenantId, pageId));
   }, [client, tenantId]);
+
+  const refreshLive = useCallback(async (pageId: string) => {
+    await reloadPages();
+    setSelectedId(pageId);
+    await loadPreview(pageId);
+  }, [loadPreview, reloadPages]);
 
   useEffect(() => {
     setPreview(null);
     setSelectedId("");
-    void reloadDrafts().catch((error) => setMessage(error instanceof Error ? error.message : "Draft load failed"));
-  }, [reloadDrafts]);
+    void reloadPages().catch((error) => setMessage(error instanceof Error ? error.message : "Builder page load failed"));
+  }, [reloadPages]);
 
   useEffect(() => {
     void loadPreview(selectedId).catch((error) => setMessage(error instanceof Error ? error.message : "Preview load failed"));
@@ -55,7 +59,7 @@ export function DraftStudio({ client, tenantId, userId }: DraftStudioProps) {
     try {
       await operation();
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Draft operation failed");
+      setMessage(error instanceof Error ? error.message : "Builder operation failed");
     } finally {
       setBusy(false);
     }
@@ -65,8 +69,8 @@ export function DraftStudio({ client, tenantId, userId }: DraftStudioProps) {
     <section className="studio-card" aria-labelledby="draft-studio-title">
       <div className="card-heading studio-heading">
         <div>
-          <p className="eyebrow">PRIVATE PREVIEW</p>
-          <h2 id="draft-studio-title">Draft Studio</h2>
+          <p className="eyebrow">PRIVATE BUILDER</p>
+          <h2 id="draft-studio-title">Draft Studio + Workflow</h2>
         </div>
         <span>RLS + cms.write</span>
       </div>
@@ -74,10 +78,10 @@ export function DraftStudio({ client, tenantId, userId }: DraftStudioProps) {
       <div className="studio-grid">
         <div className="studio-controls">
           <label>
-            Draft existente
+            Página
             <select value={selectedId} onChange={(event) => setSelectedId(event.target.value)}>
-              <option value="">Selecione um draft</option>
-              {drafts.map((draft) => <option key={draft.id} value={draft.id}>{draft.title} · /{draft.slug}</option>)}
+              <option value="">Selecione uma página</option>
+              {pages.map((page) => <option key={page.id} value={page.id}>{page.title} · /{page.slug} · {page.status}</option>)}
             </select>
           </label>
 
@@ -93,92 +97,53 @@ export function DraftStudio({ client, tenantId, userId }: DraftStudioProps) {
                   title: form.title,
                 });
                 setForm({ slug: "", title: "" });
-                await reloadDrafts();
-                setSelectedId(created.id);
-                await loadPreview(created.id);
-                setMessage("Draft criado com sucesso.");
+                await refreshLive(created.id);
+                setMessage("Página draft criada. Crie uma revisão antes de editar/publicar.");
               });
             }}
           >
-            <h3>Novo draft</h3>
+            <h3>Nova página</h3>
             <label>Slug<input value={form.slug} placeholder="nova-pagina" onChange={(event) => setForm({ ...form, slug: event.target.value })} required /></label>
             <label>Título<input value={form.title} onChange={(event) => setForm({ ...form, title: event.target.value })} required /></label>
-            <button type="submit" disabled={busy}>Criar draft</button>
+            <button type="submit" disabled={busy}>Criar página draft</button>
           </form>
 
-          {preview ? (
-            <form
-              className="draft-form"
-              onSubmit={(event) => {
-                event.preventDefault();
-                const formData = new FormData(event.currentTarget);
-                const title = String(formData.get("title") ?? "");
-                void run(async () => {
-                  await updateTenantDraftPage(client, {
-                    tenantId,
-                    pageId: preview.page.id,
-                    userId,
-                    title,
-                    seo: preview.page.seo,
-                  });
-                  await reloadDrafts();
-                  await loadPreview(preview.page.id);
-                  setMessage("Draft salvo.");
-                });
-              }}
-            >
-              <h3>Editar metadados</h3>
-              <label>Título<input name="title" defaultValue={preview.page.title} required /></label>
-              <button type="submit" disabled={busy}>Salvar draft</button>
-            </form>
-          ) : null}
-
-          {preview ? (
-            <form
-              className="draft-form"
-              onSubmit={(event) => {
-                event.preventDefault();
-                void run(async () => {
-                  await addDraftTextSection(client, { tenantId, pageId: preview.page.id, text: sectionText });
-                  setSectionText("");
-                  await loadPreview(preview.page.id);
-                  setMessage("Seção adicionada ao draft.");
-                });
-              }}
-            >
-              <h3>Nova seção de texto</h3>
-              <label>Texto<textarea value={sectionText} onChange={(event) => setSectionText(event.target.value)} required /></label>
-              <button type="submit" disabled={busy}>Adicionar seção</button>
-            </form>
-          ) : null}
-
-          <p className="guardrail compact">Criação e edição dependem da policy `cms.write`. Falhas de RLS são exibidas; nunca são contornadas no cliente.</p>
+          <p className="guardrail compact">Edição versionada ocorre no snapshot abaixo. `pages/page_sections` só recebem o snapshot quando uma revisão aprovada é publicada.</p>
           {message ? <p className="status-message" role="status">{message}</p> : null}
         </div>
 
-        <PrivatePreview bundle={preview} />
+        <LivePreview bundle={preview} />
       </div>
+
+      {preview ? (
+        <RevisionWorkflow
+          client={client}
+          tenantId={tenantId}
+          bundle={preview}
+          onLiveChanged={refreshLive}
+        />
+      ) : null}
     </section>
   );
 }
 
-function PrivatePreview({ bundle }: { bundle: DraftPageBundle | null }) {
+function LivePreview({ bundle }: { bundle: PageBundle | null }) {
   if (!bundle) {
-    return <article className="preview-surface"><p className="eyebrow">PREVIEW</p><h3>Nenhum draft selecionado</h3><p>O preview de drafts exige sessão autenticada e membership no tenant.</p></article>;
+    return <article className="preview-surface"><p className="eyebrow">LIVE STATE</p><h3>Nenhuma página selecionada</h3><p>Selecione uma página acessível ao tenant.</p></article>;
   }
 
   return (
-    <article className="preview-surface" aria-label={`Preview privado de ${bundle.page.title}`}>
-      <p className="eyebrow">DRAFT · /{bundle.page.slug}</p>
+    <article className="preview-surface" aria-label={`Estado atual de ${bundle.page.title}`}>
+      <p className="eyebrow">LIVE · {bundle.page.status.toUpperCase()} · /{bundle.page.slug}</p>
       <h3>{bundle.page.title}</h3>
-      {bundle.sections.length === 0 ? <p>Este draft ainda não possui seções.</p> : null}
+      {bundle.sections.length === 0 ? <p>Esta página ainda não possui seções projetadas.</p> : null}
       {bundle.sections.filter((section) => section.is_enabled).map((section) => (
         <section className="preview-section" key={section.id}>
           <strong>{section.section_type}</strong>
           {typeof section.content.text === "string" ? <p>{section.content.text}</p> : <pre>{JSON.stringify(section.content, null, 2)}</pre>}
         </section>
       ))}
-      <p className="preview-private">Privado · não usa `dangerouslySetInnerHTML` · conteúdo draft não é rota pública.</p>
+      <p className="preview-private">Estado canônico atual · drafts permanecem privados por RLS · publicados seguem a rota pública existente.</p>
     </article>
   );
 }

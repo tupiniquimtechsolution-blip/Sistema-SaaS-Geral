@@ -2,8 +2,7 @@
  * Row contracts of the LIVE canonical Supabase schema (project mmykyzzkcugxunmekwew).
  *
  * Source of truth: the remote database. These interfaces mirror the columns the
- * application reads and, for explicitly supported CMS draft operations, writes
- * through the publishable-key client under database RLS.
+ * application reads and explicitly supported Builder/CMS writes under RLS.
  */
 
 /** public.tenants */
@@ -122,6 +121,43 @@ export interface PageSectionRow {
   updated_at: string;
 }
 
+export type PageRevisionStatus = "draft" | "in_review" | "approved" | "published" | "rolled_back";
+
+export interface PageRevisionSnapshotSection {
+  section_type: string;
+  position: number;
+  is_enabled: boolean;
+  content: Record<string, unknown>;
+}
+
+export interface PageRevisionSnapshot {
+  page: {
+    slug: string;
+    title: string;
+    seo: Record<string, unknown>;
+  };
+  sections: PageRevisionSnapshotSection[];
+}
+
+/** public.page_revisions */
+export interface PageRevisionRow {
+  id: string;
+  tenant_id: string;
+  page_id: string;
+  revision: number;
+  status: PageRevisionStatus;
+  snapshot: PageRevisionSnapshot;
+  source_revision_id: string | null;
+  created_by: string;
+  updated_by: string;
+  submitted_by: string | null;
+  approved_by: string | null;
+  published_by: string | null;
+  published_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 /** jsonb-decoded entitlement value as stored in public.* tables */
 export type EntitlementJsonValue = boolean | number | string | null;
 
@@ -139,10 +175,7 @@ export interface TenantEntitlementRow {
   value: EntitlementJsonValue;
 }
 
-/**
- * public.tenant_features — per-tenant final override.
- * Canonical shape: { enabled boolean, configuration jsonb } — value derived.
- */
+/** public.tenant_features — per-tenant final override. */
 export interface TenantFeatureRow {
   tenant_id: string;
   feature_key: string;
