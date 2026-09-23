@@ -41,7 +41,7 @@ jobs:
         uses: github/codeql-action/analyze@v4
         with:
           output: codeql-sarif
-      - name: Capture high-severity CodeQL findings for staging diagnostics
+      - name: Capture CodeQL result metadata for staging diagnostics
         if: always()
         shell: bash
         run: |
@@ -50,7 +50,7 @@ jobs:
           const path = require('path');
           const root = path.resolve('codeql-sarif');
           const files = [];
-          const lines = [];
+          const rows = [];
           const walk = (dir) => {
             if (!fs.existsSync(dir)) return;
             for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
@@ -63,34 +63,43 @@ jobs:
           for (const file of files) {
             const sarif = JSON.parse(fs.readFileSync(file, 'utf8'));
             for (const run of sarif.runs ?? []) {
-              const rules = new Map((run.tool?.driver?.rules ?? []).map((rule) => [rule.id, rule]));
+              const allRules = [
+                ...(run.tool?.driver?.rules ?? []),
+                ...((run.tool?.extensions ?? []).flatMap((extension) => extension.rules ?? [])),
+              ];
+              const rules = new Map(allRules.map((rule) => [rule.id, rule]));
               for (const result of run.results ?? []) {
                 const rule = rules.get(result.ruleId) ?? {};
-                const severity = Number(rule.properties?.['security-severity'] ?? 0);
-                if (severity < 7) continue;
                 const location = result.locations?.[0]?.physicalLocation;
-                const artifact = location?.artifactLocation?.uri ?? 'unknown';
-                const line = location?.region?.startLine ?? 'unknown';
-                const message = result.message?.text ?? '';
-                lines.push(`CODEQL_HIGH rule=${result.ruleId} severity=${severity} file=${artifact} line=${line}`);
-                lines.push(`CODEQL_HIGH message=${message}`);
+                rows.push({
+                  ruleId: result.ruleId ?? null,
+                  level: result.level ?? null,
+                  securitySeverity: rule.properties?.['security-severity'] ?? result.properties?.['security-severity'] ?? null,
+                  precision: rule.properties?.precision ?? result.properties?.precision ?? null,
+                  tags: rule.properties?.tags ?? [],
+                  file: location?.artifactLocation?.uri ?? null,
+                  line: location?.region?.startLine ?? null,
+                  message: result.message?.text ?? null,
+                });
               }
             }
           }
-          if (!lines.length) lines.push('CODEQL_HIGH none');
-          fs.writeFileSync('codeql-high.txt', `${lines.join('\n')}\n`);
-          console.log(lines.join('\n'));
+          rows.sort((a, b) => String(a.file).localeCompare(String(b.file)) || Number(a.line ?? 0) - Number(b.line ?? 0));
+          fs.writeFileSync('codeql-results.txt', `${rows.map((row) => JSON.stringify(row)).join('\n')}${rows.length ? '\n' : ''}`);
+          const highRows = rows.filter((row) => Number(row.securitySeverity ?? 0) >= 7);
+          fs.writeFileSync('codeql-high.txt', `${highRows.length ? highRows.map((row) => JSON.stringify(row)).join('\n') : 'CODEQL_HIGH none'}\n`);
+          console.log(`Captured ${rows.length} CodeQL result(s); ${highRows.length} with security-severity >= 7.`);
           NODE
-      - name: Commit diagnostic file on temporary security branch
+      - name: Commit diagnostic files on temporary security branch
         if: always() && github.ref_name == 'fix/builder-sections-security-stage'
         shell: bash
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add codeql-high.txt
+          git add codeql-high.txt codeql-results.txt
           if git diff --cached --quiet; then
             echo "Diagnostic unchanged."
           else
-            git commit -m "chore(security): capture CodeQL high diagnostic"
+            git commit -m "chore(security): capture CodeQL result metadata"
             git push origin HEAD:${GITHUB_REF_NAME}
           fi
