@@ -37,4 +37,46 @@ jobs:
       - uses: github/codeql-action/init@v4
         with:
           languages: javascript-typescript
-      - uses: github/codeql-action/analyze@v4
+      - id: analyze
+        uses: github/codeql-action/analyze@v4
+        with:
+          output: codeql-sarif
+      - name: Print high-severity CodeQL findings for staging diagnostics
+        if: always()
+        shell: bash
+        run: |
+          node <<'NODE'
+          const fs = require('fs');
+          const path = require('path');
+          const root = path.resolve('codeql-sarif');
+          const files = [];
+          const walk = (dir) => {
+            if (!fs.existsSync(dir)) return;
+            for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+              const file = path.join(dir, entry.name);
+              if (entry.isDirectory()) walk(file);
+              else if (entry.name.endsWith('.sarif')) files.push(file);
+            }
+          };
+          walk(root);
+          let found = 0;
+          for (const file of files) {
+            const sarif = JSON.parse(fs.readFileSync(file, 'utf8'));
+            for (const run of sarif.runs ?? []) {
+              const rules = new Map((run.tool?.driver?.rules ?? []).map((rule) => [rule.id, rule]));
+              for (const result of run.results ?? []) {
+                const rule = rules.get(result.ruleId) ?? {};
+                const severity = Number(rule.properties?.['security-severity'] ?? 0);
+                if (severity < 7) continue;
+                found += 1;
+                const location = result.locations?.[0]?.physicalLocation;
+                const artifact = location?.artifactLocation?.uri ?? 'unknown';
+                const line = location?.region?.startLine ?? 'unknown';
+                const message = result.message?.text ?? '';
+                console.log(`CODEQL_HIGH rule=${result.ruleId} severity=${severity} file=${artifact} line=${line}`);
+                console.log(`CODEQL_HIGH message=${message}`);
+              }
+            }
+          }
+          if (!found) console.log('CODEQL_HIGH none');
+          NODE
