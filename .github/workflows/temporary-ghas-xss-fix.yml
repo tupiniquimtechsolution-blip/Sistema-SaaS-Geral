@@ -1,0 +1,58 @@
+name: Temporary GHAS XSS Fix
+
+on:
+  push:
+    branches: ["fix/ghas-xss-heavy-machinery"]
+
+permissions:
+  contents: write
+
+jobs:
+  patch-source:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Replace tainted DOM image preview with escaped file metadata
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path('apps/heavy-machinery/src/pages/Forms.tsx')
+          text = path.read_text(encoding='utf-8')
+
+          replacements = [
+              (
+                  'const [photos, setPhotos] = useState<string[]>([]);',
+                  'const [photos, setPhotos] = useState<File[]>([]);'
+              ),
+              (
+                  'accept="image/*"',
+                  'accept="image/jpeg,image/png,image/webp,image/gif"'
+              ),
+              (
+                  '''onChange={(e) => {\n                    const files = Array.from(e.target.files ?? []);\n                    setPhotos((p) => [...p, ...files.map((file) => URL.createObjectURL(file))].slice(0, 8));\n                  }}''',
+                  '''onChange={(e) => {\n                    const safeTypes = new Set(["image/jpeg", "image/png", "image/webp", "image/gif"]);\n                    const files = Array.from(e.target.files ?? []).filter((file) => safeTypes.has(file.type));\n                    setPhotos((current) => [...current, ...files].slice(0, 8));\n                    e.currentTarget.value = "";\n                  }}'''
+              ),
+              (
+                  '''{photos.map((p, i) => (\n                    <img key={i} src={p} alt={`Foto da peça ${i + 1}`} className="h-16 w-16 border border-line-dark object-cover" />\n                  ))}''',
+                  '''{photos.map((file, i) => (\n                    <span\n                      key={`${file.name}-${file.lastModified}-${i}`}\n                      className="max-w-full truncate border border-line-dark bg-coal-800 px-3 py-2 text-[12px] text-steel-300"\n                      title={file.name}\n                    >\n                      Foto {i + 1}: {file.name}\n                    </span>\n                  ))}'''
+              ),
+          ]
+
+          for old, new in replacements:
+              if old not in text:
+                  raise SystemExit(f'Expected source fragment not found:\n{old}')
+              text = text.replace(old, new, 1)
+
+          path.write_text(text, encoding='utf-8')
+          PY
+      - name: Commit source-only security fix
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add apps/heavy-machinery/src/pages/Forms.tsx
+          git commit -m "fix(security): remove tainted DOM image preview"
+          git push origin HEAD:${GITHUB_REF_NAME}
