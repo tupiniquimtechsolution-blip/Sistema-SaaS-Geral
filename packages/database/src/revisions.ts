@@ -13,12 +13,26 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
+function cloneRevisionValue(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map((item) => cloneRevisionValue(item));
+  if (isRecord(value)) {
+    return Object.fromEntries(
+      Object.entries(value).map(([key, item]) => [key, cloneRevisionValue(item)]),
+    );
+  }
+  return value;
+}
+
+function cloneRevisionRecord(value: Record<string, unknown>): Record<string, unknown> {
+  return cloneRevisionValue(value) as Record<string, unknown>;
+}
+
 export function buildPageRevisionSnapshot(bundle: PageBundle): PageRevisionSnapshot {
   return {
     page: {
       slug: normalizeDraftSlug(bundle.page.slug),
       title: requireRevisionTitle(bundle.page.title),
-      seo: { ...bundle.page.seo },
+      seo: cloneRevisionRecord(bundle.page.seo),
     },
     sections: [...bundle.sections]
       .sort((a, b) => a.position - b.position)
@@ -26,7 +40,7 @@ export function buildPageRevisionSnapshot(bundle: PageBundle): PageRevisionSnaps
         section_type: section.section_type,
         position: section.position,
         is_enabled: section.is_enabled,
-        content: { ...section.content },
+        content: cloneRevisionRecord(section.content),
       })),
   };
 }
@@ -59,7 +73,7 @@ export function assertPageRevisionSnapshot(value: unknown): PageRevisionSnapshot
       section_type: sectionType,
       position,
       is_enabled: section.is_enabled,
-      content: { ...section.content },
+      content: cloneRevisionRecord(section.content),
     };
   });
 
@@ -67,10 +81,120 @@ export function assertPageRevisionSnapshot(value: unknown): PageRevisionSnapshot
     page: {
       slug: normalizeDraftSlug(String(value.page.slug ?? "")),
       title: requireRevisionTitle(String(value.page.title ?? "")),
-      seo: { ...seo },
+      seo: cloneRevisionRecord(seo),
     },
     sections: sections.sort((a, b) => a.position - b.position),
   };
+}
+
+export function clonePageRevisionSnapshot(snapshot: PageRevisionSnapshot): PageRevisionSnapshot {
+  return assertPageRevisionSnapshot({
+    page: {
+      ...snapshot.page,
+      seo: cloneRevisionRecord(snapshot.page.seo),
+    },
+    sections: snapshot.sections.map((section) => ({
+      ...section,
+      content: cloneRevisionRecord(section.content),
+    })),
+  });
+}
+
+function reindexSections(sections: PageRevisionSnapshotSection[]): PageRevisionSnapshotSection[] {
+  return sections.map((section, position) => ({
+    ...section,
+    position,
+    content: cloneRevisionRecord(section.content),
+  }));
+}
+
+export function updatePageRevisionSection(
+  snapshot: PageRevisionSnapshot,
+  sectionPosition: number,
+  update: {
+    sectionType?: string;
+    isEnabled?: boolean;
+    content?: Record<string, unknown>;
+  },
+): PageRevisionSnapshot {
+  const next = clonePageRevisionSnapshot(snapshot);
+  const sectionIndex = next.sections.findIndex((section) => section.position === sectionPosition);
+  if (sectionIndex < 0) throw new Error("Revision section not found");
+
+  const current = next.sections[sectionIndex];
+  const sectionType = update.sectionType === undefined ? current.section_type : update.sectionType.trim();
+  if (!sectionType) throw new Error("Revision section type is required");
+
+  next.sections[sectionIndex] = {
+    ...current,
+    section_type: sectionType,
+    is_enabled: update.isEnabled ?? current.is_enabled,
+    content: update.content === undefined ? cloneRevisionRecord(current.content) : cloneRevisionRecord(update.content),
+  };
+  return assertPageRevisionSnapshot(next);
+}
+
+export function updatePageRevisionSectionContentValue(
+  snapshot: PageRevisionSnapshot,
+  sectionPosition: number,
+  key: string,
+  value: unknown,
+): PageRevisionSnapshot {
+  const field = key.trim();
+  if (!field) throw new Error("Revision content field is required");
+  const section = snapshot.sections.find((item) => item.position === sectionPosition);
+  if (!section) throw new Error("Revision section not found");
+  return updatePageRevisionSection(snapshot, sectionPosition, {
+    content: {
+      ...cloneRevisionRecord(section.content),
+      [field]: cloneRevisionValue(value),
+    },
+  });
+}
+
+export function movePageRevisionSection(
+  snapshot: PageRevisionSnapshot,
+  sectionPosition: number,
+  direction: "up" | "down",
+): PageRevisionSnapshot {
+  const next = clonePageRevisionSnapshot(snapshot);
+  const sections = [...next.sections].sort((a, b) => a.position - b.position);
+  const currentIndex = sections.findIndex((section) => section.position === sectionPosition);
+  if (currentIndex < 0) throw new Error("Revision section not found");
+  const targetIndex = direction === "up" ? currentIndex - 1 : currentIndex + 1;
+  if (targetIndex < 0 || targetIndex >= sections.length) return next;
+  [sections[currentIndex], sections[targetIndex]] = [sections[targetIndex], sections[currentIndex]];
+  return assertPageRevisionSnapshot({ ...next, sections: reindexSections(sections) });
+}
+
+export function setPageRevisionSectionEnabled(
+  snapshot: PageRevisionSnapshot,
+  sectionPosition: number,
+  isEnabled: boolean,
+): PageRevisionSnapshot {
+  return updatePageRevisionSection(snapshot, sectionPosition, { isEnabled });
+}
+
+export function appendPageRevisionSection(
+  snapshot: PageRevisionSnapshot,
+  input: {
+    sectionType?: string;
+    content?: Record<string, unknown>;
+    isEnabled?: boolean;
+  } = {},
+): PageRevisionSnapshot {
+  const next = clonePageRevisionSnapshot(snapshot);
+  const sectionType = input.sectionType?.trim() || "richText";
+  const sections = reindexSections([
+    ...next.sections,
+    {
+      section_type: sectionType,
+      position: next.sections.length,
+      is_enabled: input.isEnabled ?? true,
+      content: cloneRevisionRecord(input.content ?? { text: "" }),
+    },
+  ]);
+  return assertPageRevisionSnapshot({ ...next, sections });
 }
 
 export function assertPageRevisionScope(
