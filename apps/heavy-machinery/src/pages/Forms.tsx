@@ -112,7 +112,7 @@ export function FinancingPage() {
 export function TradeInPage() {
   usePageMeta(`Não achou a peça? — ${BUSINESS.name}`, "Mais de 30.000 itens no estoque físico. Mande o código OEM ou uma foto da peça e a Lusomaq localiza para você.");
   const [f, setF] = useState({ nome: "", telefone: "", codigo: "", rolo: "", descricao: "" });
-  const [photos, setPhotos] = useState<string[]>([]);
+  const [photos, setPhotos] = useState<File[]>([]);
   const [error, setError] = useState("");
 
   const submit = () => {
@@ -161,12 +161,14 @@ export function TradeInPage() {
               <label className="grid cursor-pointer place-items-center border border-dashed border-steel-500 bg-coal-950/60 px-6 py-8 text-center transition-colors hover:border-hz-400">
                 <input
                   type="file"
-                  accept="image/*"
+                  accept="image/jpeg,image/png,image/webp,image/gif"
                   multiple
                   className="sr-only"
                   onChange={(e) => {
-                    const files = Array.from(e.target.files ?? []);
-                    setPhotos((p) => [...p, ...files.map((file) => URL.createObjectURL(file))].slice(0, 8));
+                    const safeTypes = new Set(["image/jpeg", "image/png", "image/webp", "image/gif"]);
+                    const files = Array.from(e.target.files ?? []).filter((file) => safeTypes.has(file.type));
+                    setPhotos((current) => [...current, ...files].slice(0, 8));
+                    e.currentTarget.value = "";
                   }}
                 />
                 <IcSearch size={26} className="text-hz-300" />
@@ -175,8 +177,14 @@ export function TradeInPage() {
               </label>
               {photos.length > 0 && (
                 <div className="mt-3 flex flex-wrap gap-2">
-                  {photos.map((p, i) => (
-                    <img key={i} src={p} alt={`Foto da peça ${i + 1}`} className="h-16 w-16 border border-line-dark object-cover" />
+                  {photos.map((file, i) => (
+                    <span
+                      key={`${file.name}-${file.lastModified}-${i}`}
+                      className="max-w-full truncate border border-line-dark bg-coal-800 px-3 py-2 text-[12px] text-steel-300"
+                      title={file.name}
+                    >
+                      Foto {i + 1}: {file.name}
+                    </span>
                   ))}
                 </div>
               )}
