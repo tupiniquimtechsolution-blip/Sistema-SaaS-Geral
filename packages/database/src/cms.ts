@@ -4,11 +4,14 @@ import type { PageRow, PageSectionRow } from "./rows";
 const PAGE_COLUMNS = "id, tenant_id, slug, title, status, seo, published_at, created_by, updated_by, created_at, updated_at";
 const SECTION_COLUMNS = "id, page_id, tenant_id, section_type, position, is_enabled, content, created_at, updated_at";
 const CANONICAL_SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+const BUILDER_PAGE_STATUSES = new Set(["draft", "published"]);
 
-export interface DraftPageBundle {
+export interface PageBundle {
   page: PageRow;
   sections: PageSectionRow[];
 }
+
+export type DraftPageBundle = PageBundle;
 
 export interface CreateDraftPageInput {
   tenantId: string;
@@ -40,10 +43,18 @@ export function normalizeDraftSlug(value: string): string {
   return slug;
 }
 
-export function assertPrivateDraftScope(page: PageRow, tenantId: string): PageRow {
+export function assertTenantBuilderPageScope(page: PageRow, tenantId: string): PageRow {
   if (!tenantId || page.tenant_id !== tenantId) {
-    throw new Error("Cross-tenant draft access denied");
+    throw new Error("Cross-tenant builder page access denied");
   }
+  if (!BUILDER_PAGE_STATUSES.has(page.status)) {
+    throw new Error("Builder page must be draft or published");
+  }
+  return page;
+}
+
+export function assertPrivateDraftScope(page: PageRow, tenantId: string): PageRow {
+  assertTenantBuilderPageScope(page, tenantId);
   if (page.status !== "draft") {
     throw new Error("Private preview requires a draft page");
   }
@@ -54,6 +65,21 @@ function requireTitle(value: string): string {
   const title = value.trim();
   if (!title) throw new Error("Draft title is required");
   return title;
+}
+
+export async function fetchTenantBuilderPages(
+  client: SupabaseClient,
+  tenantId: string,
+): Promise<PageRow[]> {
+  if (!tenantId) return [];
+  const { data, error } = await client
+    .from("pages")
+    .select(PAGE_COLUMNS)
+    .eq("tenant_id", tenantId)
+    .in("status", ["draft", "published"])
+    .order("updated_at", { ascending: false });
+  if (error) throw new Error(`builder pages read failed: ${error.message}`);
+  return ((data ?? []) as PageRow[]).map((page) => assertTenantBuilderPageScope(page, tenantId));
 }
 
 export async function fetchTenantDraftPages(
@@ -71,35 +97,46 @@ export async function fetchTenantDraftPages(
   return ((data ?? []) as PageRow[]).map((page) => assertPrivateDraftScope(page, tenantId));
 }
 
-export async function fetchPrivateDraftPage(
+export async function fetchTenantPageBundle(
   client: SupabaseClient,
   tenantId: string,
   pageId: string,
-): Promise<DraftPageBundle | null> {
+): Promise<PageBundle | null> {
   if (!tenantId || !pageId) return null;
   const { data: pageData, error: pageError } = await client
     .from("pages")
     .select(PAGE_COLUMNS)
     .eq("tenant_id", tenantId)
     .eq("id", pageId)
-    .eq("status", "draft")
+    .in("status", ["draft", "published"])
     .maybeSingle();
-  if (pageError) throw new Error(`private draft read failed: ${pageError.message}`);
+  if (pageError) throw new Error(`builder page read failed: ${pageError.message}`);
   if (!pageData) return null;
 
-  const page = assertPrivateDraftScope(pageData as PageRow, tenantId);
+  const page = assertTenantBuilderPageScope(pageData as PageRow, tenantId);
   const { data: sectionData, error: sectionError } = await client
     .from("page_sections")
     .select(SECTION_COLUMNS)
     .eq("tenant_id", tenantId)
     .eq("page_id", pageId)
     .order("position", { ascending: true });
-  if (sectionError) throw new Error(`private draft sections read failed: ${sectionError.message}`);
+  if (sectionError) throw new Error(`builder page sections read failed: ${sectionError.message}`);
 
   const sections = ((sectionData ?? []) as PageSectionRow[]).filter(
     (section) => section.tenant_id === tenantId && section.page_id === pageId,
   );
   return { page, sections };
+}
+
+export async function fetchPrivateDraftPage(
+  client: SupabaseClient,
+  tenantId: string,
+  pageId: string,
+): Promise<DraftPageBundle | null> {
+  const bundle = await fetchTenantPageBundle(client, tenantId, pageId);
+  if (!bundle) return null;
+  assertPrivateDraftScope(bundle.page, tenantId);
+  return bundle;
 }
 
 export async function createTenantDraftPage(

@@ -41,4 +41,13 @@ pre { margin: 0; padding: 1rem; overflow: auto; color: #cbd6e4; font-size: .78re
 .preview-section { padding: 1rem 0; border-top: 1px solid #d8d0c0; }
 .preview-section pre { padding: .75rem 0; color: #333; }
 .preview-private { margin-top: 2rem; font-size: .78rem; color: #6b665c; }
-@media (max-width: 760px) { .grid, .studio-grid { grid-template-columns: 1fr; } .selector-row { grid-template-columns: 1fr; } .topbar { align-items: flex-start; } }
+.revision-workflow { margin: 0 1rem 1rem; padding: 1rem; border: 1px solid #344156; border-radius: 14px; background: #0d1219; display: grid; gap: 1rem; }
+.revision-header, .revision-toolbar, .revision-actions, .revision-status { display: flex; gap: .75rem; align-items: center; justify-content: space-between; flex-wrap: wrap; }
+.revision-header h3 { margin-bottom: 0; }
+.revision-header .eyebrow { margin-bottom: .25rem; }
+.revision-header span, .revision-status span { color: #8fa0b4; font-size: .75rem; }
+.revision-toolbar label { min-width: min(100%, 320px); }
+.revision-actions { justify-content: flex-start; }
+.revision-status { justify-content: flex-start; padding: .75rem 1rem; border: 1px solid #273244; border-radius: 10px; }
+.revision-preview { min-height: 280px; }
+@media (max-width: 760px) { .grid, .studio-grid { grid-template-columns: 1fr; } .selector-row { grid-template-columns: 1fr; } .topbar { align-items: flex-start; } .revision-toolbar { align-items: stretch; } }
