@@ -1,19 +1,16 @@
 # REMOTE MIGRATION LEDGER
 
-Canonical remote database: **Supabase project `mmykyzzkcugxunmekwew`** (validated directly by the owner/ChatGPT on 2026-09-15).
+Canonical remote database: **Supabase project `mmykyzzkcugxunmekwew`** (validated directly by the owner/ChatGPT on 2026-09-15; migration list revalidated 2026-09-22).
 
 Rule enforced by this ledger: **remote state prevails over historical/local migrations**. Remote migration SQL is NOT reconstructed by guessing; entries below record evidence only.
 
 > **LIVE CATALOG NOTE (2026-09-15):** the live database holds **42 permissions**
 > and **14 features** — the historical branch migration files (e.g. the
 > platform_core seed visible at a3b2b1f) seed fewer permissions (28) and a
-> proposed 17-feature catalog. Later remote migrations (entitlement_security_gate_v1,
-> security_helpers_hardening_v1, etc.) evolved the catalog. This is additional
-> evidence that the 20260911xxxx branch files are SOURCE_FILE_PARTIAL and that
-> the REMOTE_ONLY migrations must be exported before any canonical claim.
+> proposed 17-feature catalog. Later remote migrations evolved the catalog.
 > See docs/PERMISSION_ALIGNMENT.md §0.
 
-## Remote migrations (8, applied — confirmed via remote migration list)
+## Remote migrations (12 observed applied — confirmed via remote migration list)
 
 | VERSION | NAME | REMOTE STATUS | LOCAL SOURCE FILE | RECONCILIATION STATUS |
 |---|---|---|---|---|
@@ -25,6 +22,10 @@ Rule enforced by this ledger: **remote state prevails over historical/local migr
 | 20260911215831 | performance_hardening_v1 | REMOTE_APPLIED | none | REMOTE_ONLY / NEEDS_EXPORT |
 | 20260911220412 | entitlement_security_gate_v1 | REMOTE_APPLIED | none | REMOTE_ONLY / NEEDS_EXPORT — canonical entitlement authority |
 | 20260911220750 | religious_public_details_v1 | REMOTE_APPLIED | none | REMOTE_ONLY / NEEDS_EXPORT — religious sensitive structures gated DORMANT |
+| 20260917173751 | noop_test | REMOTE_APPLIED | none | REMOTE_ONLY / EVIDENCE ONLY |
+| 20260918132842 | fix_tenant_public_read_policy | REMOTE_APPLIED | `supabase/migrations/20260918132842_fix_tenant_public_read_policy.sql` | LOCAL_SOURCE_PRESENT — remote version/name confirmed; exact historical SQL not reclassified by filename alone |
+| 20260922212427 | add_storefront_bootstrap_rpc | REMOTE_APPLIED | none | REMOTE_ONLY / NEEDS_EXPORT |
+| 20260922235641 | builder_revision_workflow_v1 | REMOTE_APPLIED | `supabase/migrations/20260922235641_builder_revision_workflow_v1.sql` | SOURCE_FILE_MATCHED / APPLIED_FROM_THIS_FILE — exact staged SQL applied through Supabase migration API on 2026-09-22 |
 
 ## Local-only migration files
 
@@ -37,13 +38,18 @@ Rule enforced by this ledger: **remote state prevails over historical/local migr
 1. Do not fabricate SQL for `REMOTE_ONLY / NEEDS_EXPORT` entries. Export read-only (`supabase db dump`) when credential access is granted, then commit under `supabase/remote-snapshot/`.
 2. New local migrations must be written **forward** from the remote state, never re-stating 0001.
 3. Remote state prevails wherever drift is proven (§20 of the reconciliation doc).
+4. A migration classified `SOURCE_FILE_MATCHED / APPLIED_FROM_THIS_FILE` requires direct evidence that the exact local/staged SQL was the payload applied to the remote migration API.
 
 ## Snapshot evidence log (2026-09-16 — Wave de Integração Real 01)
 
-- Supabase CLI is NOT available in this sandbox (no binary, no authenticated session); the
-  read-only snapshot could not be produced this wave. Status: **BLOCKED_REMOTE_SNAPSHOT_CLI_ACCESS**.
-  Per the wave rules, application integration continued and was NOT blocked by this.
-- No REMOTE_ONLY migration was reclassified. When the dump is eventually produced, classify
-  entries as **REMOTE_STATE_SNAPSHOTTED** — a `db dump` proves final schema state, NOT the
-  historical SQL of a migration — and never as SOURCE_FILE_MATCHED by dump alone.
-- No database command was executed against the remote project (DATABASE MUTATIONS = NONE).
+- Supabase CLI was not available in that sandbox; a full read-only snapshot could not be produced in that wave. Status: **BLOCKED_REMOTE_SNAPSHOT_CLI_ACCESS**.
+- No REMOTE_ONLY migration was reclassified. A future dump can prove final schema state, not historical SQL by itself.
+- No database command was executed against the remote project during that 2026-09-16 wave.
+
+## Builder revision workflow evidence (2026-09-22)
+
+- `builder_revision_workflow_v1` was first staged on `automation/builder-versioning-stage` and passed hygiene, locked install, lint, typecheck, unit/integration tests, build and production dependency audit before remote DDL.
+- The hardened staged SQL was applied through the Supabase migration API and registered as version `20260922235641`.
+- Post-apply read-only verification confirmed `page_revisions` with RLS enabled and FORCE RLS enabled; authenticated grants limited to SELECT/INSERT/UPDATE; no anon table grant; tenant membership SELECT policy; `cms.write` INSERT/UPDATE policies; single-open and single-published partial unique indexes; both Builder trigger functions with `prosecdef=false` (`SECURITY INVOKER`).
+- `page_revisions` contained zero rows after schema verification; no commercial page/revision content was created as part of migration validation.
+- Security Advisor after apply reported only the previously observed warnings for existing SECURITY DEFINER functions and leaked-password protection; the Builder functions did not appear as new findings.

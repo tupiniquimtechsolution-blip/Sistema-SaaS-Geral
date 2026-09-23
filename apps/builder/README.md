@@ -25,7 +25,9 @@ Workspace React 18 + Vite + TypeScript para edição multi-tenant controlada.
 
 `page_revisions` é um ledger tenant-scoped. Identidade, número da revisão e snapshots fora de `draft` são imutáveis. O banco rejeita transições que pulem o lifecycle. A projeção pública só acontece na transição `approved → published`.
 
-A migration `builder_revision_workflow_v1` é forward-only a partir do schema remoto canônico. Ela deve ser aplicada via Supabase migration somente depois dos gates do código; não reexecuta a migration histórica `0001_multi_tenant_schema.sql`.
+A migration forward-only `builder_revision_workflow_v1` foi aplicada ao Supabase canônico como versão `20260922235641`, a partir do SQL validado no staging. O arquivo canônico é `supabase/migrations/20260922235641_builder_revision_workflow_v1.sql`; a migration histórica `0001_multi_tenant_schema.sql` continua obsoleta e não deve ser reaplicada.
+
+Validação remota pós-migration confirmou RLS + FORCE RLS, policies tenant-aware, `cms.write` para INSERT/UPDATE, ausência de grant para `anon`, índices que limitam uma revisão aberta e uma publicada por página, e funções de trigger `SECURITY INVOKER`.
 
 ## Variáveis de ambiente
 
@@ -44,4 +46,4 @@ npm run build --workspace=apps/builder
 npm test --workspace=packages/database
 ```
 
-Próximo slice após validação remota: auditoria UX do workflow, edição/reordenação completa das seções versionadas e resolução do alerta HIGH preexistente do GitHub Advanced Security antes de merge/release.
+Próximo slice: auditoria UX do workflow, edição/reordenação completa das seções versionadas e resolução do alerta HIGH preexistente do GitHub Advanced Security antes de merge/release.
