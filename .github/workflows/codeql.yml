@@ -7,7 +7,7 @@ on:
     branches: [main]
 
 permissions:
-  contents: read
+  contents: write
   security-events: write
 
 jobs:
@@ -41,7 +41,7 @@ jobs:
         uses: github/codeql-action/analyze@v4
         with:
           output: codeql-sarif
-      - name: Print high-severity CodeQL findings for staging diagnostics
+      - name: Capture high-severity CodeQL findings for staging diagnostics
         if: always()
         shell: bash
         run: |
@@ -50,6 +50,7 @@ jobs:
           const path = require('path');
           const root = path.resolve('codeql-sarif');
           const files = [];
+          const lines = [];
           const walk = (dir) => {
             if (!fs.existsSync(dir)) return;
             for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
@@ -59,7 +60,6 @@ jobs:
             }
           };
           walk(root);
-          let found = 0;
           for (const file of files) {
             const sarif = JSON.parse(fs.readFileSync(file, 'utf8'));
             for (const run of sarif.runs ?? []) {
@@ -68,15 +68,29 @@ jobs:
                 const rule = rules.get(result.ruleId) ?? {};
                 const severity = Number(rule.properties?.['security-severity'] ?? 0);
                 if (severity < 7) continue;
-                found += 1;
                 const location = result.locations?.[0]?.physicalLocation;
                 const artifact = location?.artifactLocation?.uri ?? 'unknown';
                 const line = location?.region?.startLine ?? 'unknown';
                 const message = result.message?.text ?? '';
-                console.log(`CODEQL_HIGH rule=${result.ruleId} severity=${severity} file=${artifact} line=${line}`);
-                console.log(`CODEQL_HIGH message=${message}`);
+                lines.push(`CODEQL_HIGH rule=${result.ruleId} severity=${severity} file=${artifact} line=${line}`);
+                lines.push(`CODEQL_HIGH message=${message}`);
               }
             }
           }
-          if (!found) console.log('CODEQL_HIGH none');
+          if (!lines.length) lines.push('CODEQL_HIGH none');
+          fs.writeFileSync('codeql-high.txt', `${lines.join('\n')}\n`);
+          console.log(lines.join('\n'));
           NODE
+      - name: Commit diagnostic file on temporary security branch
+        if: always() && github.ref_name == 'fix/builder-sections-security-stage'
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add codeql-high.txt
+          if git diff --cached --quiet; then
+            echo "Diagnostic unchanged."
+          else
+            git commit -m "chore(security): capture CodeQL high diagnostic"
+            git push origin HEAD:${GITHUB_REF_NAME}
+          fi
