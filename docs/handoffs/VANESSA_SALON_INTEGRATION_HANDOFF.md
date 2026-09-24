@@ -4,6 +4,22 @@
 
 O projeto `tupiniquimtechsolution-blip/Vanessa-Braz` deixa de ser tratado como um backend/Supabase isolado e passa a ser **fonte de produto, UX e regras de domínio** para um novo vertical white-label de salão/beleza dentro do monorepo `Sistema-SaaS-Geral`.
 
+### Decisão de identidade e autenticação — 2026-09-24
+
+Vanessa Braz **não terá sistema próprio de usuário/senha nem Supabase dedicado**.
+
+Toda autenticação, identidade, perfis, memberships, tenancy, autorização e dados transacionais autenticados devem usar os contratos canônicos do `Sistema-SaaS-Geral`.
+
+Isso significa:
+
+- o login/cadastro do cliente deve ser fornecido pelo SaaS Geral;
+- o acesso administrativo deve usar RBAC/memberships do SaaS Geral;
+- Vanessa será um tenant/configuração do vertical `salon`;
+- nenhum segundo diretório de usuários deverá existir apenas para Vanessa;
+- nenhuma senha/credencial de usuário deve ser persistida ou gerida pelo app Vanessa;
+- não criar projeto Supabase exclusivo para Vanessa;
+- código Auth/Supabase existente no repo Vanessa é referência de domínio/teste e só pode ser reaproveitado após reconciliação com o SaaS Core.
+
 O objetivo NÃO é copiar dois backends nem aplicar as migrations de Vanessa diretamente no banco compartilhado. O objetivo é reconciliar o que Vanessa já validou com o SaaS Core multi-tenant existente.
 
 Branch preparada para esta integração:
@@ -36,8 +52,9 @@ O banco compartilhado já possui tenancy/RBAC/RLS, CMS/media, CRM, commerce, boo
 - PR #2 — app/backend auditado — HEAD `83d3834cf528e913e0d371b57c2775361cd14d64`
 - PR #4 — mídia WEB-v2/responsiva — HEAD `3fd46af4566178dd6dfea66dd363a9466faffde9`
 - PR #5 — hardening deploy/webhook — HEAD `736e7215c8b6f33f1284827bf77e5b4a67005647`
+- PR #8 — redesign/UI/preview Cloudflare — branch `chatgpt/clandestine-layout-refresh`
 
-Os três PRs continuam separados no repo fonte e NÃO devem ser mergeados cegamente dentro do monorepo. Eles devem ser usados como referência de implementação e evidência.
+Esses PRs continuam separados no repo fonte e NÃO devem ser mergeados cegamente dentro do monorepo. Eles devem ser usados como referência de implementação e evidência.
 
 ---
 
@@ -63,6 +80,8 @@ Mapeamento esperado:
 
 | Vanessa | SaaS Geral |
 |---|---|
+| autenticação/login | Auth/identity canônicos do SaaS Geral |
+| perfis/membros | `profiles` / `memberships` / RBAC |
 | profissionais | `staff_resources` |
 | serviços | `services` |
 | profissional x serviço | `service_resources` |
@@ -77,12 +96,13 @@ Mapeamento esperado:
 
 ### Gaps que DEVEM ser auditados antes de migration
 
-O schema compartilhado não expõe hoje tabelas genéricas óbvias de:
+O schema compartilhado deve ser auditado principalmente para:
 
 - pagamentos vinculados a booking;
 - eventos de webhook de pagamento/idempotência;
 - consentimentos LGPD versionados equivalentes ao projeto Vanessa;
-- eventual hold temporário de slot/deposito.
+- eventual hold temporário de slot/deposito;
+- garantias de conflito de agenda no banco.
 
 Não criar tabelas `vanessa_*`.
 
@@ -100,7 +120,7 @@ Adicionar um vertical genérico:
 
 Vanessa Braz deve ser um **tenant/configuração deste vertical**, não um fork e não um conjunto de `if tenant === 'vanessa'`.
 
-Não criar o tenant Vanessa diretamente no banco até existir fluxo seguro de owner/bootstrap e até os dados comerciais/publicáveis serem confirmados.
+O bootstrap do tenant Vanessa só deve ocorrer pelo fluxo seguro e canônico do SaaS Geral, incluindo owner/membership/roles.
 
 ---
 
@@ -117,7 +137,25 @@ Regras:
 3. logo, cores, tipografia, mídias, contatos, endereço, horários, serviços, preços, CTAs e integrações devem vir de tenant config/data;
 4. nenhum dado Vanessa deve ser obrigatório para outro salão usar o mesmo app;
 5. não redesenhar sem necessidade técnica;
-6. mobile-first, WCAG 2.2 AA, reduced-motion e performance devem permanecer gates.
+6. mobile-first, WCAG 2.2 AA, reduced-motion e performance devem permanecer gates;
+7. áreas autenticadas devem consumir a sessão/identidade compartilhada do SaaS Geral; não criar segundo login local no `apps/salon`.
+
+---
+
+## Auth e sessão
+
+A integração de autenticação passa a ser um gate explícito do vertical.
+
+Obrigatório:
+
+- utilizar a sessão canônica do SaaS Geral;
+- resolver `tenant_id` de forma confiável e server-side quando necessário;
+- validar membership/role para áreas administrativas;
+- impedir acesso cross-tenant;
+- não armazenar passwords ou tokens de usuário em código/localStorage customizado;
+- não criar tabelas de credenciais próprias do vertical;
+- testes negativos tenant A → tenant B e tenant B → tenant A;
+- logout, expiração e sessão devem seguir o contrato compartilhado do SaaS Core.
 
 ---
 
@@ -150,7 +188,7 @@ No SaaS Geral:
 
 Preservar o fluxo funcional validado no projeto Vanessa:
 
-serviço → profissional → data → horário → identificação/conta → revisão → pagamento quando aplicável → confirmação.
+serviço → profissional → data → horário → identificação/sessão SaaS → revisão → pagamento quando aplicável → confirmação.
 
 Mas implementar sobre os contratos compartilhados do SaaS Geral.
 
@@ -205,16 +243,17 @@ Imagens de clientes não devem se tornar mídia pública por simples presença n
 
 ## Supabase / migrations
 
-NÃO aplicar as migrations do repo Vanessa diretamente em `mmykyzzkcugxunmekwew`.
+NÃO criar Supabase exclusivo para Vanessa e NÃO aplicar as migrations do repo Vanessa diretamente em `mmykyzzkcugxunmekwew`.
 
 Primeiro:
 
 1. listar migration history remota;
 2. reconciliar com `supabase/migrations` do monorepo e o PR #3 de infraestrutura;
 3. gerar gap analysis;
-4. criar migrations novas, append-only e genéricas;
+4. criar migrations novas, append-only e genéricas apenas para gaps reais;
 5. validar RLS/advisors;
-6. executar teste autenticado cross-tenant.
+6. executar teste autenticado cross-tenant;
+7. validar integração Auth/membership/tenant resolution pelo contrato do SaaS Geral.
 
 Observação de histórico: existe uma migration remota inofensiva `noop_test` criada por uma verificação anterior, contendo apenas `SELECT 1;`. Ela não alterou schema nem dados. Não tentar mascarar nem reescrever history por causa dela; apenas documentar durante a reconciliação.
 
@@ -227,8 +266,9 @@ Observação de histórico: existe uma migration remota inofensiva `noop_test` c
 - confirmar branch e HEAD;
 - ler `AGENTS.md`, Toolbox e planejamento mestre;
 - auditar `apps/*`, `packages/saas-core`, migrations e CI;
-- comparar Vanessa PR #2/#4/#5 com contratos atuais;
+- comparar Vanessa PR #2/#4/#5/#8 com contratos atuais;
 - produzir `docs/salon/VANESSA_RECONCILIATION.md` com matriz `REUSE / ADAPT / NEW / DROP`;
+- incluir Auth/session/tenant resolution na matriz;
 - nenhuma migration destrutiva;
 - nenhum merge em main.
 
@@ -237,7 +277,7 @@ Observação de histórico: existe uma migration remota inofensiva `noop_test` c
 - registrar `salon` no contrato/registry do monorepo;
 - criar `apps/salon` como vertical white-label;
 - preservar visual/UX Vanessa como template, mas desacoplar brand/data;
-- integrar tenant resolution e leitura live Supabase;
+- integrar tenant resolution e sessão/Auth do SaaS Geral;
 - fallback demo deve ser claramente demo e nunca vazar para produção.
 
 ### Fase 2 — Booking + staff + CRM
@@ -271,6 +311,7 @@ Executar e registrar:
 - integration;
 - security;
 - PostgreSQL/RLS real;
+- Auth/session integration;
 - cross-tenant;
 - build;
 - CodeQL;
@@ -281,10 +322,10 @@ Executar e registrar:
 
 Somente depois dos gates:
 
-- Vercel Project específico para `apps/salon`;
+- projeto de Preview para `apps/salon`;
 - Preview primeiro;
 - variáveis browser-safe e server-only separadas;
-- validar Auth, booking, RLS, mídia, CSP e webhook;
+- validar Auth, tenant resolution, booking, RLS, mídia, CSP e webhook;
 - Production continua bloqueada até dados comerciais, textos jurídicos e autorização de mídia.
 
 ---
@@ -292,12 +333,14 @@ Somente depois dos gates:
 ## Proibições
 
 - não recriar Supabase separado para Vanessa;
+- não criar sistema de usuário/senha exclusivo para Vanessa;
 - não aplicar schema Vanessa inteiro sobre o banco compartilhado;
 - não duplicar tabelas já existentes;
 - não hard-code Vanessa no SaaS Core;
 - não publicar mídia sem autorização;
 - não inventar preços, endereço, WhatsApp, horários ou claims;
 - não usar service role no frontend;
+- não persistir passwords/tokens de usuário em mecanismo customizado;
 - não enfraquecer RLS/testes para obter PASS;
 - não fazer force push;
 - não mergear main sem gate e autorização explícita.
@@ -311,6 +354,7 @@ Ao terminar cada fase, retornar:
 - branch / HEAD;
 - arquivos alterados;
 - migrations criadas/aplicadas;
+- contratos Auth/session/tenant reutilizados;
 - tabelas/contratos reutilizados;
 - testes executados com PASS/FAIL/BLOCKED;
 - estado do cross-tenant;
