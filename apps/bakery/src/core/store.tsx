@@ -173,7 +173,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const setItemNote = useCallback((key: string, note: string) => {
-    setCart((prev) => prev.map((i) => (i.key === key ? { ...i, note } : i));
+    setCart((prev) => prev.map((i) => (i.key === key ? { ...i, note } : i)));
   }, []);
 
   const clearCart = useCallback(() => {
