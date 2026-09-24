@@ -9,3 +9,4 @@ export * from "./billing";
 export * from "./observability";
 export * from "./integrations";
 export * from "./builder";
+export * from "./verticals";
