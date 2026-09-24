@@ -4,67 +4,63 @@ Canonical remote database: **Supabase project `mmykyzzkcugxunmekwew`** (validate
 
 Rule enforced by this ledger: **remote state prevails over historical/local migrations**. Remote migration SQL is NOT reconstructed by guessing; entries below record evidence only.
 
-> **LIVE CATALOG NOTE (2026-09-15):** the live database holds **42 permissions**
-> and **14 features** — the historical branch migration files (e.g. the
-> platform_core seed visible at a3b2b1f) seed fewer permissions (28) and a
-> proposed 17-feature catalog. Later remote migrations evolved the catalog.
-> See docs/PERMISSION_ALIGNMENT.md §0.
+> **LIVE CATALOG NOTE (2026-09-15):** the live database holds **42 permissions** and **14 features**. Historical branch migrations seed older catalogs; later remote migrations evolved them. See `docs/PERMISSION_ALIGNMENT.md` §0.
 
-## Remote migrations (15 observed applied — confirmed via remote migration list)
+## Remote migrations (17 observed applied — confirmed via remote migration list)
 
 | VERSION | NAME | REMOTE STATUS | LOCAL SOURCE FILE | RECONCILIATION STATUS |
 |---|---|---|---|---|
-| 20260911215335 | platform_core_v1 | REMOTE_APPLIED | `supabase/migrations/20260911000100_platform_core.sql` (branch `chatgpt/supabase-vercel-foundation` @ a3b2b1f) | SOURCE_FILE_PARTIAL — later hardening migrations changed policies/RPCs; file predates them |
-| 20260911215427 | business_modules_v1 | REMOTE_APPLIED | `supabase/migrations/20260911000200_commerce.sql` | SOURCE_FILE_PARTIAL — same caveat |
-| 20260911215526 | vertical_modules_v1 | REMOTE_APPLIED | `supabase/migrations/20260911000300_booking_events.sql` + 20260911000500/00600/00700 verticals | SOURCE_FILE_PARTIAL — content correlates, no SHA provenance |
-| 20260911215546 | storage_security_v1 | REMOTE_APPLIED | `supabase/migrations/20260911000800_storage_policies.sql` | SOURCE_FILE_PARTIAL — canonical buckets confirmed: `tenant-public` / `tenant-private` |
+| 20260911215335 | platform_core_v1 | REMOTE_APPLIED | `supabase/migrations/20260911000100_platform_core.sql` | SOURCE_FILE_PARTIAL — later hardening changed policies/RPCs |
+| 20260911215427 | business_modules_v1 | REMOTE_APPLIED | `supabase/migrations/20260911000200_commerce.sql` | SOURCE_FILE_PARTIAL |
+| 20260911215526 | vertical_modules_v1 | REMOTE_APPLIED | `supabase/migrations/20260911000300_booking_events.sql` + vertical migrations | SOURCE_FILE_PARTIAL |
+| 20260911215546 | storage_security_v1 | REMOTE_APPLIED | `supabase/migrations/20260911000800_storage_policies.sql` | SOURCE_FILE_PARTIAL |
 | 20260911215727 | security_helpers_hardening_v1 | REMOTE_APPLIED | none | REMOTE_ONLY / NEEDS_EXPORT |
 | 20260911215831 | performance_hardening_v1 | REMOTE_APPLIED | none | REMOTE_ONLY / NEEDS_EXPORT |
 | 20260911220412 | entitlement_security_gate_v1 | REMOTE_APPLIED | none | REMOTE_ONLY / NEEDS_EXPORT — canonical entitlement authority |
 | 20260911220750 | religious_public_details_v1 | REMOTE_APPLIED | none | REMOTE_ONLY / NEEDS_EXPORT — religious sensitive structures gated DORMANT |
 | 20260917173751 | noop_test | REMOTE_APPLIED | none | REMOTE_ONLY / EVIDENCE ONLY |
-| 20260918132842 | fix_tenant_public_read_policy | REMOTE_APPLIED | `supabase/migrations/20260918132842_fix_tenant_public_read_policy.sql` | LOCAL_SOURCE_PRESENT — remote version/name confirmed; exact historical SQL not reclassified by filename alone |
+| 20260918132842 | fix_tenant_public_read_policy | REMOTE_APPLIED | `supabase/migrations/20260918132842_fix_tenant_public_read_policy.sql` | LOCAL_SOURCE_PRESENT |
 | 20260922212427 | add_storefront_bootstrap_rpc | REMOTE_APPLIED | none | REMOTE_ONLY / NEEDS_EXPORT |
-| 20260922235641 | builder_revision_workflow_v1 | REMOTE_APPLIED | `supabase/migrations/20260922235641_builder_revision_workflow_v1.sql` | SOURCE_FILE_MATCHED / APPLIED_FROM_THIS_FILE — exact staged SQL applied through Supabase migration API on 2026-09-22 |
-| 20260924125451 | bakery_storefront_checkout_v1 | REMOTE_APPLIED | `supabase/migrations/20260924125451_bakery_storefront_checkout_v1.sql` | SOURCE_FILE_MATCHED / APPLIED_FROM_THIS_FILE — catalog seed, checkout RPC and direct-write hardening staged/applied on 2026-09-24 |
-| 20260924125633 | bakery_storefront_checkout_identity_fix | REMOTE_APPLIED | `supabase/migrations/20260924125633_bakery_storefront_checkout_identity_fix.sql` | SOURCE_FILE_MATCHED / APPLIED_FROM_THIS_FILE — corrected GENERATED ALWAYS order identity handling on 2026-09-24 |
-| 20260924131525 | bakery_coupon_enforcement_v1 | REMOTE_APPLIED | `supabase/migrations/20260924131525_bakery_coupon_enforcement_v1.sql` | SOURCE_FILE_MATCHED / APPLIED_FROM_THIS_FILE — canonical demo coupons and server-side coupon enforcement applied on 2026-09-24 |
+| 20260922235641 | builder_revision_workflow_v1 | REMOTE_APPLIED | `supabase/migrations/20260922235641_builder_revision_workflow_v1.sql` | SOURCE_FILE_MATCHED / APPLIED_FROM_THIS_FILE |
+| 20260924125451 | bakery_storefront_checkout_v1 | REMOTE_APPLIED | `supabase/migrations/20260924125451_bakery_storefront_checkout_v1.sql` | SOURCE_FILE_MATCHED / APPLIED_FROM_THIS_FILE |
+| 20260924125633 | bakery_storefront_checkout_identity_fix | REMOTE_APPLIED | `supabase/migrations/20260924125633_bakery_storefront_checkout_identity_fix.sql` | SOURCE_FILE_MATCHED / APPLIED_FROM_THIS_FILE |
+| 20260924131525 | bakery_coupon_enforcement_v1 | REMOTE_APPLIED | `supabase/migrations/20260924131525_bakery_coupon_enforcement_v1.sql` | SOURCE_FILE_MATCHED / APPLIED_FROM_THIS_FILE |
+| 20260924161226 | bakery_coupon_enforcement_v1 | REMOTE_APPLIED | same payload as `20260924131525_bakery_coupon_enforcement_v1.sql` | DUPLICATE_IDEMPOTENT_REPLAY — reapplied during continuation on 2026-09-24; no logical schema/data divergence observed |
+| 20260924162424 | onboarding_tenant_v1 | REMOTE_APPLIED | `supabase/migrations/20260924162424_onboarding_tenant_v1.sql` | SOURCE_FILE_MATCHED / APPLIED_FROM_THIS_FILE — authenticated no-fork provisioning contract |
 
 ## Local-only migration files
 
 | FILE | STATUS |
 |---|---|
-| `supabase/migrations/0001_multi_tenant_schema.sql` (Freebuff branch) | OBSOLETE_SUPERSEDED_NOT_REMOTE — never applied remotely; header warning added 2026-09-15; DO NOT PUSH TO PRODUCTION |
+| `supabase/migrations/0001_multi_tenant_schema.sql` | OBSOLETE_SUPERSEDED_NOT_REMOTE — never apply to production |
 
 ## Policy
 
-1. Do not fabricate SQL for `REMOTE_ONLY / NEEDS_EXPORT` entries. Export read-only (`supabase db dump`) when credential access is granted, then commit under `supabase/remote-snapshot/`.
-2. New local migrations must be written **forward** from the remote state, never re-stating 0001.
-3. Remote state prevails wherever drift is proven (§20 of the reconciliation doc).
-4. A migration classified `SOURCE_FILE_MATCHED / APPLIED_FROM_THIS_FILE` requires direct evidence that the exact local/staged SQL was the payload applied to the remote migration API.
-
-## Snapshot evidence log (2026-09-16 — Wave de Integração Real 01)
-
-- Supabase CLI was not available in that sandbox; a full read-only snapshot could not be produced in that wave. Status: **BLOCKED_REMOTE_SNAPSHOT_CLI_ACCESS**.
-- No REMOTE_ONLY migration was reclassified. A future dump can prove final schema state, not historical SQL by itself.
-- No database command was executed against the remote project during that 2026-09-16 wave.
+1. Do not fabricate SQL for `REMOTE_ONLY / NEEDS_EXPORT` entries. Export read-only when credential/CLI access is available.
+2. New local migrations must be written **forward** from remote state, never re-stating `0001`.
+3. Remote state prevails wherever drift is proven.
+4. `SOURCE_FILE_MATCHED / APPLIED_FROM_THIS_FILE` requires evidence that the local/staged SQL was the payload applied to the migration API.
+5. Duplicate migration history is recorded explicitly; do not rewrite remote history to make it appear absent.
 
 ## Builder revision workflow evidence (2026-09-22)
 
-- `builder_revision_workflow_v1` was first staged on `automation/builder-versioning-stage` and passed hygiene, locked install, lint, typecheck, unit/integration tests, build and production dependency audit before remote DDL.
-- The hardened staged SQL was applied through the Supabase migration API and registered as version `20260922235641`.
-- Post-apply read-only verification confirmed `page_revisions` with RLS enabled and FORCE RLS enabled; authenticated grants limited to SELECT/INSERT/UPDATE; no anon table grant; tenant membership SELECT policy; `cms.write` INSERT/UPDATE policies; single-open and single-published partial unique indexes; both Builder trigger functions with `prosecdef=false` (`SECURITY INVOKER`).
-- `page_revisions` contained zero rows after schema verification; no commercial page/revision content was created as part of migration validation.
-- Security Advisor after apply reported only the previously observed warnings for existing SECURITY DEFINER functions and leaked-password protection; the Builder functions did not appear as new findings.
+- `builder_revision_workflow_v1` passed hygiene, locked install, lint, typecheck, unit/integration, build and production dependency audit before remote DDL.
+- Post-apply verification confirmed `page_revisions` RLS + FORCE RLS, tenant-aware policies, `cms.write`, partial unique indexes and SECURITY INVOKER triggers.
+- No commercial page/revision rows were created during schema validation.
 
 ## Bakery storefront checkout evidence (2026-09-24)
 
-- `fornalha-demo` was resolved by slug; no generated tenant UUID was hardcoded in migration data.
-- Remote validation confirmed 7 product categories and 16 active products for the demo tenant.
-- Direct anonymous commerce-table writes were revoked; anonymous table grants observed after hardening are SELECT-only.
-- `create_storefront_order(...)` recalculates product base price, option deltas, extras, delivery fee and coupon discount server-side, then writes `orders` + `order_items` atomically.
-- RPC execution is explicitly granted to `anon`, `authenticated` and `service_role`; `PUBLIC` execution is not granted. The function uses a fixed `search_path` and validates tenant/vertical/status, item counts, quantities, options/extras and payload sizes.
-- Idempotency validation returned the existing order on replay using the same `(tenant_id, idempotency_key)`.
-- Price validation produced R$ 74.00 for a synthetic cart whose canonical components were R$ 28.00 base + R$ 14.00 option + R$ 26.00 base + R$ 6.00 extra.
-- Coupon validation produced R$ 2.80 discount for `BEMVINDO10` on R$ 28.00 and R$ 8.90 delivery discount for `FORNOFRETE`.
-- All synthetic QA orders created during validation were deleted after verification.
+- `fornalha-demo` resolved by slug; no generated tenant UUID hardcoded.
+- 7 product categories and 16 active products confirmed.
+- Direct anonymous commerce writes revoked; storefront RPC recalculates base prices, options, extras, delivery fee and coupon server-side and writes `orders + order_items` atomically.
+- Idempotency replay, R$74 price composition, `BEMVINDO10`, `FORNOFRETE` and invalid-coupon rejection were validated; synthetic QA orders were deleted.
+- Version `20260924161226` is an idempotent replay of the coupon migration and is retained in this ledger as historical truth.
+
+## Tenant onboarding evidence (2026-09-24)
+
+- `create_tenant_with_owner` was preserved as the canonical provisioning entry point rather than creating a parallel onboarding authority.
+- Version `20260924162424` requires `auth.uid()`, enabled vertical, active plan, bounded name and canonical slug; `EXECUTE` is limited to `authenticated` and `service_role`.
+- The transaction creates tenant, brand, theme, settings, active owner membership/role, manual trial subscription and audit record.
+- `vertical_registry.default_theme` initializes `tenant_themes.component_style`; `default_modules` is stored in `tenant_settings.public_settings.vertical_modules`. Plan entitlements remain a separate authority.
+- A remote authenticated transactional test created a Bakery/Starter tenant, proved owner role, theme preset, module defaults, subscription and audit, then rolled back. Final check returned `qa_tenants_remaining = 0`.
+- Supabase Security Advisor reports the onboarding RPC under the generic `authenticated_security_definer_function_executable` WARN. This is an intentional elevation for first-tenant provisioning, with mandatory `auth.uid()`, fixed search path and canonical vertical/plan validation. The warning remains documented; no claim of zero advisor warnings is made.
