@@ -1,4 +1,3 @@
--- Forward-only staging SQL. After remote apply, reconcile to the migration version returned by Supabase.
 create or replace function public.create_tenant_with_owner(
   p_name text,
   p_slug text,
