@@ -134,6 +134,13 @@ jobs:
           SALON_BASE_URL: http://127.0.0.1:4174
           SALON_EXPECT_LIVE: 'true'
         run: npx playwright test apps/salon/e2e/salon.contract.spec.ts --reporter=line
+      - name: Export the exact validated live bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: salon-live-bundle-${{ github.run_id }}
+          path: apps/salon/dist
+          if-no-files-found: error
+          retention-days: 14
 
   salon-postgres-integrity:
     runs-on: ubuntu-latest
@@ -168,69 +175,3 @@ jobs:
         env:
           PGDATABASE: salon_provisioning
         run: psql -v ON_ERROR_STOP=1 -f tests/postgres/salon_tenant_provisioning.real.sql
-
-  cloudflare-preflight:
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: npm
-      - name: Fail closed when Cloudflare deploy credentials are missing
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-        run: |
-          test -n "$CLOUDFLARE_API_TOKEN" || { echo 'CLOUDFLARE_API_TOKEN is required'; exit 1; }
-          test -n "$CLOUDFLARE_ACCOUNT_ID" || { echo 'CLOUDFLARE_ACCOUNT_ID is required'; exit 1; }
-      - name: Install locked dependencies
-        run: npm ci
-      - name: Verify Cloudflare credentials without deploying
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-        run: npx wrangler whoami
-
-  salon-cloudflare-deploy:
-    if: github.event_name == 'push' && github.ref == 'refs/heads/chatgpt/integrate-salon-vanessa'
-    needs:
-      - salon-quality
-      - salon-browser-release
-      - salon-live-public-smoke
-      - salon-postgres-integrity
-      - cloudflare-preflight
-    runs-on: ubuntu-latest
-    timeout-minutes: 25
-    environment: salon-rc
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: npm
-      - name: Install locked dependencies
-        run: npm ci
-      - name: Build exact hosted Vanessa tenant
-        env:
-          VITE_DEMO_MODE: 'false'
-          VITE_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
-          VITE_TENANT_SLUG: vanessa-braz
-        run: npm run build:salon
-      - name: Deploy only the existing vanessa-braz Worker
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-        run: >-
-          npx wrangler deploy
-          --config apps/salon/wrangler.production.jsonc
-          --message "Salon RC ${{ github.sha }}"
-      - name: Install Chromium for deployed smoke
-        run: npx playwright install --with-deps chromium
-      - name: Smoke deployed Worker over HTTPS
-        env:
-          SALON_BASE_URL: https://vanessa-braz.tupiniquimtechsolution.workers.dev
-          SALON_EXPECT_LIVE: 'true'
-        run: npx playwright test apps/salon/e2e/salon.contract.spec.ts --reporter=line
