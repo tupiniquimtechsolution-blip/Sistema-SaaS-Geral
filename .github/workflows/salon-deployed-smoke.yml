@@ -1,0 +1,34 @@
+name: Salon Deployed HTTPS Smoke
+
+on:
+  push:
+    branches:
+      - automation/salon-deployed-smoke
+    paths:
+      - '.github/workflows/salon-deployed-smoke.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deployed-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install locked dependencies
+        run: npm ci
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Verify deployed Worker is reachable
+        run: curl --fail --silent --show-error --retry 3 --retry-delay 2 https://vanessa-braz.tupiniquim-techsolution.workers.dev/ > /tmp/vanessa.html
+      - name: Run deployed public contract over HTTPS
+        env:
+          SALON_BASE_URL: https://vanessa-braz.tupiniquim-techsolution.workers.dev
+          SALON_EXPECT_LIVE: 'true'
+        run: npx playwright test apps/salon/e2e/salon.contract.spec.ts --reporter=line
