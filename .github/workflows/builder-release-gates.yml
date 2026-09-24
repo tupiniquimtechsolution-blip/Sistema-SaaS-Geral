@@ -1,0 +1,145 @@
+name: Builder Release Gates
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - freebuff/big-master-wave-01-monorepo
+      - automation/builder-release-gates-stage
+    paths:
+      - "apps/builder/**"
+      - "packages/auth/**"
+      - "packages/tenancy/**"
+      - "packages/database/**"
+      - "packages/saas-core/**"
+      - "package.json"
+      - "package-lock.json"
+      - ".github/workflows/builder-release-gates.yml"
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "apps/builder/**"
+      - "packages/auth/**"
+      - "packages/tenancy/**"
+      - "packages/database/**"
+      - "packages/saas-core/**"
+      - "package.json"
+      - "package-lock.json"
+      - ".github/workflows/builder-release-gates.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: builder-release-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  browser-quality:
+    name: browser-e2e-a11y-lighthouse
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      VITE_SUPABASE_URL: https://builder-e2e.supabase.co
+      VITE_SUPABASE_PUBLISHABLE_KEY: contract-test-key
+      BUILDER_BASE_URL: http://127.0.0.1:4173
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install locked dependencies
+        run: npm ci
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Build Builder production bundle
+        run: npm run build --workspace tupiniquim-builder
+      - name: Start Builder preview
+        shell: bash
+        run: |
+          npm run preview --workspace tupiniquim-builder -- --host 127.0.0.1 --port 4173 > /tmp/builder-vite.log 2>&1 &
+          for attempt in {1..30}; do
+            if curl --fail --silent http://127.0.0.1:4173/ >/dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+          cat /tmp/builder-vite.log
+          exit 1
+      - name: Browser contract + accessibility
+        run: npm run test:e2e --workspace tupiniquim-builder
+      - name: Lighthouse thresholds
+        run: npm run test:lighthouse --workspace tupiniquim-builder
+      - name: Upload browser evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: builder-browser-evidence-${{ github.run_id }}
+          if-no-files-found: ignore
+          path: |
+            apps/builder/playwright-report
+            apps/builder/test-results
+            apps/builder/lighthouse
+
+  live-auth-smoke:
+    name: live-authenticated-readonly-smoke
+    needs: browser-quality
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
+      TEST_A_EMAIL: ${{ secrets.TEST_A_EMAIL }}
+      TEST_A_PASSWORD: ${{ secrets.TEST_A_PASSWORD }}
+      BUILDER_BASE_URL: http://127.0.0.1:4173
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Require canonical QA secrets
+        shell: bash
+        run: |
+          missing=0
+          for name in SUPABASE_URL SUPABASE_PUBLISHABLE_KEY TEST_A_EMAIL TEST_A_PASSWORD; do
+            if [ -z "${!name}" ]; then
+              echo "::error::Missing required GitHub Actions secret: ${name}"
+              missing=1
+            fi
+          done
+          exit "$missing"
+      - name: Install locked dependencies
+        run: npm ci
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Build Builder against canonical Supabase
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
+        run: npm run build --workspace tupiniquim-builder
+      - name: Start Builder preview
+        shell: bash
+        run: |
+          npm run preview --workspace tupiniquim-builder -- --host 127.0.0.1 --port 4173 > /tmp/builder-live-vite.log 2>&1 &
+          for attempt in {1..30}; do
+            if curl --fail --silent http://127.0.0.1:4173/ >/dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+          cat /tmp/builder-live-vite.log
+          exit 1
+      - name: Real session + membership + default-deny smoke
+        run: npm run test:e2e:live --workspace tupiniquim-builder
+      - name: Upload live smoke evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: builder-live-smoke-${{ github.run_id }}
+          if-no-files-found: ignore
+          path: |
+            apps/builder/playwright-report
+            apps/builder/test-results
