@@ -1,0 +1,85 @@
+name: Temporary Import Salon Source
+
+on:
+  push:
+    branches:
+      - automation/salon-integration-stage
+    paths:
+      - .github/workflows/_temporary_import_salon.yml
+
+permissions:
+  contents: write
+
+jobs:
+  import-source:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout staging branch
+        uses: actions/checkout@v4
+        with:
+          ref: automation/salon-integration-stage
+          fetch-depth: 0
+
+      - name: Stop if source is already imported
+        id: guard
+        shell: bash
+        run: |
+          if [ -f apps/salon/.source-provenance ]; then
+            echo "already_imported=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "already_imported=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Import exact Vanessa source snapshot
+        if: steps.guard.outputs.already_imported == 'false'
+        shell: bash
+        run: |
+          set -euo pipefail
+          SOURCE_REPO="https://github.com/tupiniquimtechsolution-blip/Vanessa-Braz.git"
+          SOURCE_BRANCH="arena/01a0a695-vanessa-braz"
+          SOURCE_SHA="74dd4b81964b92dd8e5730f55c04bbbc0d2314ea"
+
+          rm -rf /tmp/vanessa-source
+          git clone --depth 1 --branch "$SOURCE_BRANCH" "$SOURCE_REPO" /tmp/vanessa-source
+          ACTUAL_SHA="$(git -C /tmp/vanessa-source rev-parse HEAD)"
+          test "$ACTUAL_SHA" = "$SOURCE_SHA"
+
+          mkdir -p apps/salon
+          rsync -a --delete \
+            --exclude='.git/' \
+            --exclude='.github/' \
+            --exclude='node_modules/' \
+            --exclude='dist/' \
+            --exclude='.env' \
+            --exclude='.env.*' \
+            /tmp/vanessa-source/ apps/salon/
+
+          node <<'NODE'
+          const fs = require('fs');
+          const file = 'apps/salon/package.json';
+          const pkg = JSON.parse(fs.readFileSync(file, 'utf8'));
+          pkg.name = 'tupiniquim-salon';
+          fs.writeFileSync(file, JSON.stringify(pkg, null, 2) + '\n');
+          NODE
+
+          cat > apps/salon/.source-provenance <<'EOF'
+          source_repository=tupiniquimtechsolution-blip/Vanessa-Braz
+          source_branch=arena/01a0a695-vanessa-braz
+          source_sha=74dd4b81964b92dd8e5730f55c04bbbc0d2314ea
+          import_mode=byte_preserving_github_actions_rsync
+          imported_at=2026-09-24
+          layout_preservation=required
+          EOF
+
+          npm install --package-lock-only --ignore-scripts
+
+      - name: Commit imported snapshot
+        if: steps.guard.outputs.already_imported == 'false'
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add apps/salon package-lock.json
+          git commit -m "chore(salon): import Vanessa source snapshot"
+          git push origin HEAD:automation/salon-integration-stage
