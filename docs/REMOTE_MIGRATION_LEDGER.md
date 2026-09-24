@@ -1,6 +1,6 @@
 # REMOTE MIGRATION LEDGER
 
-Canonical remote database: **Supabase project `mmykyzzkcugxunmekwew`** (validated directly by the owner/ChatGPT on 2026-09-15; migration list revalidated 2026-09-22).
+Canonical remote database: **Supabase project `mmykyzzkcugxunmekwew`** (validated directly by the owner/ChatGPT on 2026-09-15; migration list revalidated 2026-09-24).
 
 Rule enforced by this ledger: **remote state prevails over historical/local migrations**. Remote migration SQL is NOT reconstructed by guessing; entries below record evidence only.
 
@@ -10,7 +10,7 @@ Rule enforced by this ledger: **remote state prevails over historical/local migr
 > proposed 17-feature catalog. Later remote migrations evolved the catalog.
 > See docs/PERMISSION_ALIGNMENT.md §0.
 
-## Remote migrations (12 observed applied — confirmed via remote migration list)
+## Remote migrations (15 observed applied — confirmed via remote migration list)
 
 | VERSION | NAME | REMOTE STATUS | LOCAL SOURCE FILE | RECONCILIATION STATUS |
 |---|---|---|---|---|
@@ -26,6 +26,9 @@ Rule enforced by this ledger: **remote state prevails over historical/local migr
 | 20260918132842 | fix_tenant_public_read_policy | REMOTE_APPLIED | `supabase/migrations/20260918132842_fix_tenant_public_read_policy.sql` | LOCAL_SOURCE_PRESENT — remote version/name confirmed; exact historical SQL not reclassified by filename alone |
 | 20260922212427 | add_storefront_bootstrap_rpc | REMOTE_APPLIED | none | REMOTE_ONLY / NEEDS_EXPORT |
 | 20260922235641 | builder_revision_workflow_v1 | REMOTE_APPLIED | `supabase/migrations/20260922235641_builder_revision_workflow_v1.sql` | SOURCE_FILE_MATCHED / APPLIED_FROM_THIS_FILE — exact staged SQL applied through Supabase migration API on 2026-09-22 |
+| 20260924125451 | bakery_storefront_checkout_v1 | REMOTE_APPLIED | `supabase/migrations/20260924125451_bakery_storefront_checkout_v1.sql` | SOURCE_FILE_MATCHED / APPLIED_FROM_THIS_FILE — catalog seed, checkout RPC and direct-write hardening staged/applied on 2026-09-24 |
+| 20260924125633 | bakery_storefront_checkout_identity_fix | REMOTE_APPLIED | `supabase/migrations/20260924125633_bakery_storefront_checkout_identity_fix.sql` | SOURCE_FILE_MATCHED / APPLIED_FROM_THIS_FILE — corrected GENERATED ALWAYS order identity handling on 2026-09-24 |
+| 20260924131525 | bakery_coupon_enforcement_v1 | REMOTE_APPLIED | `supabase/migrations/20260924131525_bakery_coupon_enforcement_v1.sql` | SOURCE_FILE_MATCHED / APPLIED_FROM_THIS_FILE — canonical demo coupons and server-side coupon enforcement applied on 2026-09-24 |
 
 ## Local-only migration files
 
@@ -53,3 +56,15 @@ Rule enforced by this ledger: **remote state prevails over historical/local migr
 - Post-apply read-only verification confirmed `page_revisions` with RLS enabled and FORCE RLS enabled; authenticated grants limited to SELECT/INSERT/UPDATE; no anon table grant; tenant membership SELECT policy; `cms.write` INSERT/UPDATE policies; single-open and single-published partial unique indexes; both Builder trigger functions with `prosecdef=false` (`SECURITY INVOKER`).
 - `page_revisions` contained zero rows after schema verification; no commercial page/revision content was created as part of migration validation.
 - Security Advisor after apply reported only the previously observed warnings for existing SECURITY DEFINER functions and leaked-password protection; the Builder functions did not appear as new findings.
+
+## Bakery storefront checkout evidence (2026-09-24)
+
+- `fornalha-demo` was resolved by slug; no generated tenant UUID was hardcoded in migration data.
+- Remote validation confirmed 7 product categories and 16 active products for the demo tenant.
+- Direct anonymous commerce-table writes were revoked; anonymous table grants observed after hardening are SELECT-only.
+- `create_storefront_order(...)` recalculates product base price, option deltas, extras, delivery fee and coupon discount server-side, then writes `orders` + `order_items` atomically.
+- RPC execution is explicitly granted to `anon`, `authenticated` and `service_role`; `PUBLIC` execution is not granted. The function uses a fixed `search_path` and validates tenant/vertical/status, item counts, quantities, options/extras and payload sizes.
+- Idempotency validation returned the existing order on replay using the same `(tenant_id, idempotency_key)`.
+- Price validation produced R$ 74.00 for a synthetic cart whose canonical components were R$ 28.00 base + R$ 14.00 option + R$ 26.00 base + R$ 6.00 extra.
+- Coupon validation produced R$ 2.80 discount for `BEMVINDO10` on R$ 28.00 and R$ 8.90 delivery discount for `FORNOFRETE`.
+- All synthetic QA orders created during validation were deleted after verification.
