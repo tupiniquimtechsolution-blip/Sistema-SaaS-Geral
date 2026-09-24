@@ -1,0 +1,42 @@
+name: Religious House Gates
+
+on:
+  push:
+    branches:
+      - automation/religious-house-import
+      - freebuff/big-master-wave-01-monorepo
+    paths:
+      - 'apps/religious-house/**'
+      - 'packages/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/religious-house.yml'
+  pull_request:
+    paths:
+      - 'apps/religious-house/**'
+      - 'packages/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/religious-house.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  religious-house-quality:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install locked dependencies
+        run: npm ci
+      - name: Typecheck Religious House
+        run: npm run typecheck:religious-house
+      - name: Build Religious House
+        run: npm run build:religious-house
+      - name: Production dependency audit
+        run: npm audit --omit=dev --audit-level=high
