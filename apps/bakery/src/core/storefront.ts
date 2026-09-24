@@ -36,6 +36,7 @@ export interface StorefrontCheckoutInput {
   fulfillment: Record<string, unknown>;
   fulfillmentType: "delivery" | "pickup";
   notes?: string;
+  couponCode?: string;
   idempotencyKey: string;
 }
 
@@ -44,6 +45,7 @@ export interface StorefrontCheckoutResult {
   order_number: number;
   subtotal: number;
   delivery_fee: number;
+  discount_total: number;
   total: number;
   status: string;
   replayed: boolean;
@@ -61,6 +63,7 @@ export async function submitStorefrontOrder(input: StorefrontCheckoutInput): Pro
     p_fulfillment: input.fulfillment,
     p_fulfillment_type: input.fulfillmentType,
     p_idempotency_key: input.idempotencyKey,
+    p_coupon_code: input.couponCode ?? null,
     p_notes: input.notes ?? null,
   });
 
