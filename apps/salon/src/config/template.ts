@@ -32,7 +32,7 @@ export const vanessaPreviewConfig: SalonPublicConfig = {
   whatsapp: "5511988149152",
   phoneDisplay: "(11) 98814-9152",
   address: "Rua Redenção 88",
-  bookingEnabled: true,
+  bookingEnabled: false,
   mediaPublicationAuthorized: false,
 };
 
@@ -46,7 +46,7 @@ export const salonTemplateDefaults: SalonPublicConfig = {
   whatsapp: "",
   phoneDisplay: "",
   address: "",
-  bookingEnabled: true,
+  bookingEnabled: false,
   mediaPublicationAuthorized: false,
 };
 
