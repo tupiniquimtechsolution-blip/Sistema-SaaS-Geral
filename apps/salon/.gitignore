@@ -1,0 +1,56 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build
+dist/
+build/
+.next/
+
+# Environment
+.env
+.env.local
+.env.production
+.env.*.local
+.dev.vars
+.dev.vars.*
+
+# Cloudflare local state
+.wrangler/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Testing
+coverage/
+.nyc_output/
+
+# Secrets (NUNCA commitar)
+*.pem
+*.key
+*.cert
+secrets.json
+
+# Agent state (local only)
+.agent/STATUS.md
+.agent/CURRENT_TASK.md
+.agent/TEST_RESULTS.md
+
+# Misc
+.turbo/
+.cache/
+*.log

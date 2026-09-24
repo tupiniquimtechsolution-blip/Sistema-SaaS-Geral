@@ -1,0 +1,6 @@
+source_repository=tupiniquimtechsolution-blip/Vanessa-Braz
+source_branch=arena/01a0a695-vanessa-braz
+source_sha=74dd4b81964b92dd8e5730f55c04bbbc0d2314ea
+import_mode=byte_preserving_github_actions_rsync
+imported_at=2026-09-24
+layout_preservation=required

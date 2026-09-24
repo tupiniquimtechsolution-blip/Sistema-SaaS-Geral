@@ -1,0 +1,125 @@
+@import "tailwindcss";
+
+@theme {
+  /* Paleta inspirada na identidade real — preto profundo, rosé sofisticado, dourado quente */
+  --color-brand-primary: #1a1a1a;
+  --color-brand-secondary: #c4a882;
+  --color-brand-accent: #b08d6a;
+  --color-brand-background: #faf8f5;
+  --color-brand-surface: #f0ebe4;
+  --color-brand-text: #1a1a1a;
+  --color-brand-muted: #6b6560;
+  --color-brand-success: #4a7c59;
+  --color-brand-warning: #c49a43;
+  --color-brand-danger: #b44536;
+  --color-brand-rose: #d4a8a0;
+  --color-brand-wine: #532b36;
+  --color-brand-gold: #c6a66b;
+
+  --font-display: 'Playfair Display', serif;
+  --font-body: 'Inter', sans-serif;
+}
+
+/* Base */
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  font-family: var(--font-body);
+  color: var(--color-brand-text);
+  background-color: var(--color-brand-background);
+  line-height: 1.7;
+  letter-spacing: -0.01em;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-display);
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+}
+
+/* Scrollbar sutil */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-brand-surface);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-brand-muted);
+}
+
+/* Focus — acessibilidade */
+*:focus-visible {
+  outline: 2px solid var(--color-brand-text);
+  outline-offset: 2px;
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Animações discretas */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.3s ease-out forwards;
+}
+
+.animate-fade-in-up {
+  animation: fadeInUp 0.5s ease-out forwards;
+}
+
+/* Selection */
+::selection {
+  background-color: var(--color-brand-secondary);
+  color: white;
+}
+
+/* Images — performance */
+img {
+  image-rendering: -webkit-optimize-contrast;
+}
+
+/* Hide scrollbar utility */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
