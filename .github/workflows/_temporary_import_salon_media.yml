@@ -1,0 +1,60 @@
+name: Temporary Import Salon Media
+
+on:
+  push:
+    branches:
+      - automation/salon-integration-stage
+    paths:
+      - .github/workflows/_temporary_import_salon_media.yml
+
+permissions:
+  contents: write
+
+jobs:
+  import-media:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: automation/salon-integration-stage
+          fetch-depth: 0
+
+      - name: Import pinned source and optimized media
+        shell: bash
+        run: |
+          set -euo pipefail
+          SOURCE_REPO="https://github.com/tupiniquimtechsolution-blip/Vanessa-Braz.git"
+          SOURCE_SHA="eff2fa85b88c829115fc68b19cf0d4c3e5f87a4e"
+          OPT_SHA="a2eb9b184e7878c28f09df7e362f3a3fd5a3f733"
+          rm -rf /tmp/vanessa-media /tmp/vanessa-opt
+          git clone "$SOURCE_REPO" /tmp/vanessa-media
+          git -C /tmp/vanessa-media checkout "$SOURCE_SHA"
+          git clone "$SOURCE_REPO" /tmp/vanessa-opt
+          git -C /tmp/vanessa-opt checkout "$OPT_SHA"
+
+          rm -rf apps/salon/public/media
+          mkdir -p apps/salon/public/media
+          cp -a /tmp/vanessa-media/apps/web/public/media/source apps/salon/public/media/source
+          mkdir -p apps/salon/public/media/optimized
+          cp -a /tmp/vanessa-opt/apps/web/public/media/optimized/web apps/salon/public/media/optimized/web
+
+          node <<'NODE'
+          const fs = require('fs');
+          const manifest = JSON.parse(fs.readFileSync('apps/salon/public/media/source/media-manifest.json','utf8'));
+          if (manifest.expected_files !== 185 || manifest.downloaded_files !== 185 || manifest.images !== 157 || manifest.videos !== 28 || manifest.failed_files !== 0) {
+            throw new Error(`Unexpected media manifest: ${JSON.stringify({expected_files:manifest.expected_files,downloaded_files:manifest.downloaded_files,images:manifest.images,videos:manifest.videos,failed_files:manifest.failed_files})}`);
+          }
+          const optimized = fs.readdirSync('apps/salon/public/media/optimized/web').filter(x => x.endsWith('.webp'));
+          if (optimized.length < 8) throw new Error(`Expected at least 8 optimized WebP files, got ${optimized.length}`);
+          fs.appendFileSync('apps/salon/.source-provenance', `media_source_branch=main\nmedia_source_sha=${process.env.SOURCE_SHA || 'eff2fa85b88c829115fc68b19cf0d4c3e5f87a4e'}\nmedia_manifest_files=185\noptimized_media_branch=media/automated-image-pipeline-next4\noptimized_media_sha=a2eb9b184e7878c28f09df7e362f3a3fd5a3f733\noptimized_webp_count=${optimized.length}\n`);
+          NODE
+
+      - name: Commit media snapshot
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add apps/salon/public/media apps/salon/.source-provenance
+          git commit -m "chore(salon): import canonical Vanessa media library"
+          git push origin HEAD:automation/salon-integration-stage
