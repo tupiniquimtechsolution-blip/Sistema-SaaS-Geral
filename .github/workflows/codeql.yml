@@ -4,7 +4,7 @@ on:
   push:
     branches: [main, "freebuff/**", "feat/**", "fix/**"]
   pull_request:
-    branches: [main]
+    branches: [main, "freebuff/**"]
 
 permissions:
   contents: read
