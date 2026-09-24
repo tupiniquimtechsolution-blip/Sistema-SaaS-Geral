@@ -78,4 +78,6 @@ A ausência de qualquer um deles encerra o job com falha explícita. Nunca coloc
 
 ## Estado de release
 
-Os gates de browser/a11y/Lighthouse e os gates gerais do monorepo estão implementados. O release/merge permanece bloqueado enquanto o smoke autenticado live não puder executar com as quatro Actions secrets QA e concluir verde.
+Em 24/09/2026, no HEAD canônico da Wave 01, os gates do Builder fecharam GREEN: browser E2E, axe/a11y, Lighthouse, smoke autenticado live com sessão QA real, Monorepo Quality Gates, CodeQL e GitHub Advanced Security. O Builder/Preview Studio cumpre o escopo funcional de edição versionada, review/approval, publicação e rollback com default-deny/RLS.
+
+O Builder não é mais blocker isolado de release. O merge do PR da Wave 01 continua condicionado à Definition of Done global da wave e aos gates finais do monorepo/verticais.
