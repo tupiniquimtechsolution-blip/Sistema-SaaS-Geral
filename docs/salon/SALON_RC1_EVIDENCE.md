@@ -1,9 +1,9 @@
 # Salon / Vanessa Braz — RC1 Evidence
 
 Target: `salon-v1.0.0-rc.1`  
-Status: **TECHNICALLY GREEN EXCEPT CLOUDFLARE HTTPS DEPLOY — PR REMAINS DRAFT**
+Status: **RC1 TECHNICALLY COMPLETE — DEPLOYED AND HTTPS-SMOKED**
 
-Este arquivo é o ledger de evidência do RC. `PASS` abaixo significa execução verificável; itens externos ou não autorizados permanecem explicitamente bloqueados.
+Este arquivo é o ledger de evidência do RC. `PASS` abaixo significa execução verificável. Dados comerciais e mídia ainda não aprovados permanecem explicitamente omitidos/fail-closed e não são tratados como defeito técnico do RC.
 
 ## Candidate
 
@@ -11,22 +11,22 @@ Este arquivo é o ledger de evidência do RC. `PASS` abaixo significa execução
 - base: `freebuff/big-master-wave-01-monorepo`
 - Supabase: `mmykyzzkcugxunmekwew`
 - app: `apps/salon`
-- final candidate SHA: `b6296ea1b3971d99fd42fdf5dfddc255f983e25c`
-- PR: `#5` — DRAFT, mergeable, **não mergear em main**
-- RC URL: BLOCKED — Cloudflare Worker existente ainda não recebeu este bundle
-- tag: PENDING (`salon-v1.0.0-rc.1`)
+- deployed source SHA: `cbc47a15e03ca080b87a9e409bf60fe6306634e0`
+- PR: `#5` — **não mergear em main nesta etapa**
+- RC URL: `https://vanessa-braz.tupiniquim-techsolution.workers.dev`
+- planned tag: `salon-v1.0.0-rc.1`
 
-## Final-head GitHub evidence
+## GitHub quality/security evidence
 
-HEAD `b6296ea1b3971d99fd42fdf5dfddc255f983e25c`:
+At the final application candidate lineage:
 
-- Salon Vanessa Gates run `36043435345`: PASS
-- Monorepo Quality Gates run `36043435539`: PASS
-- CodeQL run `36043435058`: PASS
+- Salon Vanessa Gates: PASS
+- Monorepo Quality Gates: PASS
+- CodeQL workflow: PASS
   - `detect-code`: PASS
   - `analyze`: PASS
-- GitHub Advanced Security CodeQL check: PASS
-  - result: `No new alerts in code changed by this pull request`
+- GitHub Advanced Security CodeQL: PASS
+  - `No new alerts in code changed by this pull request`
 - repository hygiene: PASS
 - locked install: PASS
 - typecheck: PASS
@@ -35,7 +35,7 @@ HEAD `b6296ea1b3971d99fd42fdf5dfddc255f983e25c`:
 - PostgreSQL tenant-integrity/booking overlap: PASS
 - provisioning/registry idempotency: PASS
 
-The immediately preceding validated live-bundle run `36042410880` also passed all four Salon jobs and exported the exact live bundle after the hosted smoke.
+Validated live-bundle run `36042410880` passed all four Salon jobs and exported the exact hosted-mode bundle after Supabase live smoke.
 
 ## Browser / accessibility / performance
 
@@ -80,6 +80,19 @@ Hosted tenant:
 
 Only confirmed public fields were provisioned: Vanessa Braz / Beleza & Autoestima, Instagram, WhatsApp/phone and `Rua Redenção 88`. City/UF/CEP, hours, commercial e-mail, service catalog, durations, prices, staff and availability remain absent by design.
 
+### Hosted tenant-isolation / concurrency proof
+
+A temporary hosted QA transaction created tenant A and tenant B and verified:
+
+- valid same-tenant booking: PASS
+- tenant A booking with tenant B service: REJECTED by tenant-scoped FK — PASS
+- tenant B booking with tenant A service: REJECTED by tenant-scoped FK — PASS
+- tenant A service linked to tenant B resource: REJECTED by tenant-scoped FK — PASS
+- overlapping active booking for the same resource: REJECTED by exclusion constraint — PASS
+- cleanup: PASS; temporary QA tenants were removed and dependent rows cascaded.
+
+No QA tenant was intentionally retained.
+
 ## Runtime
 
 - public tenant resolution via canonical storefront bootstrap: PASS
@@ -97,7 +110,7 @@ Only confirmed public fields were provisioned: Vanessa Braz / Beleza & Autoestim
 - no dedicated Vanessa Supabase project: PASS
 - no `vanessa_*` schema/tables: PASS
 - canonical tenancy / RLS / shared booking contracts reused: PASS
-- cross-tenant FK/integrity constraints and active booking overlap exclusion verified in real PostgreSQL: PASS
+- hosted A↔B tenant isolation and active booking overlap enforcement: PASS
 
 ## Payments
 
@@ -113,13 +126,15 @@ RC1 deliberately does **not** claim live online payment. No simulated payment is
 - commercial e-mail: PENDING_CONFIRMATION
 - services/prices/staff/availability: PENDING_CONFIRMATION
 
+These external content inputs do not unblock unsafe defaults; the deployed RC intentionally hides/disables unavailable capabilities.
+
 ## Supabase advisors
 
 Security Advisor:
 
 - no new missing-RLS finding was introduced for Salon.
 - WARN remains for public/authenticated `SECURITY DEFINER` RPCs. Public storefront/bootstrap/slot functions are deliberate API boundaries and were **not** blindly converted to `SECURITY INVOKER` because that would change their access model without an equivalent authorization design.
-- leaked-password protection remains disabled at project level and is an external project hardening item.
+- leaked-password protection remains disabled at project level and is a separate project hardening item.
 
 Performance Advisor:
 
@@ -127,31 +142,51 @@ Performance Advisor:
 - `consent_records_read` now uses `(select auth.uid())`; the RLS initplan warning disappeared.
 - Salon-specific unindexed FK warnings disappeared. Remaining unindexed-FK notices are Builder `page_revisions`, outside the Salon RC scope.
 
-## Cloudflare / release blocker
+## Cloudflare deploy and HTTPS smoke
 
-Existing Worker: `vanessa-braz`.
+Existing Worker reused: `vanessa-braz` — no parallel Salon Worker was created.
 
-Rollback point preserved before release attempt:
+Deployment source:
 
-- prior deployment id: `96408014-efed-4767-bd98-f9ed18551c52`
+- Cloudflare Build UUID: `b8cbdf24-7b92-40fc-9a08-b3e50ae0edaa`
+- source repository: `tupiniquimtechsolution-blip/Sistema-SaaS-Geral`
+- source SHA: `cbc47a15e03ca080b87a9e409bf60fe6306634e0`
+- build command: `npm ci && npm run build:salon`
+- deploy command: `npx wrangler deploy --config apps/salon/wrangler.production.jsonc`
+- build outcome: PASS
 
-The repository now pins production config to Worker name `vanessa-braz`, avoiding creation of a parallel `tupiniquim-salon` Worker.
+Active deployment after RC:
 
-**BLOCKED_EXTERNAL:** GitHub Actions does not currently expose `CLOUDFLARE_API_TOKEN` / `CLOUDFLARE_ACCOUNT_ID` to this repository. The connected Cloudflare API can create the Static Assets upload session, but the subsequent asset upload requires Cloudflare's temporary upload JWT in an Authorization header; the current connector/tooling does not allow supplying that temporary header. No unsafe workaround was used and the existing Worker was left unchanged.
+- deployment id: `57695d4e-cade-418f-89c9-56652d92af64`
+- version id: `cf1776fa-0ba4-4f30-be72-9d1b499826d7`
+- traffic: 100%
 
-Therefore:
+Rollback preserved before release:
 
-- Cloudflare HTTPS deploy: BLOCKED_EXTERNAL
-- deployed HTTPS smoke: BLOCKED_EXTERNAL
-- tag `salon-v1.0.0-rc.1`: BLOCKED
-- PR #5 ready-for-review / merge: BLOCKED
+- previous deployment id: `0c5a9742-eb0d-47b8-8ac7-bcd0c6eb4773`
+- previous version id: `01874a2d-8593-4c19-be20-6a0bc307f1eb`
+
+Deployed HTTPS smoke:
+
+- technical branch: `automation/salon-deployed-smoke`
+- workflow: `Salon Deployed HTTPS Smoke`
+- run: `36048305048`
+- `curl` reachability: PASS
+- Playwright deployed public contract over HTTPS: PASS
+- target: `https://vanessa-braz.tupiniquim-techsolution.workers.dev`
+
+After deployment, the temporary Cloudflare trigger for `Sistema-SaaS-Geral` was removed and the original `Vanessa-Braz` trigger was restored. The active RC deployment was left intact.
+
+## Cloudflare trigger isolation hardening
+
+Unrelated monorepo Workers previously used `path_includes: ["*"]`, causing Salon-only changes to trigger Pet/Bakery/MetalArt/Restaurant/Platform builds. Their triggers were narrowed to the corresponding app plus shared packages/root manifests. This removes the observed cross-vertical deployment noise while preserving rebuilds for shared package changes.
 
 ## Rollback
 
-- Cloudflare: retain deployment `96408014-efed-4767-bd98-f9ed18551c52` until the new bundle passes deployed HTTPS smoke.
+- Cloudflare: redeploy previous version `01874a2d-8593-4c19-be20-6a0bc307f1eb` (deployment `0c5a9742-eb0d-47b8-8ac7-bcd0c6eb4773`) if a post-release regression requires rollback.
 - Database: migrations are forward-only. Corrective changes use a new forward migration; do not rewrite remote history.
-- No destructive rollback was performed or required during this RC work.
+- No destructive database rollback was performed or required during this RC work.
 
-## Promotion rule
+## Promotion rule result
 
-Do not mark PR #5 ready, do not merge, and do not create `salon-v1.0.0-rc.1` until the validated live bundle is deployed to the existing `vanessa-braz` Worker and the HTTPS smoke passes. Missing business data/media authorization must remain omitted or disabled rather than invented.
+Technical RC promotion gates are now satisfied: code quality, CodeQL/GHAS, hosted Supabase contract, a11y/Lighthouse, Cloudflare deploy and deployed HTTPS smoke all have evidence. Missing business data/media authorization remain external inputs and stay fail-closed rather than invented.
