@@ -1,7 +1,8 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import type { Order } from "../business/types";
 import { useApp, useCartTotals } from "../core/store";
+import { submitStorefrontOrder } from "../core/storefront";
 import { buildScheduleOptions, buildCartWhatsAppMessage, formatBRL, isOpenNow, track, useSEO, waLink } from "../core/utils";
 import { IBag, IBike, ICard, ICash, ICheck, IChevron, IPix, IWhatsApp } from "../components/icons";
 
@@ -9,7 +10,7 @@ const STEPS = ["Entrega", "Dados", "Pagamento", "Confirmação"];
 
 export default function Checkout() {
   const { business, cart, clearCart, subtotal, coupon, createOrder } = useApp();
-  const { discount, fee, total } = useCartTotals();
+  const { discount, fee } = useCartTotals();
   const navigate = useNavigate();
   useSEO(`Finalizar pedido | ${business.name}`);
 
@@ -23,6 +24,9 @@ export default function Checkout() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [confirmed, setConfirmed] = useState<Order | null>(null);
   const [pixCopied, setPixCopied] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState("");
+  const idempotencyKey = useRef<string | null>(null);
 
   const days = useMemo(() => buildScheduleOptions(business.openingHours), [business.openingHours]);
   const open = isOpenNow(business.openingHours);
@@ -59,35 +63,78 @@ export default function Checkout() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  const finish = () => {
-    if (!validateStep(2)) return;
+  const finish = async () => {
+    if (!validateStep(2) || submitting) return;
+    setSubmitError("");
+    setSubmitting(true);
+
     const payLabel =
       payment === "pix" ? "Pix (na confirmação)" :
       payment === "card" ? "Cartão (link seguro)" :
       payment === "cash" ? "Dinheiro" :
       payment === "onpick" ? "Na retirada" : "Na entrega";
-    const order = createOrder({
-      items: cart,
-      subtotal, discount,
-      deliveryFee,
-      total: grandTotal,
-      fulfillment,
-      schedule: scheduleLabel,
-      payment: payLabel,
-      customer: {
-        name: data.name, phone: data.phone,
-        address: fulfillment === "delivery"
-          ? `${data.street}, ${data.number}${data.complement ? ` — ${data.complement}` : ""} · CEP ${data.cep}${data.reference ? ` · Ref: ${data.reference}` : ""}`
-          : undefined,
-        unit: fulfillment === "pickup" ? business.pickup.units.find((u) => u.id === data.unit)?.name : undefined,
-        note: data.note || undefined,
-      },
-      coupon: coupon?.code,
-    });
-    clearCart();
-    setConfirmed(order);
-    setStep(3);
-    window.scrollTo({ top: 0, behavior: "smooth" });
+
+    const customerAddress = fulfillment === "delivery"
+      ? `${data.street}, ${data.number}${data.complement ? ` — ${data.complement}` : ""} · CEP ${data.cep}${data.reference ? ` · Ref: ${data.reference}` : ""}`
+      : undefined;
+    const pickupUnit = fulfillment === "pickup" ? business.pickup.units.find((u) => u.id === data.unit)?.name : undefined;
+
+    try {
+      if (!idempotencyKey.current) {
+        idempotencyKey.current = globalThis.crypto?.randomUUID?.() ?? `bakery-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+      }
+
+      const persisted = await submitStorefrontOrder({
+        tenantSlug: "fornalha-demo",
+        items: cart,
+        customer: {
+          name: data.name,
+          phone: data.phone,
+        },
+        fulfillment: {
+          schedule: scheduleLabel,
+          payment: payLabel,
+          ...(customerAddress ? { address: customerAddress } : {}),
+          ...(pickupUnit ? { unit: pickupUnit } : {}),
+        },
+        fulfillmentType: fulfillment,
+        idempotencyKey: idempotencyKey.current,
+        couponCode: coupon?.code,
+        notes: data.note || undefined,
+      });
+
+      const order = createOrder({
+        items: cart,
+        subtotal: persisted.subtotal,
+        discount: persisted.discount_total,
+        deliveryFee: persisted.delivery_fee,
+        total: persisted.total,
+        fulfillment,
+        schedule: scheduleLabel,
+        payment: payLabel,
+        customer: {
+          name: data.name,
+          phone: data.phone,
+          address: customerAddress,
+          unit: pickupUnit,
+          note: data.note || undefined,
+        },
+        coupon: coupon?.code,
+      }, {
+        code: `FO-${String(persisted.order_number).padStart(6, "0")}`,
+        createdAt: new Date().toISOString(),
+        status: "Novo",
+      });
+
+      clearCart();
+      setConfirmed(order);
+      setStep(3);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    } catch (error) {
+      setSubmitError(error instanceof Error ? error.message : "Não foi possível registrar o pedido. Tente novamente.");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   /* ---------- vazio ---------- */
@@ -323,12 +370,13 @@ export default function Checkout() {
                   <PayOption on={payment === "onpick"} onClick={() => setPayment("onpick")} icon={<ICash size={21} />} title="Pagar na retirada" desc="Pix, cartão ou dinheiro no balcão" />
                 )}
                 {errors.payment && <p className="text-[12.5px] font-bold text-terra">{errors.payment}</p>}
+                {submitError && <p role="alert" className="rounded-lg border border-terra/25 bg-terra/8 px-3 py-2.5 text-[12.5px] font-bold text-terra">{submitError}</p>}
                 <p className="text-[12px] leading-relaxed text-inksoft">Nenhum dado de cartão é armazenado neste site — o processamento acontece no gateway.</p>
 
                 <div className="flex gap-3 pt-2">
-                  <button onClick={() => setStep(1)} className="btn !border !border-ink/20 !text-ink">Voltar</button>
-                  <button onClick={finish} className="btn btn-primary flex-1 !py-4 text-[15px] sm:flex-none sm:!px-10">
-                    {business.cta.checkout} · {formatBRL(grandTotal)}
+                  <button onClick={() => setStep(1)} className="btn !border !border-ink/20 !text-ink" disabled={submitting}>Voltar</button>
+                  <button onClick={finish} className="btn btn-primary flex-1 !py-4 text-[15px] sm:flex-none sm:!px-10" disabled={submitting} aria-busy={submitting}>
+                    {submitting ? "Registrando pedido…" : `${business.cta.checkout} · ${formatBRL(grandTotal)}`}
                   </button>
                 </div>
               </div>
