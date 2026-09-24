@@ -19,7 +19,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           ref: automation/wave01-closeout-stage
-          fetch-depth: 1
+          fetch-depth: 0
 
       - name: Checkout canonical religious-house source
         uses: actions/checkout@v4
@@ -108,4 +108,5 @@ jobs:
             exit 0
           fi
           git commit -m "feat(vertical): import canonical religious-house source"
+          git pull --rebase origin automation/wave01-closeout-stage
           git push origin HEAD:automation/wave01-closeout-stage
