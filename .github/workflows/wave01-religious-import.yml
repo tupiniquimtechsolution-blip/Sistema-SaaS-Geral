@@ -1,0 +1,111 @@
+name: Wave 01 Religious House Import
+
+on:
+  push:
+    branches:
+      - automation/wave01-closeout-stage
+    paths:
+      - .github/workflows/wave01-religious-import.yml
+
+permissions:
+  contents: write
+
+jobs:
+  import-canonical-source:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout SaaS monorepo
+        uses: actions/checkout@v4
+        with:
+          ref: automation/wave01-closeout-stage
+          fetch-depth: 1
+
+      - name: Checkout canonical religious-house source
+        uses: actions/checkout@v4
+        with:
+          repository: tupiniquimtechsolution-blip/TemploCabocloTupinamba-FlechaDourada
+          ref: 2418bda33909c610c1d63fc4e421f133636ccbbb
+          path: .source-religious-house
+          fetch-depth: 1
+
+      - name: Import source without standalone backend/admin scripts
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf apps/religious-house
+          mkdir -p apps/religious-house/docs/source docs/migrations
+          cp -R .source-religious-house/src apps/religious-house/
+          cp .source-religious-house/index.html apps/religious-house/index.html
+          if [ -f .source-religious-house/vite.config.ts ]; then cp .source-religious-house/vite.config.ts apps/religious-house/vite.config.ts; fi
+          if [ -f .source-religious-house/vite.config.js ]; then cp .source-religious-house/vite.config.js apps/religious-house/vite.config.js; fi
+          if [ -f .source-religious-house/tsconfig.json ]; then cp .source-religious-house/tsconfig.json apps/religious-house/tsconfig.json; fi
+          cp .source-religious-house/README.md apps/religious-house/docs/source/README.md
+          if [ -f .source-religious-house/docs/templo-spiritual-source-of-truth.pdf ]; then
+            cp .source-religious-house/docs/templo-spiritual-source-of-truth.pdf apps/religious-house/docs/source/templo-spiritual-source-of-truth.pdf
+          fi
+          cp .source-religious-house/package.json apps/religious-house/package.json
+          node <<'NODE'
+          const fs = require('fs');
+          const path = 'apps/religious-house/package.json';
+          const pkg = JSON.parse(fs.readFileSync(path, 'utf8'));
+          pkg.name = 'tupiniquim-religious-house';
+          pkg.private = true;
+          pkg.scripts = { ...(pkg.scripts || {}), dev: 'vite', build: 'vite build', typecheck: 'tsc --noEmit' };
+          fs.writeFileSync(path, JSON.stringify(pkg, null, 2) + '\n');
+          NODE
+          cat > apps/religious-house/wrangler.jsonc <<'EOF'
+          {
+            "$schema": "../../node_modules/wrangler/config-schema.json",
+            "name": "tupiniquim-religious-house",
+            "compatibility_date": "2026-09-24",
+            "assets": {
+              "directory": "./dist",
+              "not_found_handling": "single-page-application"
+            }
+          }
+          EOF
+          cat > apps/religious-house/_headers <<'EOF'
+          /*
+            X-Content-Type-Options: nosniff
+            Referrer-Policy: strict-origin-when-cross-origin
+            X-Frame-Options: SAMEORIGIN
+            Permissions-Policy: camera=(), microphone=(), geolocation=()
+          EOF
+          cat > docs/migrations/religious-house.md <<'EOF'
+          # Religious House — canonical import
+
+          - Source repository: `tupiniquimtechsolution-blip/TemploCabocloTupinamba-FlechaDourada`
+          - Source commit: `2418bda33909c610c1d63fc4e421f133636ccbbb`
+          - Destination: `apps/religious-house`
+          - Strategy: preserve the existing React/Vite presentation source and source-of-truth PDF, while keeping the standalone repository immutable.
+          - Shared SaaS rule: the standalone `supabase/` migrations and administrative bootstrap scripts are intentionally **not imported or replayed**. The monorepo consumes the canonical shared Supabase schema and SaaS Core contracts only.
+          - Sensitive religious membership/volunteer modules remain disabled by default and require a separate privacy/security gate before adoption.
+          - Cloudflare target: `tupiniquim-religious-house` static assets via Wrangler.
+
+          This import is provenance evidence, not permission to broaden the domain scope or migrate sensitive data.
+          EOF
+          rm -rf .source-religious-house
+
+      - name: Reconcile workspace lockfile
+        run: npm install --package-lock-only --ignore-scripts
+
+      - name: Verify imported app
+        run: |
+          npm ci
+          npm run typecheck --workspace tupiniquim-religious-house
+          npm run build --workspace tupiniquim-religious-house
+
+      - name: Commit imported vertical to staging
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add apps/religious-house docs/migrations/religious-house.md package-lock.json
+          if git diff --cached --quiet; then
+            echo "No import changes to commit"
+            exit 0
+          fi
+          git commit -m "feat(vertical): import canonical religious-house source"
+          git push origin HEAD:automation/wave01-closeout-stage
