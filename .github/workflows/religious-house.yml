@@ -23,6 +23,26 @@ permissions:
   contents: read
 
 jobs:
+  religious-house-lockfile:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/automation/religious-house-import'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Generate canonical npm lockfile
+        run: npm install --package-lock-only --ignore-scripts
+      - name: Upload canonical lockfile
+        uses: actions/upload-artifact@v4
+        with:
+          name: religious-house-package-lock-${{ github.run_id }}
+          path: package-lock.json
+          if-no-files-found: error
+          retention-days: 2
+
   religious-house-quality:
     runs-on: ubuntu-latest
     timeout-minutes: 20
