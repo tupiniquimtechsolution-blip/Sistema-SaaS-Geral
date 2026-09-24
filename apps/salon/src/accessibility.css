@@ -1,0 +1,5 @@
+/* WCAG 2 AA contrast correction for muted copy on the rose visual surface. */
+.visual-section .section-heading > p:not(.eyebrow),
+.visual-section .media-gate {
+  color: #5f5551;
+}
