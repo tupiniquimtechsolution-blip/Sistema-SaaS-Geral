@@ -8,3 +8,4 @@ export * from "./audit";
 export * from "./billing";
 export * from "./observability";
 export * from "./integrations";
+export * from "./builder";

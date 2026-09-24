@@ -12,6 +12,8 @@ import { cartItemTotal, cartItemUnit, track, uid } from "./utils";
 
 interface Toast { id: string; message: string; tone?: "default" | "success" }
 
+type CanonicalOrderIdentity = Pick<Order, "code" | "createdAt" | "status">;
+
 interface AppState {
   business: BusinessConfig;
   products: Product[];
@@ -31,7 +33,7 @@ interface AppState {
   removeCoupon: () => void;
   cartBump: number;
   orders: Order[];
-  createOrder: (order: Omit<Order, "code" | "createdAt" | "status">) => Order;
+  createOrder: (order: Omit<Order, "code" | "createdAt" | "status">, canonical?: CanonicalOrderIdentity) => Order;
   admin: AdminOverrides;
   setAdmin: (patch: Partial<AdminOverrides>) => void;
   resetAdmin: () => void;
@@ -196,14 +198,17 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const cartCount = useMemo(() => cart.reduce((s, i) => s + i.qty, 0), [cart]);
 
   /* ---------- Pedidos ---------- */
-  const createOrder = useCallback((order: Omit<Order, "code" | "createdAt" | "status">) => {
+  const createOrder = useCallback((
+    order: Omit<Order, "code" | "createdAt" | "status">,
+    canonical?: CanonicalOrderIdentity,
+  ) => {
     const full: Order = {
       ...order,
-      code: `FO-${String(Date.now()).slice(-6)}`,
-      createdAt: new Date().toISOString(),
-      status: "Novo",
+      code: canonical?.code ?? `FO-${String(Date.now()).slice(-6)}`,
+      createdAt: canonical?.createdAt ?? new Date().toISOString(),
+      status: canonical?.status ?? "Novo",
     };
-    setOrders((prev) => [full, ...prev]);
+    setOrders((prev) => [full, ...prev.filter((existing) => existing.code !== full.code)]);
     track("purchase", { code: full.code, total: full.total, fulfillment: full.fulfillment });
     return full;
   }, []);
