@@ -2,7 +2,7 @@
  * Entitlement contracts — ALIGNED with the LIVE remote Supabase state
  * (project mmykyzzkcugxunmekwew; public.features queried directly 2026-09-15).
  *
- * LIVE = 14 features. The earlier 17-key catalog reflected the historical
+ * LIVE = 24 features (14 platform/vertical + 10 AI Tenant Studio capabilities). The earlier 17-key catalog reflected the historical
  * branch snapshot; live database state prevails (ratified rule).
  *
  * SOURCE OF TRUTH
@@ -55,7 +55,17 @@ export type FeatureKey =
   | "storage.bytes"
   | "support.enabled"
   | "audit.retentionDays"
-  | "users.max";
+  | "users.max"
+  | "ai.chat.enabled"
+  | "ai.contentEdit.enabled"
+  | "ai.catalogEdit.enabled"
+  | "ai.media.enabled"
+  | "ai.sectionEdit.enabled"
+  | "ai.design.enabled"
+  | "ai.redesign.enabled"
+  | "ai.bulkEdit.enabled"
+  | "ai.publish.enabled"
+  | "ai.credits.monthly";
 
 const FEATURE_CATALOG: readonly Feature[] = [
   { key: "audit.retentionDays", description: "Audit retention target in days", valueType: "integer" },
@@ -72,6 +82,16 @@ const FEATURE_CATALOG: readonly Feature[] = [
   { key: "storage.bytes", description: "Tenant storage quota in bytes", valueType: "integer" },
   { key: "support.enabled", description: "Support/warranty module availability", valueType: "boolean" },
   { key: "users.max", description: "Maximum tenant members", valueType: "integer" },
+  { key: "ai.chat.enabled", description: "AI Tenant Studio conversational editing", valueType: "boolean" },
+  { key: "ai.contentEdit.enabled", description: "AI-assisted tenant content/contact editing", valueType: "boolean" },
+  { key: "ai.catalogEdit.enabled", description: "AI-assisted catalog/service editing", valueType: "boolean" },
+  { key: "ai.media.enabled", description: "AI-assisted media operations", valueType: "boolean" },
+  { key: "ai.sectionEdit.enabled", description: "AI-assisted registered section editing", valueType: "boolean" },
+  { key: "ai.design.enabled", description: "AI-assisted design token and component variant editing", valueType: "boolean" },
+  { key: "ai.redesign.enabled", description: "AI-assisted page redesign proposals", valueType: "boolean" },
+  { key: "ai.bulkEdit.enabled", description: "AI-assisted bulk tenant edits", valueType: "boolean" },
+  { key: "ai.publish.enabled", description: "AI-assisted approved revision publication", valueType: "boolean" },
+  { key: "ai.credits.monthly", description: "Monthly AI operation credit allowance", valueType: "integer" },
 ];
 
 /**
@@ -84,17 +104,6 @@ export const PROPOSED_FUTURE_FEATURES: readonly string[] = [
   "projects.enabled",
   "loyalty.enabled",
   "inventory.enabled",
-  // AI Tenant Studio — pending forward-only DB catalog migration + remote verification.
-  "ai.chat.enabled",
-  "ai.contentEdit.enabled",
-  "ai.catalogEdit.enabled",
-  "ai.media.enabled",
-  "ai.sectionEdit.enabled",
-  "ai.design.enabled",
-  "ai.redesign.enabled",
-  "ai.bulkEdit.enabled",
-  "ai.publish.enabled",
-  "ai.credits.monthly",
 ] as const;
 
 /** Canonical catalog, exposed read-only for validation/UI presentation. */
