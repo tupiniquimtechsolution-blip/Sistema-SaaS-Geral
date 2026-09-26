@@ -33,6 +33,34 @@ export async function fetchMemberships(
   client: SupabaseClient,
   userId: string,
 ): Promise<MembershipWithContext[]> {
+  // Platform master is an explicit server/RLS concept, not a tenant role.
+  // RLS permits a platform admin to read all tenants; synthetic rows below are
+  // selection metadata only and are never persisted or used as DB authority.
+  const { data: platformAdmin, error: platformError } = await client
+    .from("platform_admins")
+    .select("user_id")
+    .eq("user_id", userId)
+    .maybeSingle();
+  if (platformError) throw new Error(`platform admin scope read failed: ${platformError.message}`);
+
+  if (platformAdmin) {
+    const { data: tenants, error: tenantsError } = await client
+      .from("tenants")
+      .select("id, slug, name, vertical_id, status, created_by, created_at, updated_at")
+      .order("name");
+    if (tenantsError) throw new Error(`platform tenant scope read failed: ${tenantsError.message}`);
+    return ((tenants ?? []) as TenantRow[]).map((tenant) => ({
+      membership: {
+        id: `platform:${tenant.id}`,
+        tenant_id: tenant.id,
+        user_id: userId,
+        status: "active",
+        joined_at: null,
+      },
+      tenant,
+    }));
+  }
+
   const { data, error } = await client
     .from("memberships")
     .select(
