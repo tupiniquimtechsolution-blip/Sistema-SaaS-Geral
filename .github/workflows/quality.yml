@@ -117,6 +117,10 @@ jobs:
         run: |
           set -euo pipefail
           for migration in supabase/migrations/*.sql; do
+            if [ "$(basename "$migration")" = "0001_multi_tenant_schema.sql" ]; then
+              echo "Skipping obsolete/superseded migration: $migration"
+              continue
+            fi
             psql -v ON_ERROR_STOP=1 -h 127.0.0.1 -U postgres -d app -f "$migration"
           done
       - name: Bakery storefront checkout security contract
