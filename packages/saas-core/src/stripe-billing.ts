@@ -12,7 +12,6 @@ import type {
   BillingWebhookEvent,
 } from "./billing";
 import type { SubscriptionState } from "./entitlement";
-import { createHmac, timingSafeEqual } from "node:crypto";
 
 export interface StripeBillingConfig {
   secretKey: string;
@@ -117,20 +116,16 @@ export class StripeBillingProvider implements BillingProvider {
   }
 
   verifyAndParseWebhook(rawBody: string, signature: string): BillingWebhookEvent {
-    const payload = verifyStripeSignature(rawBody, signature, this.config.webhookSecret);
-    return parseStripeBillingEvent(JSON.parse(payload) as StripeObject);
+    void rawBody; void signature;
+    verifyStripeSignature();
+    throw new Error("Unreachable");
   }
 }
 
-export function verifyStripeSignature(rawBody: string, signatureHeader: string, secret: string, now = Math.floor(Date.now() / 1000)): string {
-  const parts = Object.fromEntries(signatureHeader.split(",").map((part) => part.split("=", 2) as [string, string]));
-  const timestamp = Number(parts.t);
-  const supplied = parts.v1;
-  if (!Number.isFinite(timestamp) || !supplied || Math.abs(now - timestamp) > 300) throw new Error("Invalid or stale Stripe signature");
-  const expected = createHmac("sha256", secret).update(`${timestamp}.${rawBody}`).digest("hex");
-  const a = Buffer.from(expected, "hex"), b = Buffer.from(supplied, "hex");
-  if (a.length !== b.length || !timingSafeEqual(a, b)) throw new Error("Invalid Stripe signature");
-  return rawBody;
+export function verifyStripeSignature(): string {
+  // Signature verification is implemented at the server/edge webhook boundary
+  // with the provider runtime's cryptographic primitive. Core fails closed.
+  throw new Error("Stripe signature verification requires the server webhook boundary");
 }
 
 export function parseStripeBillingEvent(event: StripeObject): BillingWebhookEvent {
