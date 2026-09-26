@@ -3,11 +3,6 @@
   "name": "tupiniquim-site-builder",
   "compatibility_date": "2026-09-26",
   "workers_dev": true,
-  // Production redeploy trigger after Cloudflare Build settings were corrected.
-  "build": {
-    "command": "npm run build:builder",
-    "cwd": "../.."
-  },
   "assets": {
     "directory": "./dist",
     "not_found_handling": "single-page-application"
