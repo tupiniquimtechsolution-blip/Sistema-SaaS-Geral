@@ -1,4 +1,5 @@
--- Forward-only production patch for no-coupon checkout.\ncreate or replace function public.create_storefront_order(
+-- Forward-only production patch for no-coupon checkout.
+create or replace function public.create_storefront_order(
   p_tenant_slug text,
   p_items jsonb,
   p_customer jsonb default '{}'::jsonb,
