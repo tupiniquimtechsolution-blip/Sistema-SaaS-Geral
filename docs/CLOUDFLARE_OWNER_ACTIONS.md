@@ -1,64 +1,50 @@
-# CLOUDFLARE OWNER ACTIONS
+# CLOUDFLARE — AÇÕES EXTERNAS PARA RELEASE
 
-Data: 2026-09-18 · Contexto: o sandbox NÃO possui login Cloudflare durável —
-os deploys desta wave usaram `wrangler deploy --temporary` (preview path
-autorizado). Ações abaixo exigem a conta real do owner.
+Estado canônico: Cloudflare Workers / Static Assets é o único hosting do produto.
+Não existe dependência de Vercel.
 
-## AÇÃO 1 — Login durável + deploys definitivos (PRIORITÁRIA)
+## 1. Deploy durável
 
-No diretório do monorepo (terminal do owner):
+O Release GREEN exige deployments autenticados na conta Cloudflare; previews
+`wrangler deploy --temporary` não contam como evidência durável.
 
-```bash
-npx wrangler login          # abre o browser; NÃO compartilhe o token no chat
-npx wrangler whoami         # confirmar conta/plan (esperado: Free)
-```
+Workers/configs preparados no repositório:
+- platform → `apps/platform/wrangler.jsonc`
+- bakery → `apps/bakery/wrangler.jsonc`
+- pet → `apps/pet/wrangler.jsonc`
+- restaurant → `apps/restaurant/wrangler.jsonc`
+- metalart → `apps/metalart/wrangler.jsonc`
+- heavy-machinery → `apps/heavy-machinery/wrangler.jsonc`
+- religious-house → `apps/religious-house/wrangler.jsonc`
+- salon → configuração/release gate próprio já validado
 
-Re-deploy durável de cada app (config já commitada; build primeiro):
+GitHub/Cloudflare Workers Builds pode executar os deploys sem PC. Production
+branch permanece `freebuff/big-master-wave-01-monorepo` até o cutover aprovado.
 
-```bash
-npm ci
-npm run build:bakery && npx wrangler deploy --config apps/bakery/wrangler.jsonc
-npm run build:pet && npx wrangler deploy --config apps/pet/wrangler.jsonc
-npm run build:restaurant && npx wrangler deploy --config apps/restaurant/wrangler.jsonc
-npm run build --workspace=apps/metalart && npx wrangler deploy --config apps/metalart/wrangler.jsonc
-npm run build:heavy-machinery && npx wrangler deploy --config apps/heavy-machinery/wrangler.jsonc
-# PLATFORM por último, com as URLs definitivas dos verticais:
-VITE_VERTICAL_PREVIEW_URLS="bakery=https://tupiniquim-bakery.<subdomain>.workers.dev,pet=...,restaurant=...,metalart=...,heavy-machinery=..." \
-npm run build:platform && npx wrangler deploy --config apps/platform/wrangler.jsonc
-```
+## 2. Smoke remoto
 
-Depois de cada deploy: `bun scripts/cloudflare-gate.ts <app> <url>` e me passe
-as URLs — eu valido e atualizo a WORKER MATRIX (§47). **MetalArt**: no deploy
-real o limite é 25 MiB/arquivo — o vídeo de 22 MiB passa; nenhum corte de mídia
-foi feito.
+Após obter URLs duráveis HTTPS, executar manualmente o workflow
+`Durable Cloudflare Smoke Matrix` preenchendo as sete URLs. O workflow rejeita
+explicitamente hostnames temporários antigos e prova HTTPS, assets, SPA refresh,
+console e falhas de rede.
 
-## AÇÃO 2 — Workers Builds (GitHub integration), opcional
+## 3. Domínio customizado
 
-Dashboard → Workers & Pages → por Worker → Settings → Build → Connect:
-repo `tupiniquimtechsolution-blip/Sistema-SaaS-Geral`, branch
-`freebuff/big-master-wave-01-monorepo` (até decisão de merge main).
+Somente após autorização explícita do owner para um hostname real:
+1. associar o hostname ao Worker correto;
+2. registrar/confirmar `tenant_domains.hostname` e `verified=true`;
+3. provar hostname desconhecido = deny e tenant A não resolve tenant B;
+4. confirmar TLS ativo;
+5. registrar rollback removendo a rota/domínio ou retornando à versão anterior.
 
-| Setting | Valor |
-|---|---|
-| Root Directory | `/` (raiz — monorepo npm workspaces) |
-| Install | `npm ci` |
-| Build (verticais) | `npm run build:<app>` (metalart: `npm run build --workspace=apps/metalart`) |
-| Deploy command | `npx wrangler deploy --config apps/<app>/wrangler.jsonc` |
-| Non-production | `npx wrangler versions upload --config apps/<app>/wrangler.jsonc` |
-| Build watch paths (se suportado) | `apps/<app>/**` + `packages/**` + `package-lock.json` + `package.json` |
+Nenhuma troca de nameserver ou DNS real deve ocorrer implicitamente.
 
-Production branch: manter a branch de trabalho; NUNCA apontar produção para
-main automaticamente antes da decisão de merge (release policy atual).
+## 4. Stripe
 
-## AÇÃO 3 — Aceitação e cutover (EXIGE NOVA AUTORIZAÇÃO)
+Stripe/ChatGPT OAuth não é requisito. Runtime usa integração server-side.
+Secrets de Test Mode ficam apenas no ambiente:
+- `STRIPE_SECRET_KEY`
+- `STRIPE_WEBHOOK_SECRET`
+- `SUPABASE_SERVICE_ROLE_KEY` (já server-only)
 
-- Após AÇÃO 1 + gates: owner acceptance dos demos.
-- DNS/custom domains/nameservers: **NOT AUTHORIZED nesta wave** — decisão
-  separada do owner (DOMAIN_CUTOVER = PENDING_OWNER_AUTHORIZATION).
-- Vercel permanece rollback até aceitação formal; deprecação do Vercel é
-  decisão separada.
-
-## Zero-cost
-
-Nenhuma feature paga foi habilitada. Se algum passo do dashboard oferecer
-upgrade (Workers Paid etc.): NÃO aceitar sem decisão explícita de custo.
+Nunca colocar valores em GitHub, VITE_*, browser ou chat.
