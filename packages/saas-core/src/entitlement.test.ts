@@ -37,9 +37,9 @@ const planB: TenantSubscription = {
   ],
 };
 
-describe("live feature catalog (14 features, remote live mirror)", () => {
-  it("FEATURES.length === 14 (live public.features)", () => {
-    expect(FEATURES).toHaveLength(14);
+describe("live feature catalog (24 features, remote live mirror)", () => {
+  it("FEATURES.length === 24 (live public.features)", () => {
+    expect(FEATURES).toHaveLength(24);
   });
 
   it("contains every live key with its live value_type", () => {
@@ -90,16 +90,6 @@ describe("live feature catalog (14 features, remote live mirror)", () => {
       "projects.enabled",
       "loyalty.enabled",
       "inventory.enabled",
-      "ai.chat.enabled",
-      "ai.contentEdit.enabled",
-      "ai.catalogEdit.enabled",
-      "ai.media.enabled",
-      "ai.sectionEdit.enabled",
-      "ai.design.enabled",
-      "ai.redesign.enabled",
-      "ai.bulkEdit.enabled",
-      "ai.publish.enabled",
-      "ai.credits.monthly",
     ]);
   });
 
@@ -112,7 +102,9 @@ describe("live feature catalog (14 features, remote live mirror)", () => {
   it("isFeatureKey default-denies unknown keys", () => {
     expect(isFeatureKey("crm.enabled")).toBe(true);
     expect(isFeatureKey("ai.magic")).toBe(false);
-    expect(isFeatureKey("ai.chat.enabled")).toBe(false); // proposed only until DB migration is applied
+    expect(isFeatureKey("ai.chat.enabled")).toBe(true);
+    expect(isNumericFeature("ai.credits.monthly")).toBe(true);
+    expect(isBooleanFeature("ai.redesign.enabled")).toBe(true);
     expect(isFeatureKey("orders.enabled ")).toBe(false);
   });
 });
