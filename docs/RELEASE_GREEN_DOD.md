@@ -48,8 +48,9 @@ Release candidate must satisfy all items on the SAME commit SHA.
 - [x] authenticated atomic onboarding RPC (tenant + owner + brand + theme + settings + subscription + audit)
 - [x] LED removed from release scope
 - [x] Templo real source imported without modifying standalone source
-- [ ] Templo SaaS Core/CMS adaptation and durable Cloudflare smoke PASS
-- [ ] first new tenant provisioned and published through standard no-fork flow
+- [x] Templo provisioned through SaaS Core and public brand/settings wired to the vertical runtime
+- [ ] Templo durable Cloudflare smoke PASS
+- [x] first new tenant provisioned and published through standard no-fork flow
 
 ## Convergence
 - [x] stale/superseded PRs #3 #6 #12 #14 #16 #17 closed
