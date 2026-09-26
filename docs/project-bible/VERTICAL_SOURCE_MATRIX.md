@@ -12,24 +12,12 @@
 | Heavy Machinery | `BigMachines` | importada | implementado | smoke durável + white-label completo |
 | MetalArt | branch premium do projeto MetalArt | importada | implementado | smoke durável, mídia, tenant config |
 | Salon | `Vanessa-Braz` | fonte real disponível | placeholder/incompleto | REUSE/ADAPT/NEW/DROP + tenant Vanessa |
-| Religious House | `TemploCabocloTupinamba-FlechaDourada` | site standalone real | placeholder/incompleto | importar sem interromper site já publicado |
-| LED | `https://github.com/tupiniquimtechsolution-blip/LED` | REPO IDENTIFICADO; conteúdo executável ausente | placeholder/incompleto | recuperar fonte real antes de importar |
+| Religious House / Templo Caboclo Tupinambá e Flecha Dourada | `TemploCabocloTupinamba-FlechaDourada` | site standalone real acessível | importado em `apps/religious-house` | adaptar ao SaaS Core + Cloudflare sem interromper standalone |
 | CRM Tupiniquim | repo próprio | app horizontal | fora de `apps/<vertical>` | consumir SaaS Core como app comercial horizontal |
 
-## LED — decisão canônica
+## LED — removido do escopo
 
-`https://github.com/tupiniquimtechsolution-blip/LED` é a fonte oficial informada pelo owner em 22/09/2026.
-
-Estado auditado:
-- repositório acessível;
-- default branch `main`;
-- conteúdo versionado visível: apenas `README.md`;
-- **não há fonte suficiente para criar um vertical executável sem inventar código**.
-
-Status:
-- `SOURCE_REPOSITORY_IDENTIFIED = PASS`
-- `SOURCE_IMPLEMENTATION_AVAILABLE = MISSING`
-- `IMPORT_TO_APPS_LED = BLOCKED`
+Decisão do owner em 26/09/2026: LED não integra os planos de tenant nem o Definition of Done deste release. Reentrada futura exige decisão explícita e fonte executável real; não inventar conteúdo ou implementação.
 
 ## Salon / Vanessa
 
