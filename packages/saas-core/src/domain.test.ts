@@ -2,9 +2,9 @@ import { describe, expect, it } from "vitest";
 import { normalizeHostname, resolveTenantByHostname } from "./domain";
 
 const domains = [
-  { tenantId: "tenant-a", hostname: "a.example.com", verified: true, active: true },
-  { tenantId: "tenant-b", hostname: "b.example.com", verified: true, active: true },
-  { tenantId: "tenant-x", hostname: "pending.example.com", verified: false, active: true },
+  { tenantId: "tenant-a", hostname: "a.example.com", status: "active", verifiedAt: "2026-09-26T00:00:00Z" },
+  { tenantId: "tenant-b", hostname: "b.example.com", status: "active", verifiedAt: "2026-09-26T00:00:00Z" },
+  { tenantId: "tenant-x", hostname: "pending.example.com", status: "pending", verifiedAt: null },
 ];
 
 describe("tenant domain resolution", () => {
