@@ -50,25 +50,29 @@ Deno.serve(async (req) => {
 
   const digest = hex(await crypto.subtle.digest("SHA-256", encoder.encode(raw)));
   const supabase = createClient(url, serviceKey, { auth: { persistSession: false, autoRefreshToken: false } });
-  const { error: ledgerError } = await supabase.from("billing_webhook_events").insert({
-    provider: "stripe", provider_event_id: event.id, tenant_id: tenantId,
-    event_type: event.type, payload_sha256: digest,
-  });
-  if (ledgerError?.code === "23505") return new Response("Already processed", { status: 200 });
-  if (ledgerError) return new Response("Ledger failure", { status: 500 });
+  const planId = object?.metadata?.plan_id ?? null;
+  const periodStart = Number.isFinite(object?.current_period_start)
+    ? new Date(object.current_period_start * 1000).toISOString() : null;
+  const periodEnd = Number.isFinite(object?.current_period_end)
+    ? new Date(object.current_period_end * 1000).toISOString() : null;
 
-  const planId = object?.metadata?.plan_id;
-  let state: string | null = null;
-  if (event.type === "customer.subscription.deleted") state = "canceled";
-  if (event.type === "customer.subscription.created" || event.type === "customer.subscription.updated") {
-    state = ["trialing","active","past_due","canceled","incomplete"].includes(object.status) ? object.status : object.status === "unpaid" ? "past_due" : "incomplete";
-  }
-  if (state) {
-    const patch: Record<string, unknown> = { provider: "stripe", provider_id: object.id, state, updated_at: new Date().toISOString() };
-    if (planId) patch.plan_id = planId;
-    const { error } = await supabase.from("subscriptions").update(patch).eq("tenant_id", tenantId);
-    if (error) return new Response("Subscription update failure", { status: 500 });
-  }
-  await supabase.from("billing_webhook_events").update({ processed_at: new Date().toISOString() }).eq("provider", "stripe").eq("provider_event_id", event.id);
-  return new Response("ok", { status: 200 });
+  const { data, error } = await supabase.rpc("process_stripe_subscription_event", {
+    p_event_id: event.id,
+    p_tenant_id: tenantId,
+    p_event_type: event.type,
+    p_payload_sha256: digest,
+    p_subscription_id: object?.id ?? null,
+    p_customer_id: typeof object?.customer === "string" ? object.customer : object?.customer?.id ?? null,
+    p_plan_id: planId,
+    p_status: object?.status ?? null,
+    p_period_start: periodStart,
+    p_period_end: periodEnd,
+    p_cancel_at_period_end: object?.cancel_at_period_end === true,
+  });
+  if (error) return new Response("Atomic billing processing failure", { status: 500 });
+  return new Response(JSON.stringify(data ?? { processed: true }), {
+    status: 200,
+    headers: { "content-type": "application/json" },
+  });
+
 });
