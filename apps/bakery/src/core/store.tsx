@@ -7,14 +7,17 @@ import type { ReactNode } from "react";
 import type { AdminOverrides, BusinessConfig, CartItem, Order, Product } from "../business/types";
 import { businessConfig } from "../business/config";
 import { products as catalog } from "../business/products";
+import { getDemoMode } from "../business/saas-adapter";
 import { applyTheme } from "./theme";
 import { cartItemTotal, cartItemUnit, track, uid } from "./utils";
 
 interface Toast { id: string; message: string; tone?: "default" | "success" }
 
+type PersistenceMode = "demo" | "live";
 type CanonicalOrderIdentity = Pick<Order, "code" | "createdAt" | "status">;
 
 interface AppState {
+  persistenceMode: PersistenceMode;
   business: BusinessConfig;
   products: Product[];
   getProduct: (slug: string) => Product | undefined;
@@ -64,13 +67,14 @@ function save(key: string, value: unknown) {
 
 export function AppProvider({ children }: { children: ReactNode }) {
   const tenant = businessConfig.tenantId;
+  const persistenceMode: PersistenceMode = getDemoMode() ? "demo" : "live";
 
   const [cart, setCart] = useState<CartItem[]>(() => load(`${tenant}.cart`, []));
   const [coupon, setCoupon] = useState<{ code: string; value: number } | null>(() =>
     load(`${tenant}.coupon`, null)
   );
-  const [orders, setOrders] = useState<Order[]>(() => load(`${tenant}.orders`, []));
-  const [admin, setAdminState] = useState<AdminOverrides>(() => load(`${tenant}.admin`, {}));
+  const [orders, setOrders] = useState<Order[]>(() => persistenceMode === "demo" ? load(`${tenant}.orders`, []) : []);
+  const [admin, setAdminState] = useState<AdminOverrides>(() => persistenceMode === "demo" ? load(`${tenant}.admin`, {}) : {});
   const [cartOpen, setCartOpen] = useState(false);
   const [cartBump, setCartBump] = useState(0);
   const [toasts, setToasts] = useState<Toast[]>([]);
@@ -78,8 +82,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => save(`${tenant}.cart`, cart), [cart, tenant]);
   useEffect(() => save(`${tenant}.coupon`, coupon), [coupon, tenant]);
-  useEffect(() => save(`${tenant}.orders`, orders), [orders, tenant]);
-  useEffect(() => save(`${tenant}.admin`, admin), [admin, tenant]);
+  useEffect(() => { if (persistenceMode === "demo") save(`${tenant}.orders`, orders); }, [orders, persistenceMode, tenant]);
+  useEffect(() => { if (persistenceMode === "demo") save(`${tenant}.admin`, admin); }, [admin, persistenceMode, tenant]);
 
   /* ---------- Config mesclada com overrides do admin ---------- */
   const business = useMemo<BusinessConfig>(() => {
@@ -229,6 +233,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const value: AppState = {
+    persistenceMode,
     business,
     products,
     getProduct,
