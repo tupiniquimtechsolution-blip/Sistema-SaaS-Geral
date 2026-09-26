@@ -30,19 +30,19 @@ jobs:
       matrix:
         include:
           - vertical: platform
-            url: https://tupiniquim-saas.tupiniquim-techsolution.workers.dev
+            url: https://tupiniquim-saas.dramatic-condition.workers.dev
             title: 'Tupiniquim SaaS'
           - vertical: bakery
-            url: https://tupiniquim-bakery.tupiniquim-techsolution.workers.dev
+            url: https://tupiniquim-bakery.dramatic-condition.workers.dev
             title: 'Fornalha'
           - vertical: pet
-            url: https://tupiniquim-pet.tupiniquim-techsolution.workers.dev
+            url: https://tupiniquim-pet.dramatic-condition.workers.dev
             title: 'Amora Pet'
           - vertical: restaurant
-            url: https://tupiniquim-restaurant.tupiniquim-techsolution.workers.dev
+            url: https://tupiniquim-restaurant.dramatic-condition.workers.dev
             title: 'Chez Amis'
           - vertical: metalart
-            url: https://tupiniquim-metalart.tupiniquim-techsolution.workers.dev
+            url: https://tupiniquim-metalart.dramatic-condition.workers.dev
             title: 'Metal & Art'
           - vertical: heavy-machinery
             url: https://tupiniquim-heavy-machinery.dramatic-condition.workers.dev
