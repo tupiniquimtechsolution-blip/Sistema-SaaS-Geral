@@ -3,9 +3,12 @@
   "name": "tupiniquim-site-builder",
   "compatibility_date": "2026-09-26",
   "workers_dev": true,
-  // Deployment trigger: Site Builder production via GitHub/Cloudflare Builds.
+  "build": {
+    "command": "npm run build:builder",
+    "cwd": "../.."
+  },
   "assets": {
-    "directory": "./dist",
+    "directory": "../builder/dist",
     "not_found_handling": "single-page-application"
   }
 }
