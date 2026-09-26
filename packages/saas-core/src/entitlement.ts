@@ -84,6 +84,17 @@ export const PROPOSED_FUTURE_FEATURES: readonly string[] = [
   "projects.enabled",
   "loyalty.enabled",
   "inventory.enabled",
+  // AI Tenant Studio — pending forward-only DB catalog migration + remote verification.
+  "ai.chat.enabled",
+  "ai.contentEdit.enabled",
+  "ai.catalogEdit.enabled",
+  "ai.media.enabled",
+  "ai.sectionEdit.enabled",
+  "ai.design.enabled",
+  "ai.redesign.enabled",
+  "ai.bulkEdit.enabled",
+  "ai.publish.enabled",
+  "ai.credits.monthly",
 ] as const;
 
 /** Canonical catalog, exposed read-only for validation/UI presentation. */
