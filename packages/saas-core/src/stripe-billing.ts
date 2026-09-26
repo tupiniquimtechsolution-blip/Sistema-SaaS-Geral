@@ -12,6 +12,7 @@ import type {
   BillingWebhookEvent,
 } from "./billing";
 import type { SubscriptionState } from "./entitlement";
+import { createHmac, timingSafeEqual } from "node:crypto";
 
 export interface StripeBillingConfig {
   secretKey: string;
@@ -115,10 +116,44 @@ export class StripeBillingProvider implements BillingProvider {
     return { ...current, state: mapStatus(required(data.status, "subscription.status")) };
   }
 
-  verifyAndParseWebhook(): BillingWebhookEvent {
-    // Cryptographic verification belongs in the server/edge adapter where the
-    // raw request bytes and Stripe-Signature header are available. Fail closed
-    // here rather than accepting an unverified browser/event payload.
-    throw new Error("Use verifyStripeWebhook at the server boundary before parsing billing events");
+  verifyAndParseWebhook(rawBody: string, signature: string): BillingWebhookEvent {
+    const payload = verifyStripeSignature(rawBody, signature, this.config.webhookSecret);
+    return parseStripeBillingEvent(JSON.parse(payload) as StripeObject);
   }
+}
+
+export function verifyStripeSignature(rawBody: string, signatureHeader: string, secret: string, now = Math.floor(Date.now() / 1000)): string {
+  const parts = Object.fromEntries(signatureHeader.split(",").map((part) => part.split("=", 2) as [string, string]));
+  const timestamp = Number(parts.t);
+  const supplied = parts.v1;
+  if (!Number.isFinite(timestamp) || !supplied || Math.abs(now - timestamp) > 300) throw new Error("Invalid or stale Stripe signature");
+  const expected = createHmac("sha256", secret).update(`${timestamp}.${rawBody}`).digest("hex");
+  const a = Buffer.from(expected, "hex"), b = Buffer.from(supplied, "hex");
+  if (a.length !== b.length || !timingSafeEqual(a, b)) throw new Error("Invalid Stripe signature");
+  return rawBody;
+}
+
+export function parseStripeBillingEvent(event: StripeObject): BillingWebhookEvent {
+  const eventId = required(event.id, "event.id");
+  const type = required(event.type, "event.type");
+  const data = event.data as StripeObject;
+  const object = (data?.object ?? {}) as StripeObject;
+  const metadata = (object.metadata ?? {}) as StripeObject;
+  const tenantId = required(metadata.tenant_id, "metadata.tenant_id");
+  const planId = typeof metadata.plan_id === "string" ? metadata.plan_id : undefined;
+  if (type === "checkout.session.completed") {
+    if (!planId) throw new Error("Stripe event missing metadata.plan_id");
+    return { type: "checkout.completed", tenantId, planId, eventId };
+  }
+  if (type === "customer.subscription.created" || type === "customer.subscription.updated") {
+    const status = required(object.status, "subscription.status");
+    if (status === "active" || status === "trialing") {
+      if (!planId) throw new Error("Stripe event missing metadata.plan_id");
+      return { type: "subscription.activated", tenantId, planId, eventId };
+    }
+    if (status === "past_due" || status === "unpaid") return { type: "subscription.past_due", tenantId, eventId };
+    if (status === "canceled") return { type: "subscription.canceled", tenantId, eventId };
+  }
+  if (type === "customer.subscription.deleted") return { type: "subscription.canceled", tenantId, eventId };
+  throw new Error(`Unsupported Stripe billing event: ${type}`);
 }
