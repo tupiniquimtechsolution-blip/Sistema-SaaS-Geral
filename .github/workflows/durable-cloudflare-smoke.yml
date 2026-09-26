@@ -45,7 +45,7 @@ jobs:
             url: https://tupiniquim-metalart.tupiniquim-techsolution.workers.dev
             title: 'Metal & Art'
           - vertical: heavy-machinery
-            url: https://tupiniquim-heavy-machinery.tupiniquim-techsolution.workers.dev
+            url: https://tupiniquim-heavy-machinery.dramatic-condition.workers.dev
             title: 'Lusomaq'
     steps:
       - uses: actions/checkout@v4
