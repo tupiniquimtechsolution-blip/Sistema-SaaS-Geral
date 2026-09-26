@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
+import { createHmac } from "node:crypto";
 import { StripeBillingProvider } from "./stripe-billing";
 
 function response(data: unknown, ok = true, status = 200): Response {
@@ -38,12 +39,27 @@ describe("StripeBillingProvider", () => {
     await expect(provider.createCheckoutSession("tenant-a", "unknown")).rejects.toThrow("No Stripe Price configured");
   });
 
-  it("never accepts an unverified webhook through the provider parser", () => {
+  it("rejects forged webhook signatures", () => {
     const provider = new StripeBillingProvider({
       secretKey: "sk_test_fake", webhookSecret: "whsec_fake",
       successUrl: "https://example.test/s", cancelUrl: "https://example.test/c",
       portalReturnUrl: "https://example.test/a", priceIds: {},
     });
-    expect(() => provider.verifyAndParseWebhook("{}", "forged")).toThrow("server boundary");
+    expect(() => provider.verifyAndParseWebhook("{}", "t=1,v1=deadbeef")).toThrow("Invalid or stale Stripe signature");
+  });
+
+  it("verifies and maps a signed subscription activation event", () => {
+    const secret = "whsec_fake";
+    const now = Math.floor(Date.now() / 1000);
+    const raw = JSON.stringify({ id: "evt_1", type: "customer.subscription.updated", data: { object: { status: "active", metadata: { tenant_id: "tenant-a", plan_id: "pro" } } } });
+    const sig = createHmac("sha256", secret).update(`${now}.${raw}`).digest("hex");
+    const provider = new StripeBillingProvider({
+      secretKey: "sk_test_fake", webhookSecret: secret,
+      successUrl: "https://example.test/s", cancelUrl: "https://example.test/c",
+      portalReturnUrl: "https://example.test/a", priceIds: {},
+    });
+    expect(provider.verifyAndParseWebhook(raw, `t=${now},v1=${sig}`)).toEqual({
+      type: "subscription.activated", tenantId: "tenant-a", planId: "pro", eventId: "evt_1",
+    });
   });
 });
