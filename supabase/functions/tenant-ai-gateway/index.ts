@@ -13,6 +13,11 @@ function json(body: unknown, status = 200) {
 Deno.serve(async (req: Request) => {
   if (req.method !== "POST") return json({ error: "method_not_allowed" }, 405);
 
+  const auth = req.headers.get("authorization")?.trim();
+  const supabaseUrl = Deno.env.get("SUPABASE_URL")?.trim();
+  const anonKey = Deno.env.get("SUPABASE_ANON_KEY")?.trim();
+  if (!auth?.toLowerCase().startsWith("bearer ") || !supabaseUrl || !anonKey) return json({ error: "unauthorized" }, 401);
+
   const url = Deno.env.get("AI_CHAT_COMPLETIONS_URL")?.trim();
   const key = Deno.env.get("AI_API_KEY")?.trim();
   const model = Deno.env.get("AI_MODEL")?.trim();
@@ -22,6 +27,15 @@ Deno.serve(async (req: Request) => {
   try { input = await req.json(); } catch { return json({ error: "invalid_json" }, 400); }
   if (!input.tenantId?.trim() || !input.prompt?.trim()) return json({ error: "tenant_and_prompt_required" }, 400);
   if (input.prompt.length > 4000) return json({ error: "prompt_too_large" }, 413);
+
+  const rpcHeaders = { "content-type": "application/json", "authorization": auth, "apikey": anonKey };
+  const featureGate = await fetch(`${supabaseUrl}/rest/v1/rpc/tenant_feature_enabled`, {
+    method: "POST", headers: rpcHeaders,
+    body: JSON.stringify({ p_tenant_id: input.tenantId, p_feature_key: "ai.chat.enabled" }),
+  });
+  if (!featureGate.ok) return json({ error: "tenant_scope_denied" }, 403);
+  const featureEnabled = await featureGate.json();
+  if (featureEnabled !== true) return json({ error: "ai_chat_not_entitled" }, 403);
 
   const system = [
     "You are the intent planner for Tupiniquim AI Tenant Studio.",
@@ -57,5 +71,18 @@ Deno.serve(async (req: Request) => {
   if (typeof proposal.summary !== "string" || proposal.summary.length > 1000) return json({ error: "invalid_summary" }, 422);
   if (!Array.isArray(proposal.protectedFields) || typeof proposal.arguments !== "object" || proposal.arguments === null) return json({ error: "invalid_proposal" }, 422);
 
-  return json({ proposal: { ...proposal, tenantId: input.tenantId, pageId: input.pageId ?? null, executable: false } });
+  const usage = payload?.usage ?? {};
+  const credit = await fetch(`${supabaseUrl}/rest/v1/rpc/consume_ai_credit`, {
+    method: "POST", headers: rpcHeaders,
+    body: JSON.stringify({
+      p_tenant_id: input.tenantId, p_provider: "configured-provider", p_model: model,
+      p_operation: proposal.operation, p_credits: 1,
+      p_input_units: Number.isFinite(usage.prompt_tokens) ? usage.prompt_tokens : null,
+      p_output_units: Number.isFinite(usage.completion_tokens) ? usage.completion_tokens : null,
+    }),
+  });
+  if (!credit.ok) return json({ error: "ai_credit_limit_reached" }, 402);
+  const creditState = await credit.json();
+
+  return json({ proposal: { ...proposal, tenantId: input.tenantId, pageId: input.pageId ?? null, executable: false }, credits: creditState });
 });
