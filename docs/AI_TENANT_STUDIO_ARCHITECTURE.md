@@ -46,7 +46,7 @@ Capabilities are entitlements, not hard-coded plan-name checks. Proposed AI capa
 - `ai.publish.enabled`
 - `ai.credits.monthly`
 
-These keys are **PROPOSED until a forward-only Supabase migration registers them in public.features and plan_entitlements**. TypeScript must not treat them as canonical before that migration is applied and verified remotely.
+These keys are **CANONICAL as of migration `ai_tenant_studio_entitlements_v1`**, applied and verified against the live Supabase catalog. TypeScript mirrors the live catalog; database/RLS remains authority.
 
 Suggested packaging semantics:
 - operational edits: content/contact/hours/catalog fields according to the tenant's modules;
@@ -142,3 +142,8 @@ Record: problem solved, license, maintenance, security posture, dependency/bundl
 ## Definition of Done for each future feature
 
 A feature is not done until it is tenant-scoped, RBAC-aware, entitlement-aware when commercial, schema-validated, auditable, covered by negative cross-tenant tests, compatible with revision/rollback where applicable, documented, and verified without weakening existing release gates.
+
+
+## Current provider configuration gate
+
+The deployed `tenant-ai-gateway` is JWT-protected and proposal-only. It intentionally fails closed with `ai_provider_not_configured` until these server-side Edge Function secrets are configured: `AI_CHAT_COMPLETIONS_URL`, `AI_API_KEY`, `AI_MODEL`. Never expose these in Vite/browser variables, GitHub files, PR comments or tenant settings. Kimi or another provider may satisfy this adapter if it supports the configured chat-completions contract; provider choice is not a tenant authorization mechanism.
