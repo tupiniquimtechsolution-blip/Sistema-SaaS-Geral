@@ -1,36 +1,9 @@
-# LED — Painéis / Comunicação Visual
+# LED — REMOVIDO DO ESCOPO
 
-## Estado
+Decisão do owner em 2026-09-26: o vertical LED foi retirado dos planos de tenant e do Definition of Done do release porque o projeto-fonte no Qwen não pode ser exportado no momento.
 
-`BLOCKED_SOURCE_REPOSITORY_LED`
-
-O repositório canônico de painéis de LED ainda não foi identificado no GitHub conectado.
-
-## O que NÃO fazer
-
-- Não inventar repositório.
-- Não criar site LED fictício.
-- Não inventar catálogo, branding, clientes ou especificações comerciais reais.
-
-## O que existe nesta pasta
-
-Nada ainda. Esta pasta deve permanecer vazia até que o repositório de origem seja identificado.
-
-## Contratos permitidos
-
-Podem ser implementados em `packages/vertical-contracts` contratos genéricos B2B/LED sem conteúdo real, por exemplo:
-
-- SolutionCategory
-- LEDProduct/Solution
-- TechnicalSpecification
-- ConfigurationRequest
-- SiteSurvey
-- Lead
-- Quote
-- Proposal
-- Project
-- Installation
-- Warranty
-- SupportTicket
-
-Isso é infraestrutura de contrato, não site nem catálogo.
+Regras:
+- LED não é blocker do Release GREEN.
+- Não criar tenant/template/site LED fictício.
+- Não inventar conteúdo, catálogo, branding ou dados.
+- Uma futura reinclusão exige decisão explícita do owner e fonte real recuperada.
