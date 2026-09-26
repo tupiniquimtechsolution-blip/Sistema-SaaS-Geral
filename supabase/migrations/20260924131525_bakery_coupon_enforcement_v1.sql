@@ -58,6 +58,7 @@ declare
   v_allowed jsonb;
   v_existing record;
   v_coupon record;
+  v_coupon_id uuid := null;
 begin
   if p_tenant_slug is null or length(p_tenant_slug) > 120 then raise exception 'invalid tenant'; end if;
   if p_items is null or jsonb_typeof(p_items) <> 'array' or jsonb_array_length(p_items)=0 or jsonb_array_length(p_items)>50 then raise exception 'invalid items'; end if;
@@ -151,6 +152,7 @@ begin
       and minimum_subtotal <= v_subtotal
     limit 1;
     if not found then raise exception 'invalid coupon'; end if;
+    v_coupon_id := v_coupon.id;
 
     if coalesce(v_coupon.metadata->>'scope','subtotal')='delivery_fee' then
       if p_fulfillment_type <> 'delivery' then raise exception 'coupon not valid for fulfillment'; end if;
@@ -173,7 +175,7 @@ begin
     coupon_id,customer_snapshot,fulfillment_snapshot,notes,source,idempotency_key,created_by
   ) values (
     v_tenant_id,'pending',p_fulfillment_type,'BRL',v_subtotal,v_discount_total,v_delivery_fee,v_total,
-    v_coupon.id,coalesce(p_customer,'{}'::jsonb),coalesce(p_fulfillment,'{}'::jsonb),p_notes,'web',p_idempotency_key,auth.uid()
+    v_coupon_id,coalesce(p_customer,'{}'::jsonb),coalesce(p_fulfillment,'{}'::jsonb),p_notes,'web',p_idempotency_key,auth.uid()
   ) returning id,order_number into v_order_id,v_order_number;
 
   for v_item in select value from jsonb_array_elements(p_items)
