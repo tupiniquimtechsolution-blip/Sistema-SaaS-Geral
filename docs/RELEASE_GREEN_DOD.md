@@ -32,6 +32,17 @@ Release candidate must satisfy all items on the SAME commit SHA.
 
 ## Product / tenant
 - [x] Builder + private preview/revision workflow
+- [x] AI Tenant Studio architecture/product boundary adopted
+- [x] AI capabilities registered in live feature/plan entitlement catalog
+- [x] two existing owner accounts granted explicit Platform Master scope; RLS remains enabled
+- [x] typed AI operation policy + cross-tenant/entitlement/confirmation tests committed
+- [x] controlled component registry committed; arbitrary component types default-denied
+- [x] proposal-only tenant AI Edge gateway deployed with JWT verification
+- [ ] AI provider server secrets/model configured and authenticated proposal smoke PASS
+- [ ] visual/manual editor + AI proposal path verified live against same tenant revision
+- [ ] tenant owner A cannot inspect/edit tenant B through UI, URL or AI tool path PASS
+- [ ] Platform Master can select all authorized tenants without RLS bypass PASS
+- [ ] design/redesign plan gates + protected-field constraint E2E PASS
 - [x] authenticated atomic onboarding RPC (tenant + owner + brand + theme + settings + subscription + audit)
 - [x] LED removed from release scope
 - [x] Templo real source imported without modifying standalone source
