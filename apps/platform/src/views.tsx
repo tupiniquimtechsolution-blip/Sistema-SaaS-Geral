@@ -267,11 +267,10 @@ export function DeploymentsView() {
           </tbody>
         </table>
         <p className="hint">
-          Política de hosting (decisão do owner): {HOSTING_POLICY.vercelRole}.
-          Projetos dedicados: {HOSTING_POLICY.dedicatedProjects}. Hosting
-          definitivo: {HOSTING_POLICY.finalHosting} — plano em{" "}
-          <code>docs/CLOUDFLARE_MIGRATION_MASTER_PLAN.md</code> (não executado).
-          Remote preview do central: {HOSTING_POLICY.centralRemotePreview}.
+          Hosting canônico: {HOSTING_POLICY.canonicalHosting}. Projetos dedicados:{" "}
+          {HOSTING_POLICY.dedicatedProjects}. Hosting definitivo:{" "}
+          {HOSTING_POLICY.finalHosting}. Evidência de release:{" "}
+          {HOSTING_POLICY.releaseEvidence}.
         </p>
       </section>
     </div>

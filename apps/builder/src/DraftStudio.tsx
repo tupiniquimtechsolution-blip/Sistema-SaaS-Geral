@@ -8,14 +8,16 @@ import {
   type PageRow,
 } from "tupiniquim-database";
 import { RevisionWorkflow } from "./RevisionWorkflow";
+import { AiCopilot } from "./AiCopilot";
 
 interface DraftStudioProps {
   client: SupabaseClient;
   tenantId: string;
   userId: string;
+  aiChatEnabled: boolean;
 }
 
-export function DraftStudio({ client, tenantId, userId }: DraftStudioProps) {
+export function DraftStudio({ client, tenantId, userId, aiChatEnabled }: DraftStudioProps) {
   const [pages, setPages] = useState<PageRow[]>([]);
   const [selectedId, setSelectedId] = useState("");
   const [preview, setPreview] = useState<PageBundle | null>(null);
@@ -113,6 +115,7 @@ export function DraftStudio({ client, tenantId, userId }: DraftStudioProps) {
         </div>
 
         <LivePreview bundle={preview} />
+        <AiCopilot client={client} tenantId={tenantId} pageId={selectedId || undefined} enabled={aiChatEnabled} />
       </div>
 
       {preview ? (

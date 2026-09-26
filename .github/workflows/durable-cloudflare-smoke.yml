@@ -1,0 +1,58 @@
+name: Durable Cloudflare Smoke Matrix
+
+on:
+  workflow_dispatch:
+    inputs:
+      platform_url: { description: "Durable platform HTTPS URL", required: true, type: string }
+      bakery_url: { description: "Durable bakery HTTPS URL", required: true, type: string }
+      pet_url: { description: "Durable pet HTTPS URL", required: true, type: string }
+      restaurant_url: { description: "Durable restaurant HTTPS URL", required: true, type: string }
+      metalart_url: { description: "Durable MetalArt HTTPS URL", required: true, type: string }
+      heavy_machinery_url: { description: "Durable heavy-machinery HTTPS URL", required: true, type: string }
+      religious_house_url: { description: "Durable Templo HTTPS URL", required: true, type: string }
+
+permissions:
+  contents: read
+
+jobs:
+  deployed-smoke:
+    name: smoke-${{ matrix.vertical }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { vertical: platform, url: "${{ inputs.platform_url }}", title: "Tupiniquim SaaS" }
+          - { vertical: bakery, url: "${{ inputs.bakery_url }}", title: "Fornalha" }
+          - { vertical: pet, url: "${{ inputs.pet_url }}", title: "Amora Pet" }
+          - { vertical: restaurant, url: "${{ inputs.restaurant_url }}", title: "Chez Amis" }
+          - { vertical: metalart, url: "${{ inputs.metalart_url }}", title: "Metal & Art" }
+          - { vertical: heavy-machinery, url: "${{ inputs.heavy_machinery_url }}", title: "Lusomaq" }
+          - { vertical: religious-house, url: "${{ inputs.religious_house_url }}", title: "Templo Caboclo Tupinambá" }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - name: Reject non-HTTPS or temporary preview targets
+        env: { TARGET_URL: "${{ matrix.url }}" }
+        run: |
+          case "$TARGET_URL" in https://*) ;; *) echo "::error::Durable smoke requires HTTPS"; exit 1;; esac
+          if [[ "$TARGET_URL" == *".dramatic-condition.workers.dev"* ]]; then
+            echo "::error::Temporary preview hostname is not durable release evidence"
+            exit 1
+          fi
+      - name: Install locked dependencies
+        run: npm ci
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: HTTPS reachability preflight
+        env: { TARGET_URL: "${{ matrix.url }}" }
+        run: |
+          curl --fail --silent --show-error --location --max-time 30 "$TARGET_URL" >/tmp/home.html
+          test -s /tmp/home.html
+      - name: Browser, asset, SPA refresh, console and network smoke
+        env:
+          DURABLE_SMOKE_URL: "${{ matrix.url }}"
+          DURABLE_SMOKE_TITLE: "${{ matrix.title }}"
+        run: npx playwright test tests/e2e/durable-deploy-smoke.spec.ts --reporter=line

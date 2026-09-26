@@ -123,8 +123,13 @@ export function App({ client }: AppProps) {
         <ReadOnlyCard title="Settings" value={context.settings ? { locale: context.settings.locale, timezone: context.settings.timezone, currency: context.settings.currency, public_settings: context.settings.public_settings ?? {} } : null} />
         <ReadOnlyCard title="Entitlements" value={context.effectiveEntitlements} />
       </section>
-      {selectedTenantId ? <DraftStudio client={client} tenantId={selectedTenantId} userId={state.userId} /> : null}
-      <footer className="guardrail">Tenant validado por membership · draft writes dependem de cms.write · RLS permanece autoridade de enforcement</footer>
+      {selectedTenantId ? <DraftStudio
+        client={client}
+        tenantId={selectedTenantId}
+        userId={state.userId}
+        aiChatEnabled={context.effectiveEntitlements.some((item) => item.key === "ai.chat.enabled" && item.value === true)}
+      /> : null}
+      <footer className="guardrail">Tenant validado por escopo server-side · IA propõe, Core autoriza · draft writes dependem de cms.write · RLS permanece autoridade</footer>
     </main>
   );
 }

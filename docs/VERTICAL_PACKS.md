@@ -70,21 +70,6 @@ Primary modules:
 
 Integrate with mature POS/KDS/fiscal providers instead of prematurely replacing them.
 
-## LED / Visual Communication
-
-Primary modules:
-
-- B2B solutions catalog;
-- technical specification;
-- solution configuration request;
-- site survey;
-- CRM leads;
-- quotes/proposals;
-- projects/installations;
-- warranties/support.
-
-Source repository is currently blocked. Do not create fake business content.
-
 ## Heavy Machinery
 
 Primary modules:

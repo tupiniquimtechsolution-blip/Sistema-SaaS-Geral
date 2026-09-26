@@ -1,6 +1,8 @@
 import type { SupabaseClient, Session } from "@supabase/supabase-js";
 import {
   fetchActiveSubscription,
+  fetchAccessibleTenants,
+  fetchIsPlatformAdmin,
   fetchMemberships,
   fetchPlanEntitlements,
   fetchTenantBrand,
@@ -72,10 +74,27 @@ export async function resolveTenantContext(
   const user = projectSession(input.session);
   if (!user) throw new Error("tenant resolution requires an authenticated session");
 
-  const memberships = filterActiveMemberships(
+  let memberships = filterActiveMemberships(
     await fetchMemberships(client, user.id),
     user.id,
   );
+
+  // Platform masters are not forced to create memberships in every tenant.
+  // RLS decides which tenant rows are visible; virtual rows exist only for
+  // client-side selection and never grant database permissions.
+  if (await fetchIsPlatformAdmin(client)) {
+    const visibleTenants = await fetchAccessibleTenants(client);
+    memberships = visibleTenants.map((tenant) => ({
+      membership: {
+        id: `platform:${tenant.id}`,
+        tenant_id: tenant.id,
+        user_id: user.id,
+        status: "active",
+        joined_at: null,
+      },
+      tenant,
+    }));
+  }
 
   const requested = input.requestedTenantId ?? memberships[0]?.tenant.id ?? "";
   const selection = selectTenant(memberships, requested);

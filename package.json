@@ -24,7 +24,11 @@
     "lint": "npm run lint --workspaces --if-present",
     "test": "npm run test --workspaces --if-present",
     "build": "npm run build --workspaces --if-present",
-    "build:all": "npm run build --workspaces --if-present"
+    "build:all": "npm run build --workspaces --if-present",
+    "dev:religious-house": "npm run dev --workspace=apps/religious-house",
+    "build:religious-house": "npm run build --workspace=apps/religious-house",
+    "build:builder": "npm run build --workspace=tupiniquim-builder",
+    "build:metalart": "npm run build --workspace=apps/metalart"
   },
   "devDependencies": {
     "wrangler": "4.135.0"

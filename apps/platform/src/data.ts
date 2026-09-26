@@ -32,7 +32,7 @@ export interface Vertical {
   clients: string;
   demo: string;
   commercial: string;
-  /** Projeto Vercel correspondente e seu estado real. */
+  /** Projeto/Worker Cloudflare correspondente e seu estado real. */
   project: string;
   blocker?: string;
   note: string;
@@ -73,7 +73,7 @@ export const VERTICALS: Vertical[] = [
     clients: "0",
     demo: "LOCAL PREVIEW PASS · remote dedicado OPCIONAL (Cloudflare wave futura)",
     commercial: "VERTICAL PRINCIPAL — implementação premium preservada; integração SaaS incremental (padrão bakery)",
-    project: "OPCIONAL / NOT REQUIRED — projeto Vercel dedicado não é requisito",
+    project: "Cloudflare Worker / Static Assets",
     note:
       "Vertical principal. Implementação premium importada intacta; integração SaaS futura sem redesenho.",
   },
@@ -92,7 +92,7 @@ export const VERTICALS: Vertical[] = [
     clients: "0",
     demo: "LOCAL PREVIEW PASS · remote dedicado OPCIONAL (Cloudflare wave futura)",
     commercial: "PRONTO PARA DEPLOY — integração SaaS futura (padrão bakery)",
-    project: "OPCIONAL / NOT REQUIRED — projeto Vercel dedicado não é requisito",
+    project: "Cloudflare Worker / Static Assets",
     note: "App importado e compilável; CODE_READY/DEPLOYMENT_READY provados.",
   },
   {
@@ -110,7 +110,7 @@ export const VERTICALS: Vertical[] = [
     clients: "0",
     demo: "LOCAL PREVIEW PASS · remote dedicado OPCIONAL (Cloudflare wave futura)",
     commercial: "PRONTO PARA DEPLOY — integração SaaS futura (padrão bakery)",
-    project: "OPCIONAL / NOT REQUIRED — projeto Vercel dedicado não é requisito",
+    project: "Cloudflare Worker / Static Assets",
     note: "App importado e compilável; CODE_READY/DEPLOYMENT_READY provados.",
   },
   {
@@ -128,67 +128,46 @@ export const VERTICALS: Vertical[] = [
     clients: "0",
     demo: "LOCAL PREVIEW PASS · remote dedicado OPCIONAL (Cloudflare wave futura)",
     commercial: "PRONTO PARA DEPLOY — integração SaaS futura (padrão bakery)",
-    project: "OPCIONAL / NOT REQUIRED — projeto Vercel dedicado não é requisito",
+    project: "Cloudflare Worker / Static Assets",
     note: "App importado e compilável; CODE_READY/DEPLOYMENT_READY provados.",
   },
   {
-    name: "Casa/Templo Religioso",
+    name: "Templo Caboclo Tupinambá e Flecha Dourada",
     slug: "religious-house",
-    state: "blocked",
-    source: "— (source externo bloqueado; nenhum material local no monorepo)",
-    app: "MISSING_APP",
+    state: "not-ready",
+    source: "apps/religious-house (fonte TemploCabocloTupinamba-FlechaDourada)",
+    app: "EXISTS",
     build: "MISSING",
     typecheck: "MISSING",
-    test: "—",
-    router: "—",
-    env: "—",
-    supabase: "—",
+    test: "NOT RUN",
+    router: "HashRouter",
+    env: "nenhuma obrigatória para conteúdo público importado",
+    supabase: "INTEGRAÇÃO TENANT/CMS PENDENTE — conteúdo standalone preservado",
     clients: "0",
-    demo: "—",
-    commercial: "—",
-    project: "NÃO CRIAR (nada inventado)",
-    blocker: "BLOCKED_FREEBUFF_REPOSITORY_ACCESS_TEMPLO",
-    note:
-      "Nada é inventado enquanto o source estiver bloqueado. Projeto Vercel só quando app real existir e compilar.",
+    demo: "SOURCE IMPORTADO · Cloudflare config presente · gate de build em execução",
+    commercial: "IMPORTADO; falta adaptação SaaS Core e prova Cloudflare",
+    project: "Cloudflare Worker tupiniquim-religious-house",
+    note: "Fonte real importada sem interromper o site standalone; módulos religiosos sensíveis permanecem default-deny.",
   },
   {
     name: "Salão",
     slug: "salon",
-    state: "not-ready",
-    source: "— (sem implementação; branch chatgpt/integrate-salon-vanessa NÃO existe no remote — auditado via fetch --prune)",
-    app: "MISSING_APP",
-    build: "MISSING",
-    typecheck: "MISSING",
-    test: "—",
-    router: "—",
-    env: "—",
-    supabase: "—",
-    clients: "0",
-    demo: "—",
-    commercial: "NOT READY",
-    project: "NÃO CRIAR (nada inventado)",
-    note:
-      "Vanessa Braz será TENANT/template do vertical salon — nunca um vertical separado. Nenhum material importável encontrado; blocker concreto registrado.",
+    state: "ready",
+    source: "apps/salon (Vanessa Braz tenant/template)",
+    app: "EXISTS",
+    build: "PASS",
+    typecheck: "PASS",
+    test: "PASS",
+    router: "React app",
+    env: "Supabase publishable configuration; secrets server-side only",
+    supabase: "INTEGRADO — tenant/RLS/booking gates executados",
+    clients: "Vanessa RC tenant/template",
+    demo: "Cloudflare smoke previamente validado",
+    commercial: "READY com dados comerciais não autorizados fail-closed",
+    project: "Cloudflare Worker Vanessa Braz",
+    note: "Salon foi integrado à Wave 01; Vanessa é tenant/template, nunca fork.",
   },
-  {
-    name: "Painéis de LED",
-    slug: "led",
-    state: "blocked",
-    source: "— (repositório canônico não identificado)",
-    app: "MISSING_APP",
-    build: "MISSING",
-    typecheck: "MISSING",
-    test: "—",
-    router: "—",
-    env: "—",
-    supabase: "—",
-    clients: "0",
-    demo: "—",
-    commercial: "—",
-    project: "NÃO CRIAR (nada inventado)",
-    blocker: "BLOCKED_SOURCE_REPOSITORY_LED",
-    note: "App só nasce quando o source real for resolvido.",
-  },
+
 ];
 
 export interface CoreModule {
@@ -268,52 +247,20 @@ export interface PlatformProject {
   status: string;
 }
 
-/** Matriz de deployments — estados reais do lado Vercel (owner-confirmed). */
+/** Matriz de deployments canônicos em Cloudflare. */
 export const PROJECTS: PlatformProject[] = [
-  {
-    name: "sistema-saa-s-geral (central)",
-    app: "apps/platform (após cutover 04818dd)",
-    build: "npm run build:platform",
-    output: "apps/platform/dist",
-    status: "CUTOVER EXECUTADO NO REPO — deployment do commit pendente de validação HTTP",
-  },
-  {
-    name: "saas-bakery",
-    app: "apps/bakery",
-    build: "npm run build:bakery",
-    output: "apps/bakery/dist",
-    status: "OWNER_ACTION_REQUIRED — instruções em docs/VERCEL_OWNER_ACTIONS.md",
-  },
-  {
-    name: "saas-pet · saas-restaurant · saas-metalart · saas-heavy-machinery",
-    app: "apps/{pet,restaurant,metalart,heavy-machinery}",
-    build: "npm run build:<app> (metalart: npm run build --workspace=apps/metalart)",
-    output: "apps/<app>/dist",
-    status: "OWNER_ACTION_REQUIRED — builds locais PASS",
-  },
-  {
-    name: "saas-religious-house · saas-salon · saas-led",
-    app: "— (MISSING_APP)",
-    build: "—",
-    output: "—",
-    status: "NÃO CRIAR — blockers externos reais; nada inventado",
-  },
+  { name: "tupiniquim-saas", app: "apps/platform", build: "npm run build:platform", output: "apps/platform/dist", status: "Cloudflare Worker / Static Assets" },
+  { name: "tupiniquim-bakery", app: "apps/bakery", build: "npm run build:bakery", output: "apps/bakery/dist", status: "Cloudflare Worker / Static Assets" },
+  { name: "tupiniquim-pet · tupiniquim-restaurant · tupiniquim-metalart · tupiniquim-heavy-machinery", app: "apps/{pet,restaurant,metalart,heavy-machinery}", build: "npm run build:<app>", output: "apps/<app>/dist", status: "Cloudflare Workers / Static Assets" },
+  { name: "tupiniquim-religious-house", app: "apps/religious-house", build: "npm run build --workspace=apps/religious-house", output: "apps/religious-house/dist", status: "config presente; deploy/smoke pendente" },
+  { name: "salon / Vanessa Braz", app: "apps/salon", build: "vite build apps/salon", output: "apps/salon/dist", status: "Cloudflare validado; release gates próprios" },
 ];
 
-/**
- * Catálogo canônico (code/product completeness semantics — 2026-09-18):
- * Vercel é APENAS preview/dev/validação do central; projetos dedicados por
- * vertical são OPCIONAIS e NÃO SÃO requisito de completude. O publishing
- * comercial definitivo acontece na futura wave Cloudflare
- * (docs/CLOUDFLARE_MIGRATION_MASTER_PLAN.md). Remote preview do central
- * verificado pelo owner externamente: commit 657fb86 → READY, GET / = 200,
- * title "Tupiniquim SaaS — Plataforma".
- */
 export const HOSTING_POLICY = {
-  vercelRole: "PREVIEW / DEVELOPMENT / VALIDAÇÃO DO CENTRAL (apenas)",
-  dedicatedProjects: "OPTIONAL / NOT REQUIRED para completude do produto",
-  finalHosting: "CLOUDFLARE — wave futura, após CODE_PRODUCT_COMPLETE",
-  centralRemotePreview: "PASS (owner-verified: deployment de 657fb86, READY, HTTP 200, title plataforma)",
+  canonicalHosting: "CLOUDFLARE WORKERS / STATIC ASSETS",
+  dedicatedProjects: "Workers por vertical; tenant continua configuração, nunca fork",
+  finalHosting: "CLOUDFLARE",
+  releaseEvidence: "Durable Cloudflare Smoke Matrix + rollback runbook",
 } as const;
 
 /** URLs de preview públicas (sem secrets) — VITE_VERTICAL_PREVIEW_URLS. */

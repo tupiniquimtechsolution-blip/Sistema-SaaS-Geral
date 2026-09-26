@@ -528,3 +528,9 @@ O projeto só é concluído quando:
 - PDFs e documentação estão preservados;
 - dados demo não são confundidos com produção;
 - nenhum secret foi commitado.
+
+
+## Infraestrutura canônica de release (2026-09-26)
+
+- Cloudflare Workers/Static Assets é a infraestrutura canônica de publicação e smoke do produto.
+- Vercel não faz parte do caminho de release, rollback, disponibilidade ou Definition of Done.
