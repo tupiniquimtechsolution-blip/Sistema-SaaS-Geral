@@ -1,0 +1,35 @@
+{
+  "name": "tupiniquim-vertical-saas",
+  "private": true,
+  "packageManager": "npm@10.9.2",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev:bakery": "npm run dev --workspace=apps/bakery",
+    "dev:pet": "npm run dev --workspace=apps/pet",
+    "dev:restaurant": "npm run dev --workspace=apps/restaurant",
+    "dev:heavy-machinery": "npm run dev --workspace=apps/heavy-machinery",
+    "dev:platform": "npm run dev --workspace=apps/platform",
+    "dev:salon": "vite apps/salon",
+    "build:bakery": "npm run build --workspace=apps/bakery",
+    "build:pet": "npm run build --workspace=apps/pet",
+    "build:restaurant": "npm run build --workspace=apps/restaurant",
+    "build:heavy-machinery": "npm run build --workspace=apps/heavy-machinery",
+    "build:platform": "npm run build --workspace=apps/platform",
+    "build:salon": "vite build apps/salon",
+    "typecheck:salon": "tsc -p apps/salon/tsconfig.json --noEmit",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "lint": "npm run lint --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
+    "build": "npm run build --workspaces --if-present",
+    "build:all": "npm run build --workspaces --if-present"
+  },
+  "devDependencies": {
+    "wrangler": "4.135.0"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}

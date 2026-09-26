@@ -1,0 +1,22 @@
+COLOQUE AQUI OS 14 VÍDEOS DA PASTA DO DRIVE (MP4)
+=================================================
+
+Renomeie cada arquivo exatamente para um destes nomes:
+
+  hero-fabricacao.mp4   → 1775044474 (instalação c/ profissional)  13s
+  portao-uso.mp4        → 1774054576 (portão/grade em uso)        15s
+  antes-depois.mp4      → 1774112432 (portão verde / reforma)     45s
+  automacao-completo.mp4→ 1774786200 (automação c/ texto)         83s
+  comercial.mp4         → 1775043504 (estrutura comercial)        44s
+  grades-internas.mp4   → 1775043910 (grade/fechamento preto)     39s
+  cobertura.mp4         → 1775044199 (cobertura metálica)         13s
+  estrutura-colorida.mp4→ 1775045580 (estrutura decorativa)       12s
+  sob-medida.mp4        → 1775046057 (carrinho/estrutura)         26s
+  corrimao.mp4          → 1771634438 (corrimão em escada)         11s
+  guarda-corpo.mp4      → 1771639042 (guarda-corpo ornamental)    17s
+  tela-suspensa.mp4     → 1771639815 (telas metálicas internas)   18s
+  fechadura.mp4         → 1784983926 (detalhe de fechadura)       23s
+  instalacao-portao.mp4 → 1784984255 (instalação do portão preto) 35s
+
+Observação: o site carrega os vídeos sob demanda (play ao clicar),
+nunca todos de uma vez, como pede o guia de identidade.

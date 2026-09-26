@@ -1,0 +1,17 @@
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "strict": true,
+    "skipLibCheck": true,
+    "isolatedModules": true,
+    "noEmit": true,
+    "allowImportingTsExtensions": true,
+    "paths": {
+      "tupiniquim-saas-core": ["../saas-core/src/index.ts"],
+      "tupiniquim-database": ["../database/src/index.ts"]
+    }
+  },
+  "include": ["src"]
+}

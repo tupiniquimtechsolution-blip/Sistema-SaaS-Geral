@@ -1,0 +1,24 @@
+COLOQUE AQUI AS 36 FOTOS DA PASTA DO DRIVE
+==========================================
+
+Renomeie cada arquivo exatamente para um destes nomes (mantendo a
+extensão original .jpg). O site detecta cada um automaticamente:
+
+  portao-preto-1.jpg  portao-preto-2.jpg  portao-preto-3.jpg
+  automacao.jpg
+  grades-1.jpg ... grades-9.jpg          (família 1771634656/657)
+  fechamento-1.jpg ... fechamento-4.jpg  (família 1771634799)
+  corrimao-rampa.jpg                     (família 1771634800)
+  guarda-corpo-1.jpg  guarda-corpo-2.jpg (família 1771639042)
+  tela-metalica.jpg                      (família 1771639815)
+  residencial-1.jpg ... residencial-8.jpg (família 1771640508)
+  cobertura-1.jpg ... cobertura-3.jpg    (família 1771640657)
+  painel-1.jpg ... painel-3.jpg          (família 1771640874)
+  galvanizado-1.jpg  galvanizado-2.jpg   (família 1784983926)
+
+Dica: pode manter os nomes originais numéricos e só criar cópias com
+os nomes acima para os principais (portão preto, automação, grades,
+corrimão, cobertura).
+
+Enquanto uma foto não existir, o espaço dela fica com o fundo da
+marca — nunca aparece imagem quebrada nem imagem genérica.

@@ -1,0 +1,177 @@
+name: Salon Vanessa Gates
+
+on:
+  push:
+    branches:
+      - chatgpt/integrate-salon-vanessa
+      - automation/salon-rc1-gates
+    paths:
+      - 'apps/salon/**'
+      - 'packages/**'
+      - 'supabase/**'
+      - 'scripts/provisioning/vanessa_braz_tenant.sql'
+      - 'tests/postgres/salon_*.real.sql'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/salon.yml'
+  pull_request:
+    paths:
+      - 'apps/salon/**'
+      - 'packages/**'
+      - 'supabase/**'
+      - 'scripts/provisioning/vanessa_braz_tenant.sql'
+      - 'tests/postgres/salon_*.real.sql'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/salon.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  salon-quality:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install locked dependencies
+        run: npm ci
+      - name: Typecheck Salon
+        run: npm run typecheck:salon
+      - name: Build Salon
+        run: npm run build:salon
+      - name: Production dependency audit
+        run: npm audit --omit=dev --audit-level=high
+
+  salon-browser-release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install locked dependencies
+        run: npm ci
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Build controlled preview
+        env:
+          VITE_DEMO_MODE: 'true'
+        run: npm run build:salon
+      - name: Start Salon preview
+        run: |
+          npx vite preview apps/salon --host 127.0.0.1 --port 4174 > /tmp/salon-preview.log 2>&1 &
+          echo $! > /tmp/salon-preview.pid
+          for attempt in {1..30}; do
+            if curl --fail --silent http://127.0.0.1:4174/ > /dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/salon-preview.log
+          exit 1
+      - name: Browser E2E and axe accessibility gate
+        env:
+          SALON_BASE_URL: http://127.0.0.1:4174
+          SALON_EXPECT_LIVE: 'false'
+        run: npx playwright test apps/salon/e2e/salon.contract.spec.ts --reporter=line
+      - name: Lighthouse release budget
+        env:
+          SALON_BASE_URL: http://127.0.0.1:4174
+        run: node apps/salon/e2e/lighthouse-gate.mjs
+      - name: Upload Lighthouse evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: salon-lighthouse-${{ github.run_id }}
+          path: apps/salon/lighthouse
+          if-no-files-found: ignore
+          retention-days: 14
+
+  salon-live-public-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Fail closed when live browser-safe secrets are missing
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
+        run: |
+          test -n "$SUPABASE_URL" || { echo 'SUPABASE_URL is required'; exit 1; }
+          test -n "$SUPABASE_PUBLISHABLE_KEY" || { echo 'SUPABASE_PUBLISHABLE_KEY is required'; exit 1; }
+      - name: Install locked dependencies
+        run: npm ci
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Build live Vanessa tenant
+        env:
+          VITE_DEMO_MODE: 'false'
+          VITE_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
+          VITE_TENANT_SLUG: vanessa-braz
+        run: npm run build:salon
+      - name: Start live Salon build
+        run: |
+          npx vite preview apps/salon --host 127.0.0.1 --port 4174 > /tmp/salon-live.log 2>&1 &
+          echo $! > /tmp/salon-live.pid
+          for attempt in {1..30}; do
+            if curl --fail --silent http://127.0.0.1:4174/ > /dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/salon-live.log
+          exit 1
+      - name: Prove hosted tenant resolution and fail-closed content policy
+        env:
+          SALON_BASE_URL: http://127.0.0.1:4174
+          SALON_EXPECT_LIVE: 'true'
+        run: npx playwright test apps/salon/e2e/salon.contract.spec.ts --reporter=line
+      - name: Export the exact validated live bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: salon-live-bundle-${{ github.run_id }}
+          path: apps/salon/dist
+          if-no-files-found: error
+          retention-days: 14
+
+  salon-postgres-integrity:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      PGHOST: localhost
+      PGPORT: 5432
+      PGUSER: postgres
+      PGPASSWORD: postgres
+      PGDATABASE: postgres
+    steps:
+      - uses: actions/checkout@v4
+      - name: Prove tenant integrity and booking overlap in real Postgres
+        run: psql -v ON_ERROR_STOP=1 -f tests/postgres/salon_booking_integrity.real.sql
+      - name: Create isolated provisioning test database
+        run: createdb salon_provisioning
+      - name: Prove Salon registry and Vanessa provisioning are idempotent
+        env:
+          PGDATABASE: salon_provisioning
+        run: psql -v ON_ERROR_STOP=1 -f tests/postgres/salon_tenant_provisioning.real.sql

@@ -1,0 +1,11 @@
+COLOQUE AQUI O LOGO DA PASTA DO DRIVE
+======================================
+
+Arquivo esperado (exatamente este nome):
+
+  logo.jpg        → o logo oficial da Metal & Art
+
+Assim que o arquivo existir aqui, o header, o footer e o preloader
+passam a exibi-lo automaticamente no canto superior esquerdo.
+
+Se não existir, o site mostra a versão tipográfica fiel da marca.

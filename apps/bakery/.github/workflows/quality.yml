@@ -1,0 +1,51 @@
+name: Quality Gates
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: quality-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install locked dependencies
+        run: npm ci
+
+      - name: Run repository scripts when present
+        shell: bash
+        run: |
+          set -euo pipefail
+          run_if_present() {
+            local script="$1"
+            if node -e "const p=require('./package.json'); process.exit(p.scripts && p.scripts['$script'] ? 0 : 1)"; then
+              echo "::group::npm run $script"
+              npm run "$script"
+              echo "::endgroup::"
+            else
+              echo "::notice::Script '$script' is not defined in package.json"
+            fi
+          }
+          run_if_present lint
+          run_if_present typecheck
+          run_if_present test
+          run_if_present build
+
+      - name: Production dependency audit
+        run: npm audit --omit=dev --audit-level=high
