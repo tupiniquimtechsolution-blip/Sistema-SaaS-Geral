@@ -6,8 +6,8 @@
 export interface TenantDomainRecord {
   tenantId: string;
   hostname: string;
-  verified: boolean;
-  active: boolean;
+  status: "pending" | "verified" | "active" | "failed" | "disabled" | string;
+  verifiedAt: string | null;
 }
 
 export function normalizeHostname(value: string): string {
@@ -21,7 +21,7 @@ export function normalizeHostname(value: string): string {
 export function resolveTenantByHostname(hostHeader: string, domains: readonly TenantDomainRecord[]): string | null {
   const hostname = normalizeHostname(hostHeader);
   const matches = domains.filter((domain) =>
-    domain.verified && domain.active && normalizeHostname(domain.hostname) === hostname
+    domain.status === "active" && Boolean(domain.verifiedAt) && normalizeHostname(domain.hostname) === hostname
   );
   if (matches.length !== 1) return null;
   return matches[0].tenantId;
