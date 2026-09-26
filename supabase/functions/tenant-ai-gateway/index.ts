@@ -1,5 +1,19 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 
+const OPERATION_POLICY: Record<string, { capability: string; permission: string; confirmationRequired: boolean }> = {
+  updateContentField: { capability: "ai.contentEdit.enabled", permission: "cms.write", confirmationRequired: false },
+  updateProductPrice: { capability: "ai.catalogEdit.enabled", permission: "catalog.write", confirmationRequired: true },
+  replaceMedia: { capability: "ai.media.enabled", permission: "media.write", confirmationRequired: true },
+  updateBusinessHours: { capability: "ai.contentEdit.enabled", permission: "tenant.settings.write", confirmationRequired: true },
+  updateThemeTokens: { capability: "ai.design.enabled", permission: "brand.write", confirmationRequired: true },
+  addRegisteredSection: { capability: "ai.sectionEdit.enabled", permission: "cms.write", confirmationRequired: true },
+  reorderSections: { capability: "ai.sectionEdit.enabled", permission: "cms.write", confirmationRequired: true },
+  proposePageRedesign: { capability: "ai.redesign.enabled", permission: "cms.write", confirmationRequired: true },
+  previewRevision: { capability: "ai.chat.enabled", permission: "cms.read", confirmationRequired: false },
+  submitRevision: { capability: "ai.sectionEdit.enabled", permission: "cms.write", confirmationRequired: true },
+  publishApprovedRevision: { capability: "ai.publish.enabled", permission: "cms.write", confirmationRequired: true },
+};
+
 const ALLOWED_OPERATIONS = new Set([
   "updateContentField","updateProductPrice","replaceMedia","updateBusinessHours",
   "updateThemeTokens","addRegisteredSection","reorderSections","proposePageRedesign",
@@ -71,6 +85,20 @@ Deno.serve(async (req: Request) => {
   if (typeof proposal.summary !== "string" || proposal.summary.length > 1000) return json({ error: "invalid_summary" }, 422);
   if (!Array.isArray(proposal.protectedFields) || typeof proposal.arguments !== "object" || proposal.arguments === null) return json({ error: "invalid_proposal" }, 422);
 
+  const policy = OPERATION_POLICY[proposal.operation];
+  const [capabilityResponse, permissionResponse] = await Promise.all([
+    fetch(`${supabaseUrl}/rest/v1/rpc/tenant_feature_enabled`, {
+      method: "POST", headers: rpcHeaders,
+      body: JSON.stringify({ p_tenant_id: input.tenantId, p_feature_key: policy.capability }),
+    }),
+    fetch(`${supabaseUrl}/rest/v1/rpc/has_tenant_permission`, {
+      method: "POST", headers: rpcHeaders,
+      body: JSON.stringify({ p_tenant_id: input.tenantId, p_permission: policy.permission }),
+    }),
+  ]);
+  if (!capabilityResponse.ok || await capabilityResponse.json() !== true) return json({ error: "operation_not_entitled", capability: policy.capability }, 403);
+  if (!permissionResponse.ok || await permissionResponse.json() !== true) return json({ error: "operation_permission_denied", permission: policy.permission }, 403);
+
   const usage = payload?.usage ?? {};
   const credit = await fetch(`${supabaseUrl}/rest/v1/rpc/consume_ai_credit`, {
     method: "POST", headers: rpcHeaders,
@@ -84,5 +112,5 @@ Deno.serve(async (req: Request) => {
   if (!credit.ok) return json({ error: "ai_credit_limit_reached" }, 402);
   const creditState = await credit.json();
 
-  return json({ proposal: { ...proposal, tenantId: input.tenantId, pageId: input.pageId ?? null, executable: false }, credits: creditState });
+  return json({ proposal: { ...proposal, tenantId: input.tenantId, pageId: input.pageId ?? null, confirmationRequired: policy.confirmationRequired, executable: false }, credits: creditState });
 });
