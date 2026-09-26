@@ -1,9 +1,11 @@
-# Migration — Religious House
+# Migration — Templo Caboclo Tupinambá e Flecha Dourada
 
 - Source repository: `tupiniquimtechsolution-blip/TemploCabocloTupinamba-FlechaDourada`
 - Source branch: `main`
 - Source HEAD prepared for import: `226056e71fdc082d0f92ffa15715889033285f44`
-- Destination: `apps/religious-house`
+- Canonical vertical name: **Templo Caboclo Tupinambá e Flecha Dourada**
+- Source repository confirmed by owner: `tupiniquimtechsolution-blip/TemploCabocloTupinamba-FlechaDourada`
+- Destination: `apps/religious-house` (technical slug retained for compatibility)
 - Import status: `BLOCKED_FREEBUFF_REPOSITORY_ACCESS_TEMPLO`
 - Access status (2026-09-12): the repository exists per project owner, but the Freebuff/GitHub App credential of this session cannot access it. Three `git ls-remote` attempts returned `Repository not found` (GitHub's standard response for both missing and unauthorized private repos). Other org repos are accessible with the same credential. This is an access-scope blocker, NOT a missing repository. Action: reconnect the repository in Freebuff or extend Freebuff GitHub App permissions to include this repo.
 - Preferred method: `git subtree`
