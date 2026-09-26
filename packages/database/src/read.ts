@@ -188,3 +188,17 @@ export async function fetchTenantFeatures(
   if (error) throw new Error(`tenant_features read failed: ${error.message}`);
   return (data ?? []) as TenantFeatureRow[];
 }
+
+/** RLS-filtered tenants visible to the session. Platform masters see all via private.is_tenant_member(). */
+export async function fetchAccessibleTenants(client: SupabaseClient): Promise<TenantRow[]> {
+  const { data, error } = await client.from("tenants").select("id, slug, name, vertical_id, status, created_by, created_at, updated_at").order("name");
+  if (error) throw new Error(`tenants read failed: ${error.message}`);
+  return (data ?? []) as TenantRow[];
+}
+
+/** Server-authoritative platform-master check; never inferred from email or browser metadata. */
+export async function fetchIsPlatformAdmin(client: SupabaseClient): Promise<boolean> {
+  const { data, error } = await client.rpc("is_platform_admin");
+  if (error) throw new Error(`platform admin check failed: ${error.message}`);
+  return data === true;
+}
