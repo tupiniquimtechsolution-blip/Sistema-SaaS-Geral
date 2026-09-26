@@ -8,6 +8,13 @@ on:
     paths:
       - '.github/workflows/durable-cloudflare-smoke.yml'
       - 'tests/e2e/durable-deploy-smoke.spec.ts'
+  pull_request:
+    branches:
+      - freebuff/big-master-wave-01-monorepo
+    paths:
+      - '.github/workflows/durable-cloudflare-smoke.yml'
+      - 'tests/e2e/durable-deploy-smoke.spec.ts'
+      - 'apps/**'
   workflow_dispatch:
 
 permissions:
