@@ -40,8 +40,10 @@ Release candidate must satisfy all items on the SAME commit SHA.
 - [x] proposal-only tenant AI Edge gateway deployed with JWT verification
 - [ ] AI provider server secrets/model configured and authenticated proposal smoke PASS
 - [ ] visual/manual editor + AI proposal path verified live against same tenant revision
-- [ ] tenant owner A cannot inspect/edit tenant B through UI, URL or AI tool path PASS
-- [ ] Platform Master can select all authorized tenants without RLS bypass PASS
+- [x] database/RLS proof: ordinary tenant actor sees only own tenant and cross-tenant SELECT returns zero
+- [ ] tenant owner A cannot inspect/edit tenant B through deployed UI, URL or AI tool path PASS
+- [x] database/RLS proof: Platform Master sees all 4 current tenants while RLS remains authority
+- [ ] deployed Builder Platform Master tenant selector smoke PASS
 - [ ] design/redesign plan gates + protected-field constraint E2E PASS
 - [x] authenticated atomic onboarding RPC (tenant + owner + brand + theme + settings + subscription + audit)
 - [x] LED removed from release scope
