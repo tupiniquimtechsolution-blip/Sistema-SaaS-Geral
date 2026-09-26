@@ -534,5 +534,3 @@ O projeto só é concluído quando:
 
 - Cloudflare Workers/Static Assets é a infraestrutura canônica de publicação e smoke do produto.
 - Vercel não faz parte do caminho de release, rollback, disponibilidade ou Definition of Done.
-- Durante desenvolvimento sem necessidade de endpoint público, Workers devem permanecer estacionados com `workers_dev: false` e `preview_urls: false`; a reativação pública ocorre somente para smoke/release autorizado.
-- Código, versões e configuração devem ser preservados durante o estacionamento; não apagar Worker como mecanismo de pausa.
