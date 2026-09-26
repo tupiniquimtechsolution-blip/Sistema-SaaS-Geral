@@ -73,7 +73,7 @@ export const VERTICALS: Vertical[] = [
     clients: "0",
     demo: "LOCAL PREVIEW PASS · remote dedicado OPCIONAL (Cloudflare wave futura)",
     commercial: "VERTICAL PRINCIPAL — implementação premium preservada; integração SaaS incremental (padrão bakery)",
-    project: "OPCIONAL / NOT REQUIRED — projeto Vercel dedicado não é requisito",
+    project: "Cloudflare Worker / Static Assets",
     note:
       "Vertical principal. Implementação premium importada intacta; integração SaaS futura sem redesenho.",
   },
@@ -92,7 +92,7 @@ export const VERTICALS: Vertical[] = [
     clients: "0",
     demo: "LOCAL PREVIEW PASS · remote dedicado OPCIONAL (Cloudflare wave futura)",
     commercial: "PRONTO PARA DEPLOY — integração SaaS futura (padrão bakery)",
-    project: "OPCIONAL / NOT REQUIRED — projeto Vercel dedicado não é requisito",
+    project: "Cloudflare Worker / Static Assets",
     note: "App importado e compilável; CODE_READY/DEPLOYMENT_READY provados.",
   },
   {
@@ -110,7 +110,7 @@ export const VERTICALS: Vertical[] = [
     clients: "0",
     demo: "LOCAL PREVIEW PASS · remote dedicado OPCIONAL (Cloudflare wave futura)",
     commercial: "PRONTO PARA DEPLOY — integração SaaS futura (padrão bakery)",
-    project: "OPCIONAL / NOT REQUIRED — projeto Vercel dedicado não é requisito",
+    project: "Cloudflare Worker / Static Assets",
     note: "App importado e compilável; CODE_READY/DEPLOYMENT_READY provados.",
   },
   {
@@ -128,7 +128,7 @@ export const VERTICALS: Vertical[] = [
     clients: "0",
     demo: "LOCAL PREVIEW PASS · remote dedicado OPCIONAL (Cloudflare wave futura)",
     commercial: "PRONTO PARA DEPLOY — integração SaaS futura (padrão bakery)",
-    project: "OPCIONAL / NOT REQUIRED — projeto Vercel dedicado não é requisito",
+    project: "Cloudflare Worker / Static Assets",
     note: "App importado e compilável; CODE_READY/DEPLOYMENT_READY provados.",
   },
   {
