@@ -1,12 +1,12 @@
 /**
  * Entitlement contracts — ALIGNED with the LIVE remote Supabase state
- * (project mmykyzzkcugxunmekwew; public.features queried directly 2026-09-15).
+ * (project mmykyzzkcugxunmekwew; public.features re-verified after AI entitlement migration 2026-09-26).
  *
  * LIVE = 24 features (14 platform/vertical + 10 AI Tenant Studio capabilities). The earlier 17-key catalog reflected the historical
  * branch snapshot; live database state prevails (ratified rule).
  *
  * SOURCE OF TRUTH
- * - public.features          → feature catalog (14 canonical keys)
+ * - public.features          → feature catalog (24 canonical keys)
  * - public.plans             → plan definitions
  * - public.plan_entitlements → plan defaults (jsonb value per feature)
  * - public.tenant_entitlements → per-tenant plan defaults (diff/override)
@@ -33,7 +33,7 @@ export interface Feature {
 }
 
 /**
- * Exact mirror of the 14 LIVE canonical feature keys. DO NOT invent keys.
+ * Exact mirror of the 24 LIVE canonical feature keys. DO NOT invent keys.
  *
  * DRIFT NOTE: orders.enabled / projects.enabled / loyalty.enabled /
  * inventory.enabled were previously mirrored from the historical branch
@@ -96,7 +96,7 @@ const FEATURE_CATALOG: readonly Feature[] = [
 
 /**
  * Features proposed for the future but NOT canonical in the live
- * public.features (2026-09-15). Never treat these as granted; they are
+ * public.features (re-verified 2026-09-26). Never treat these as granted; they are
  * registered for the feature-request pipeline only. Keep out of FeatureKey.
  */
 export const PROPOSED_FUTURE_FEATURES: readonly string[] = [
