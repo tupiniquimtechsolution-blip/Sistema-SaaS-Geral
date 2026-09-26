@@ -12,3 +12,4 @@ export * from "./builder";
 export * from "./stripe-billing";
 export * from "./domain";
 export * from "./ai-operations";
+export * from "./studio-components";
