@@ -1,8 +1,12 @@
 name: Monorepo Quality Gates
 
 on:
+  workflow_dispatch:
   push:
   pull_request:
+    branches:
+      - main
+      - freebuff/big-master-wave-01-monorepo
 
 permissions:
   contents: read
