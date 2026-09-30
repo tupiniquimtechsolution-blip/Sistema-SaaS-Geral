@@ -32,7 +32,9 @@ pre { margin: 0; padding: 1rem; overflow: auto; color: #cbd6e4; font-size: .78re
 .error-text { color: #ff9a9a; }
 .status-message { color: #f0c86a; }
 .studio-card { margin-top: 1rem; overflow: hidden; }
+.studio-heading { display: flex; justify-content: space-between; gap: 1rem; align-items: flex-start; padding: 1rem; border-bottom: 1px solid var(--border); background: #101720; }
 .studio-heading .eyebrow { margin-bottom: .25rem; }
+.studio-heading p:last-child { margin: .35rem 0 0; color: var(--muted); font-size: .78rem; line-height: 1.55; }
 .studio-grid { display: grid; grid-template-columns: minmax(240px, .8fr) minmax(320px, 1.35fr) minmax(260px, .85fr); gap: 1rem; padding: 1rem; }
 .studio-controls { display: grid; gap: 1rem; align-content: start; }
 .draft-form { border: 1px solid #273244; border-radius: 12px; padding: 1rem; background: #0d1219; }
