@@ -10,27 +10,26 @@ Accepted Wave 0 source head:
 
 ## Entry gate
 
-- UI-G0: **PASS / ACCEPTED**
-- Corrective pass audited before RC creation.
-- Feature branch fast-forwarded to accepted Wave 0 head.
-- No merge into Release GREEN or main.
-- PR #19 remains the tracking/integration PR.
+- UI-G0: **PASS / ACCEPTED** (historical accepted baseline; not repeated in this execution).
+- RC execution HEAD at start: `0ce28a7ca2a8c70fa8ed4c9f2557fdc339bd8aba`.
+- Session branch: `arena/01a0f263-sistema-saas-geral`; verified descendant of `origin/rc/ui-saas-convergence-01` before changes.
+- No branch switch, merge, PR, or push performed.
 - External release gates remain independent.
 
 ## Phase matrix
 
 | Phase | Status | Evidence |
 |---|---|---|
-| UI-G1 Design foundations | NOT RUN | RC execution pending |
-| UI-G2 Application shell | NOT RUN | RC execution pending |
-| UI-G3 Control Plane | NOT RUN | RC execution pending |
-| UI-G4 Builder | NOT RUN | RC execution pending |
-| UI-G5 AI Tenant Studio | NOT RUN | RC execution pending |
-| UI-G6 Account/settings/onboarding | NOT RUN | RC execution pending |
-| UI-G7 Billing Center | NOT RUN | RC execution pending |
-| UI-G8 Automations/Integrations | NOT RUN | RC execution pending |
-| UI-G9 Hardening | NOT RUN | RC execution pending |
-| UI-G10 RC validation | NOT RUN | RC execution pending |
+| UI-G1 Design foundations | PASS | Added shared `packages/ui` semantic token package and consumed by Platform and Builder; Builder and Platform production builds PASS; all workspace typechecks PASS. Commit: pending |
+| UI-G2 Application shell | NOT RUN | Execution pending |
+| UI-G3 Control Plane | NOT RUN | Execution pending |
+| UI-G4 Builder | NOT RUN | Execution pending |
+| UI-G5 AI Tenant Studio | NOT RUN | Execution pending |
+| UI-G6 Account/settings/onboarding | NOT RUN | Execution pending |
+| UI-G7 Billing Center | NOT RUN | Execution pending |
+| UI-G8 Automations/Integrations | NOT RUN | Execution pending |
+| UI-G9 Hardening | NOT RUN | Execution pending |
+| UI-G10 RC validation | NOT RUN | Execution pending |
 
 ## RC invariants
 
@@ -67,15 +66,15 @@ Never promote historical evidence into a current PASS unless the RC actually rer
 
 | Gate | Status | Evidence |
 |---|---|---|
-| Hosting policy gate | NOT RUN | `npm run hosting:policy` — must prove active Vercel deployment config is absent |
-| Locked install | NOT RUN | |
+| Hosting policy gate | NOT RUN | Must run `npm run hosting:policy` |
+| Locked install | PASS | `npm ci` after shared package wiring; 345 packages added; npm reported 6 vulnerabilities (5 moderate, 1 high) |
 | Lint | NOT RUN | |
-| Typecheck | NOT RUN | |
+| Typecheck | PASS | `npm run typecheck --workspaces --if-present` |
 | Unit tests | NOT RUN | |
-| Build | NOT RUN | |
+| Build | PARTIAL | `npm run build --workspace=tupiniquim-builder` and `npm run build --workspace=tupiniquim-platform` PASS; full workspace build pending |
 | Builder E2E | NOT RUN | |
 | axe | NOT RUN | |
-| npm audit | NOT RUN | |
+| npm audit | NOT RUN | Install reported 6 vulnerabilities; full audit review pending |
 | Manual responsive review | NOT RUN | |
 | Security regression review | NOT RUN | |
 
