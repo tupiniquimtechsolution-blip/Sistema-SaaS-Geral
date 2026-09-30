@@ -124,19 +124,19 @@ export function VerticalDetailView({ slug }: { slug: string }) {
     );
   }
   const rows: Array<[string, string]> = [
-    ["SOURCE", v.source],
-    ["APP", v.app],
+    ["ORIGEM", v.source],
+    ["APLICAÇÃO", v.app],
     ["BUILD", v.build],
-    ["TYPECHECK", v.typecheck],
-    ["TEST", v.test],
-    ["ROUTER", v.router],
-    ["ENV (VITE_*)", v.env],
+    ["VERIFICAÇÃO DE TIPOS", v.typecheck],
+    ["TESTES", v.test],
+    ["ROTEAMENTO", v.router],
+    ["AMBIENTE (VITE_*)", v.env],
     ["SUPABASE", v.supabase],
     ["CLIENTES", v.clients],
-    ["TENANT MODEL", "Um cliente = um tenant no Supabase canônico — sem fork por cliente"],
-    ["BRANDING MODEL", "tenant_brands/tenant_themes por tenant (leitura live já provada na Bakery)"],
-    ["DEMO READINESS", v.demo],
-    ["COMMERCIAL READINESS", v.commercial],
+    ["MODELO DE TENANCY", "Um cliente = um tenant no Supabase canônico — sem fork por cliente"],
+    ["MODELO DE MARCA", "tenant_brands/tenant_themes por tenant; validar estado live atual"],
+    ["PRONTIDÃO DE PRÉVIA", v.demo],
+    ["PRONTIDÃO COMERCIAL", v.commercial],
     ["HOSTING / WORKER", v.project],
   ];
   return (
@@ -242,7 +242,7 @@ export function DeploymentsView() {
   return (
     <div className="view">
       <section>
-        <h2>Deployments — matriz de projetos</h2>
+        <h2>Implantações — matriz de Workers</h2>
         <table>
           <thead>
             <tr>
