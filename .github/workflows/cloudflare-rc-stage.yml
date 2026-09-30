@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - freebuff/big-master-wave-01-monorepo
+      - feature/ui-saas-convergence-wave-01
   workflow_dispatch:
 
 permissions:
