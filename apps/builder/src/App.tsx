@@ -5,6 +5,7 @@ import type { TenantContextResult } from "tupiniquim-tenancy";
 import { loadBuilderAccess, type BuilderAccessState } from "./access";
 import { DraftStudio } from "./DraftStudio";
 import { OnboardingPanel } from "./OnboardingPanel";
+import { BillingCenter } from "./BillingCenter";
 
 interface AppProps { client: SupabaseClient; }
 type ViewState = { status: "loading" } | BuilderAccessState | { status: "error"; message: string };
@@ -29,6 +30,7 @@ export function App({ client }: AppProps) {
   const [state, setState] = useState<ViewState>({ status: "loading" });
   const [credentials, setCredentials] = useState({ email: "", password: "" });
   const [authError, setAuthError] = useState<string | null>(null);
+  const [workspaceView, setWorkspaceView] = useState<"builder" | "billing" | "settings">("builder");
 
   const refresh = useCallback(async () => {
     setState({ status: "loading" });
@@ -112,28 +114,36 @@ export function App({ client }: AppProps) {
   const selectedTenantId = context.tenant?.id ?? tenantId;
   return (
     <main className="shell">
-      <header className="topbar">
+      <header className="topbar builder-topbar">
         <div><p className="eyebrow">TUPINIQUIM SITE BUILDER</p><h1>{context.brand?.display_name ?? context.tenant?.name ?? "Tenant selecionado"}</h1></div>
+        <nav className="tenant-nav" aria-label="Navegação do tenant">
+          <button type="button" className={workspaceView === "builder" ? "tenant-nav-active" : "secondary"} aria-current={workspaceView === "builder" ? "page" : undefined} onClick={() => setWorkspaceView("builder")}>Builder</button>
+          <button type="button" className={workspaceView === "billing" ? "tenant-nav-active" : "secondary"} aria-current={workspaceView === "billing" ? "page" : undefined} onClick={() => setWorkspaceView("billing")}>Cobrança</button>
+          <button type="button" className={workspaceView === "settings" ? "tenant-nav-active" : "secondary"} aria-current={workspaceView === "settings" ? "page" : undefined} onClick={() => setWorkspaceView("settings")}>Conta e settings</button>
+        </nav>
         <button className="secondary" type="button" onClick={() => void signOut(client)}>Sair</button>
       </header>
       <section className="selection-card workspace-context" aria-labelledby="workspace-context-title">
         <div className="workspace-context-heading"><div><p className="eyebrow">WORKSPACE</p><h2 id="workspace-context-title">Tenant &amp; vertical</h2></div><span className="context-trust-label">Membership validada · RLS ativo</span></div>
         <TenantSelector memberships={memberships} tenantId={selectedTenantId} verticalKey={verticalKey} onTenant={setTenantId} onVertical={setVerticalKey} onApply={applySelection} />
       </section>
-      <section className="grid" aria-label="Conta e configurações do tenant">
+      {workspaceView === "settings" ? <section className="grid" aria-label="Conta e configurações do tenant">
         <ReadOnlyCard title="Account & session" value={{ session: "Sessão autenticada pelo Supabase Auth", tenant: context.tenant?.name ?? "Tenant selecionado" }} />
         <ReadOnlyCard title="Brand" value={context.brand ? { display_name: context.brand.display_name, tagline: context.brand.tagline ?? null, logo_url: context.brand.logo_url ?? null, hero_media_url: context.brand.hero_media_url ?? null, whatsapp: context.brand.whatsapp ?? null, email: context.brand.email ?? null } : null} />
         <ReadOnlyCard title="Theme" value={context.theme ?? null} />
         <ReadOnlyCard title="Tenant settings" value={context.settings ? { locale: context.settings.locale, timezone: context.settings.timezone, currency: context.settings.currency, public_settings: context.settings.public_settings ?? {} } : null} />
         <ReadOnlyCard title="Entitlements" value={context.effectiveEntitlements} />
-      </section>
-      {selectedTenantId ? <DraftStudio
-        client={client}
-        tenantId={selectedTenantId}
-        userId={state.userId}
-        aiChatEnabled={context.effectiveEntitlements.some((item) => item.key === "ai.chat.enabled" && item.value === true)}
-      /> : null}
-      <footer className="guardrail">Tenant validado por escopo server-side · IA propõe, Core autoriza · draft writes dependem de cms.write · RLS permanece autoridade</footer>
+      </section> : null}
+      {workspaceView === "billing" && selectedTenantId ? <BillingCenter client={client} tenantId={selectedTenantId} /> : null}
+      {workspaceView === "builder" && selectedTenantId ? <>
+        <DraftStudio
+          client={client}
+          tenantId={selectedTenantId}
+          userId={state.userId}
+          aiChatEnabled={context.effectiveEntitlements.some((item) => item.key === "ai.chat.enabled" && item.value === true)}
+        />
+        <footer className="guardrail">Tenant validado por escopo server-side · IA propõe, Core autoriza · draft writes dependem de cms.write · RLS permanece autoridade</footer>
+      </> : null}
     </main>
   );
 }

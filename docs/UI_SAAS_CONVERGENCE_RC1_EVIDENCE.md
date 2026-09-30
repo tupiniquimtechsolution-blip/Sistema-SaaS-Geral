@@ -26,8 +26,8 @@ Accepted Wave 0 source head:
 | UI-G4 Builder | PASS | Added tenant/vertical context bar, page/status workspace bar, Sections/Layers summary, preview/AI columns and revision-workflow jump while preserving existing revision actions. Builder build, typecheck and unit suite PASS (8 tests). |
 | UI-G5 AI Tenant Studio | PASS | Replaced raw proposal JSON with typed proposal summary and contract-derived operation/capability/permission/risk/protected-fields/confirmation/arguments. Fail-closed parser; explicit non-execution and retryable failure states. 3 new proposal contract tests PASS; Builder build/typecheck PASS. Execution/completion controls intentionally absent (no execution endpoint). |
 | UI-G6 Account/settings/onboarding | PASS | Existing Supabase Auth and `create_tenant_with_owner` onboarding preserved. Read-only Account/session, Brand, Theme, Tenant settings and effective entitlements reformatted into labelled fields; no unsupported identity/billing writes added. Builder typecheck/build PASS. |
-| UI-G7 Billing Center | NOT RUN | Execution pending |
-| UI-G8 Automations/Integrations | NOT RUN | Execution pending |
+| UI-G7 Billing Center | PARTIAL | Added tenant Billing view gated by exact `has_tenant_permission(..., billing.read) === true` and RLS-protected latest 10 `ai_usage_events`; no invoice/monetary totals implied. Subscription/facturation/checkout/portal remain unavailable; see Backend follow-ups. Permission gate unit test PASS. |
+| UI-G8 Automations/Integrations | PARTIAL | Control Plane retains honest capability states. No automation/connection persistence, tenant-scoped management API or provider-health contract found; n8n remains private. See Backend follow-ups. |
 | UI-G9 Hardening | NOT RUN | Execution pending |
 | UI-G10 RC validation | NOT RUN | Execution pending |
 
@@ -80,10 +80,10 @@ Never promote historical evidence into a current PASS unless the RC actually rer
 
 ## Backend follow-ups
 
-Carry forward and refine:
-
-1. Tenant-scoped Stripe Billing read/write contracts for functional Billing Center.
-2. Tenant-aware Integration/Automation contracts, secret isolation, audit and n8n-private orchestration.
+1. **Billing — subscription and invoices:** `packages/database/src/read.ts` can query an active subscription, but the inspected migrations do not provide a tenant-scoped `billing.read` RLS policy for `subscriptions`; do not surface that result as authorized Billing Center data. No invoice/payment-method query or portal contract was found.
+2. **Billing — mutations:** `StripeBillingProvider` exists in `packages/saas-core/src/stripe-billing.ts`, but no authenticated Edge Function/action wires checkout, plan change or customer portal in this repo. Keep Price resolution server-owned and webhook authoritative; implement a tenant authorization boundary before exposing actions.
+3. **Usage:** `ai_usage_events` has `billing.read` RLS and supports a truthful recent-events view only. No aggregate/period usage-summary contract found; current view deliberately limits to 10 events and makes no total or monetary claim.
+4. **Automations/integrations:** no tenant-scoped persistence/RLS/API for automation definitions, connections, provider health, execution history or retries found. Define secret-isolated server contracts and audit before adding tenant actions. n8n remains private orchestration and must not be exposed.
 
 Add new follow-ups only when evidence shows a real missing contract.
 
