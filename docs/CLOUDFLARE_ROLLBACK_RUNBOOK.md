@@ -1,34 +1,82 @@
-# CLOUDFLARE ROLLBACK RUNBOOK
+# Cloudflare Rollback Runbook
 
-Data: 2026-09-18 · Princípio: migrate → validate → cutover → deprecate.
-Nesta wave NENHUM DNS/domínio foi alterado — "cutover" de tráfego ainda não
-existe; rollback = continuar usando a origem alternativa (Vercel) ou reverter
-a versão do Worker.
+Status: **CANONICAL — CLOUDFLARE ONLY**
 
-## Estado de rollback por app
+See also: `docs/HOSTING_POLICY.md`.
 
-| App | Cloudflare (novo) | Vercel (rollback source) | Last known good | Rollback |
-|---|---|---|---|---|
-| Platform | tupiniquim-saas · bce46574 · https://tupiniquim-saas.dramatic-condition.workers.dev | projeto central `sistema-saa-s-geral` — deployment do commit 657fb86 VALIDADO (GET / = 200, title plataforma; URL do deployment registrada pelo owner: sistema-saa-s-geral-pd4osf8ql.vercel.app) | 657fb86 | Manter público em Vercel (já ativo) — nenhuma ação |
-| Bakery | tupiniquim-bakery · cab8d1ae | projeto central publicou a Bakery até o cutover (HTTP 200 provado pelo owner no deployment b8babe9) | 657fb86 | idem |
-| Pet / Restaurant / Heavy Machinery | workers.dev URLs na WORKER MATRIX | sem projeto Vercel dedicado (DECISÃO: OPTIONAL/NOT REQUIRED) — rollback = redeploy da versão anterior do Worker | commit ed91895 | `npx wrangler versions rollback` (após login) ou redeploy do commit anterior |
-| MetalArt | sem deploy (blocker temporary-path) | n/a | — | sem tráfego migrado — nada a reverter |
+## Principle
 
-## Procedimento padrão de rollback
+Rollback for Tupiniquim stays inside Cloudflare.
 
-1. **Tráfego** (quando existir cutover de domínio — hoje NÃO existe): reverter
-   DNS/CNAME para a origem anterior. TTL baixo (60s) na janela de cutover.
-2. **Versão Cloudflare** (com login do owner):
-   `npx wrangler versions list --config apps/<app>/wrangler.jsonc` →
-   `npx wrangler versions rollback <version-id> --config apps/<app>/wrangler.jsonc`.
-3. **Rebuild de emergência**: `npm ci && npm run build:<app>` no
-   last-known-good commit → `npx wrangler deploy --config apps/<app>/wrangler.jsonc`.
-4. **Vercel intacto**: nenhum projeto/deployment Vercel foi alterado ou removido
-   nesta wave (vercel.json preservado no repo).
+Vercel is not an active deployment target and is not a rollback source.
 
-## Regras
+Historical Vercel deployments, URLs, configuration, or evidence must not be used as current release or rollback instructions.
 
-- NUNCA remover/desativar o Vercel antes da aceitação final do owner.
-- Nenhum rollback requer contato com Supabase (backend nunca foi tocado).
-- Após qualquer rollback: re-executar `bun scripts/cloudflare-gate.ts <app> <url>`
-  e registrar resultado no WORKER MATRIX.
+## Standard rollback
+
+For a deployed Worker / Static Assets application:
+
+1. identify the last-known-good Cloudflare version;
+2. list available versions with the app's canonical Wrangler config;
+3. roll back to the selected version using Cloudflare/Wrangler version controls;
+4. if version rollback is unavailable or unsuitable, rebuild the last-known-good Git commit and deploy it with Wrangler;
+5. run the durable HTTPS smoke for the app;
+6. record the version, commit SHA, hostname, smoke result, reason, and operator;
+7. if a custom domain/route was changed, restore the Cloudflare route/domain mapping required by the last-known-good release.
+
+Example commands:
+
+```bash
+npx wrangler versions list --config apps/<app>/wrangler.jsonc
+npx wrangler versions rollback <version-id> --config apps/<app>/wrangler.jsonc
+```
+
+Fallback rebuild:
+
+```bash
+npm ci
+npm run build:<app>
+npx wrangler deploy --config apps/<app>/wrangler.jsonc
+```
+
+Use the exact workspace build command for apps whose root script differs.
+
+## DNS / custom hostnames
+
+A domain rollback must remain within the authorized Cloudflare routing model.
+
+Do not redirect production traffic to Vercel.
+
+For tenant custom domains:
+
+- preserve hostname -> tenant fail-closed validation;
+- preserve TLS requirements;
+- never bypass `tenant_domains` authorization;
+- record the old and new route/domain state;
+- re-run tenant isolation and HTTPS smoke after rollback.
+
+## Required evidence
+
+A valid rollback proof records:
+
+- app/Worker;
+- release commit SHA;
+- failed/current Cloudflare version;
+- target last-known-good Cloudflare version;
+- rollback command/action;
+- durable HTTPS URL;
+- HTTP/browser smoke result;
+- asset loading result;
+- SPA refresh result;
+- console/network result where applicable;
+- operator/date;
+- follow-up issue if rollback was caused by a defect.
+
+## Rules
+
+- Cloudflare Workers / Static Assets is the only hosting target.
+- Do not deploy to Vercel for preview, production, fallback, or rollback.
+- Do not use temporary sandbox URLs as durable release evidence.
+- Supabase remains the backend/data authority and is not modified by a frontend hosting rollback.
+- After rollback, re-run the relevant Cloudflare smoke and release gates.
+- No unchecked Release GREEN item may be represented as PASS.
