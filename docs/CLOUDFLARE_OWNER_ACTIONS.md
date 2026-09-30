@@ -10,23 +10,44 @@ O Release GREEN exige deployments autenticados na conta Cloudflare; previews
 
 Workers/configs preparados no repositório:
 - platform → `apps/platform/wrangler.jsonc`
+- builder → `apps/builder/wrangler.jsonc`
 - bakery → `apps/bakery/wrangler.jsonc`
 - pet → `apps/pet/wrangler.jsonc`
 - restaurant → `apps/restaurant/wrangler.jsonc`
 - metalart → `apps/metalart/wrangler.jsonc`
 - heavy-machinery → `apps/heavy-machinery/wrangler.jsonc`
 - religious-house → `apps/religious-house/wrangler.jsonc`
-- salon → configuração/release gate próprio já validado
+- salon → `apps/salon/wrangler.jsonc`
 
-GitHub/Cloudflare Workers Builds pode executar os deploys sem PC. Production
-branch permanece `freebuff/big-master-wave-01-monorepo` até o cutover aprovado.
+A automação `Cloudflare RC Stage` roda no branch
+`freebuff/big-master-wave-01-monorepo` somente depois dos gates internos do
+mesmo SHA. Ela usa `wrangler versions upload` para enviar versões autenticadas
+sem promover tráfego de produção, captura as Version URLs e executa smoke
+HTTPS/browser/assets/SPA/console/network automaticamente. Production branch
+permanece `freebuff/big-master-wave-01-monorepo` até o cutover aprovado.
+
+Secrets exigidos no GitHub Actions:
+- `CLOUDFLARE_API_TOKEN`
+- `CLOUDFLARE_ACCOUNT_ID`
+- `SUPABASE_URL`
+- `SUPABASE_PUBLISHABLE_KEY`
+
+Nenhum `service_role` é necessário para build ou smoke de frontend.
 
 ## 2. Smoke remoto
 
-Após obter URLs duráveis HTTPS, executar manualmente o workflow
-`Durable Cloudflare Smoke Matrix` preenchendo as sete URLs. O workflow rejeita
-explicitamente hostnames temporários antigos e prova HTTPS, assets, SPA refresh,
-console e falhas de rede.
+O fluxo principal é automático:
+
+1. `Cloudflare RC Stage` aguarda Quality, CodeQL, Salon e Builder Gates no mesmo SHA;
+2. faz upload de versões Cloudflare sem mudar tráfego;
+3. captura as Version URLs;
+4. executa o smoke Playwright em todas as superfícies;
+5. publica manifest/logs como artifacts;
+6. `Release GREEN Same-SHA Evidence` agrega os resultados.
+
+O workflow `Durable Cloudflare Smoke Matrix` permanece apenas como fallback
+operacional/reteste e agora cobre Platform, Builder, Salon e todas as verticais
+de release. Não é mais a etapa principal do processo.
 
 ## 3. Domínio customizado
 
