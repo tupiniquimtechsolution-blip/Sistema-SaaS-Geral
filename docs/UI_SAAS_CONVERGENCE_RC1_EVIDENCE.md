@@ -72,12 +72,12 @@ Never promote historical evidence into a current PASS unless the RC actually rer
 | Typecheck | PASS | `npm run typecheck` across workspaces |
 | Unit tests | PASS | `npm test`: 159 tests passed across Builder/Auth/Database/SaaS Core/Tenancy |
 | Build | PASS | Full `npm run build` across workspaces, including Builder + Platform; existing warnings: 500k+ chunk and unresolved inline noise SVG reference in an unrelated app |
-| Builder E2E | BLOCKED | Attempted `npm run test:e2e --workspace=tupiniquim-builder`; all 3 cases could not launch because Playwright Chromium executable is absent (`chromium_headless_shell` ENOENT). Test expectations were updated for the redesigned shell. |
-| axe | BLOCKED | axe runs inside the same Playwright browser suite; browser unavailable, therefore no axe results. |
-| Lighthouse | BLOCKED | Attempted Builder Lighthouse gate; bundled Chromium path missing (`chrome` ENOENT). |
+| Builder E2E | PARTIAL | Arena sandbox was blocked by missing Chromium, but GitHub Actions run 36731923764 installed Chromium successfully and executed the browser suite: 2/3 tests PASS; authenticated shell test failed on an ambiguous `getByLabel("Tenant")` locator after the redesign. App labels and the locator were corrected in commits `a07004f` / `b168c99`; rerun pending. |
+| axe | PARTIAL | GitHub Actions executed the axe-backed browser suite. The unauthenticated accessibility case passed; the authenticated case stopped on the tenant locator before its final axe assertion. Full rerun pending after locator fix. No WCAG conformance claim. |
+| Lighthouse | NOT RUN | Arena sandbox could not start Lighthouse due to missing browser. GitHub Actions successfully installed Chromium, but run 36731923764 stopped at the browser-contract failure before the Lighthouse step. Rerun pending. |
 | npm audit | BLOCKED | `npm audit --omit=dev --audit-level=moderate` exits 1: 3 moderate findings in transitive `react-router` and `uuid`; automatic breaking upgrades explicitly not applied. Full install summary reports 6 total (5 moderate, 1 high). |
-| Manual responsive review | BLOCKED | No Chromium/system browser present; responsive CSS authored, but no interactive visual review performed. |
-| Security regression review | PARTIAL | Existing cross-tenant/auth/RLS/Billing/AI unit suites passed, plus static review of client changes; browser negative-tenant E2E blocked with Chromium. No migrations or privilege/secret boundary changes. |
+| Manual responsive review | BLOCKED | No manual desktop/tablet/mobile visual review has been recorded yet. GitHub Actions browser automation is now available, but manual viewport evidence/screenshots remain pending. |
+| Security regression review | PARTIAL | Existing cross-tenant/auth/RLS/Billing/AI unit suites passed. GitHub Actions browser suite proved the unauthenticated fail-closed case and reached the authenticated shell; full negative-tenant browser rerun remains pending after the locator fix. No migrations or privilege/secret boundary changes. |
 
 ## Backend follow-ups
 
@@ -103,3 +103,13 @@ Do not claim these from UI code alone:
 ## Final acceptance
 
 RC acceptance requires an evidence-based final matrix, test/build results, security review, documented blockers, and a deliberate integration decision. No automatic merge.
+
+
+## Post-Arena GitHub Actions audit
+
+- RC implementation head `009dd97b2161b50e17a58cd1960b88a06f0e5ea6` was fast-forwarded into the canonical RC branch before browser validation.
+- `Builder Release Gates` was enabled for `rc/ui-saas-convergence-01` only; this adds validation, not deployment.
+- GitHub Actions run `36731923764` successfully installed Playwright Chromium and built/served the Builder.
+- Browser result on that run: **2/3 tests PASS**. The remaining failure was a strict-locator ambiguity introduced by the redesigned accessible labels, not an authorization assertion failure.
+- The tenant selector now uses explicit `label for` / `id` association, and the E2E uses the exact tenant combobox. This preserves the functional assertion rather than weakening it.
+- A new GitHub Actions rerun is required before promoting Builder E2E/axe/Lighthouse status.
