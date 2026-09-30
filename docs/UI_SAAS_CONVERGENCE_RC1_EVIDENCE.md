@@ -46,7 +46,8 @@ Must remain true throughout the RC:
 - AI does not grant authorization.
 - Builder revision/review/publish/rollback contracts remain intact.
 - n8n stays private orchestration, not tenant-facing editor.
-- Cloudflare remains canonical hosting.
+- Cloudflare Workers / Static Assets is the only canonical hosting target.
+- Vercel is historical-only: no deploy, preview, production, fallback, rollback, CLI/action/config/secrets.
 - No blind `supabase db push`.
 - `0001_multi_tenant_schema.sql` must never be applied.
 
@@ -66,6 +67,7 @@ Never promote historical evidence into a current PASS unless the RC actually rer
 
 | Gate | Status | Evidence |
 |---|---|---|
+| Hosting policy gate | NOT RUN | `npm run hosting:policy` — must prove active Vercel deployment config is absent |
 | Locked install | NOT RUN | |
 | Lint | NOT RUN | |
 | Typecheck | NOT RUN | |
