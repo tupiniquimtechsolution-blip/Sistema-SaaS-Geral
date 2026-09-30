@@ -10,10 +10,9 @@ import { Badge, gateTone, maturityTone } from "./ui";
 
 export function DashboardView({ env }: { env: Record<string, string | undefined> }) {
   const previewUrls = readPreviewUrls(env);
-  const readyCount = VERTICALS.filter((v) => v.state === "ready").length;
-  const blockedCount = VERTICALS.filter((v) => v.state === "blocked").length;
+  const appCount = VERTICALS.filter((v) => v.app === "EXISTS").length;
+  const buildPassCount = VERTICALS.filter((v) => v.build === "PASS").length;
   const gatesPass = GATES.filter((g) => g.state === "PASS").length;
-  const ownerActions = PROJECTS.filter((p) => p.status.includes("OWNER_ACTION_REQUIRED")).length;
 
   return (
     <div className="view">
@@ -21,27 +20,24 @@ export function DashboardView({ env }: { env: Record<string, string | undefined>
         <h2>Estado da plataforma</h2>
         <div className="statgrid">
           <div className="stat">
-            <div className="stat-num">{readyCount}</div>
-            <div className="stat-label">verticais prontos p/ deploy</div>
+            <div className="stat-num">{VERTICALS.length}</div>
+            <div className="stat-label">verticais no catálogo</div>
           </div>
           <div className="stat">
-            <div className="stat-num">{blockedCount}</div>
-            <div className="stat-label">bloqueados (blocker externo real)</div>
+            <div className="stat-num">{appCount}</div>
+            <div className="stat-label">apps com código no repositório</div>
           </div>
           <div className="stat">
-            <div className="stat-num">
-              {gatesPass}/{GATES.length}
-            </div>
-            <div className="stat-label">gates de segurança/qualidade PASS</div>
+            <div className="stat-num">{buildPassCount}/{VERTICALS.length}</div>
+            <div className="stat-label">builds PASS registrados no catálogo</div>
           </div>
           <div className="stat">
-            <div className="stat-num">{ownerActions}</div>
-            <div className="stat-label">projetos aguardando ação do owner</div>
+            <div className="stat-num">{gatesPass}/{GATES.length}</div>
+            <div className="stat-label">gates PASS na evidência registrada</div>
           </div>
         </div>
         <p className="hint">
-          Números refletem execução real registrada (docs/ + gates). Nada é
-          estimado ou simulado — ver detalhes na aba{" "}
+          Contagens derivadas do catálogo versionado, não de telemetria live. Estados dos gates são a evidência registrada e podem não ter sido reexecutados nesta sessão. Consulte detalhes em{" "}
           <a href="#/status">Estado</a>.
         </p>
       </section>

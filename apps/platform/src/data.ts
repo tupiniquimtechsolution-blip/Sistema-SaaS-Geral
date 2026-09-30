@@ -125,9 +125,10 @@ export const GATES: Gate[] = [
   { name: "Leitura live Bakery", state: "PASS", evidence: "Leitura Supabase de tenant/brand/theme/settings/entitlements consta na documentação; não revalidada nesta sessão." },
   { name: "Migration 20260918132842", state: "PASS", evidence: "Aplicação/reconciliação registrada no ledger; nenhuma migration executada nesta wave." },
   { name: "Resíduo de Storage QA", state: "PASS", evidence: "Último resultado documentado: zero; varredura não reexecutada nesta sessão." },
-  { name: "Testes unitários e de segurança", state: "NOT RUN", evidence: "Os gates serão executados neste corrective pass; resultados não inferidos de execuções anteriores." },
+  { name: "Testes unitários e de segurança", state: "PASS", evidence: "npm test: 155 testes passaram nos workspaces Builder/Auth/Database/SaaS Core/Tenancy neste corrective pass; não substitui RLS E2E live." },
   { name: "Varredura de secrets em bundles", state: "NOT RUN", evidence: "Não executada neste corrective pass." },
-  { name: "Builder E2E", state: "BLOCKED", evidence: "Playwright specs existem em apps/builder/e2e; execução browser nesta sessão bloqueada por Chromium ausente/download indisponível." },
+  { name: "Builder E2E", state: "BLOCKED", evidence: "3 Playwright specs existem em apps/builder/e2e; execução neste corrective pass não iniciou: Chromium ausente. Download anterior falhou com TLS/ECONNRESET." },
+  { name: "Acessibilidade axe", state: "BLOCKED", evidence: "Axe está integrado aos specs Playwright; não executou porque o browser Chromium não está disponível." },
   { name: "Snapshot remoto Supabase", state: "BLOCKED", evidence: "Ledger registra migrations REMOTE_ONLY pendentes de export; esta wave não executa db push nem reconstrói SQL remoto." },
 ];
 
