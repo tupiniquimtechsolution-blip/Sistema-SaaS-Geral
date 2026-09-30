@@ -5,6 +5,7 @@ on:
     branches:
       - chatgpt/integrate-salon-vanessa
       - automation/salon-rc1-gates
+      - freebuff/big-master-wave-01-monorepo
     paths:
       - 'apps/salon/**'
       - 'packages/**'
