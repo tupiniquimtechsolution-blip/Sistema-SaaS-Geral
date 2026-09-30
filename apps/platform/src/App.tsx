@@ -109,7 +109,7 @@ export default function App() {
         </a>
         <div className="workspace-label">ESPAÇO DE TRABALHO</div>
         <nav className="side-nav" aria-label="Navegação do espaço de trabalho">
-          {NAV.map((item) => <a key={item.route} href={item.href} className={active === item.route ? "navlink active" : "navlink"} aria-current={active === item.route ? "page" : undefined}>
+          {NAV.map((item) => <a key={item.route} href={item.href} onClick={() => { if (isMobile) setMenuOpen(false); }} className={active === item.route ? "navlink active" : "navlink"} aria-current={active === item.route ? "page" : undefined}>
             <span className="nav-icon" aria-hidden="true">{item.icon}</span>{item.label}
           </a>)}
         </nav>
