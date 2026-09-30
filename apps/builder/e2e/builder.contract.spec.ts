@@ -138,3 +138,35 @@ test("requested tenant outside memberships is denied by default", async ({ page 
   await expect(page.getByRole("heading", { name: "Seleção não autorizada" })).toBeVisible();
   await expect(page.getByText("não pertence às memberships ativas", { exact: false })).toBeVisible();
 });
+
+test("authenticated Builder remains usable across desktop tablet and mobile viewports", async ({ page }, testInfo) => {
+  await installSupabaseContract(page);
+  await page.goto("/");
+  await page.getByLabel("E-mail").fill("qa-builder@example.test");
+  await page.getByLabel("Senha").fill("contract-only-password");
+  await page.getByRole("button", { name: "Entrar" }).click();
+
+  const viewports = [
+    { name: "desktop", width: 1440, height: 1000 },
+    { name: "tablet", width: 900, height: 1100 },
+    { name: "mobile", width: 390, height: 844 },
+  ] as const;
+
+  for (const viewport of viewports) {
+    await page.setViewportSize({ width: viewport.width, height: viewport.height });
+    await expect(page.getByRole("heading", { name: "Studio de páginas e revisões", level: 2 })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Páginas e camadas" })).toBeVisible();
+    await expect(page.getByRole("complementary", { name: "AI Tenant Studio" })).toBeVisible();
+
+    const hasHorizontalOverflow = await page.evaluate(() =>
+      document.documentElement.scrollWidth > document.documentElement.clientWidth + 1
+    );
+    expect(hasHorizontalOverflow, `horizontal overflow at ${viewport.name}`).toBe(false);
+
+    await assertNoSeriousA11yViolations(page);
+    await page.screenshot({
+      path: testInfo.outputPath(`builder-${viewport.name}.png`),
+      fullPage: true,
+    });
+  }
+});
