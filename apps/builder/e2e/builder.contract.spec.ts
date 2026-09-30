@@ -116,6 +116,7 @@ test("authenticated tenant shell resolves canonical context and Builder preview"
 
   await expect(page.getByText("TUPINIQUIM SITE BUILDER")).toBeVisible();
   await expect(page.getByRole("heading", { name: "QA Tenant A", level: 1 })).toBeVisible();
+  // Exact role/name avoids matching the tenant nav, workspace region or AI Tenant Studio labels.
   const tenantSelect = page.getByRole("combobox", { name: "Tenant", exact: true });
   await expect(tenantSelect).toHaveValue(TENANT_ID);
   await expect(tenantSelect.locator("option")).toHaveCount(1);
