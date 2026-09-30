@@ -117,9 +117,9 @@ export function App({ client }: AppProps) {
       <header className="topbar builder-topbar">
         <div><p className="eyebrow">TUPINIQUIM SITE BUILDER</p><h1>{context.brand?.display_name ?? context.tenant?.name ?? "Tenant selecionado"}</h1></div>
         <nav className="tenant-nav" aria-label="Navegação do tenant">
-          <button type="button" className={workspaceView === "builder" ? "tenant-nav-active" : "secondary"} aria-current={workspaceView === "builder" ? "page" : undefined} onClick={() => setWorkspaceView("builder")}>Builder</button>
-          <button type="button" className={workspaceView === "billing" ? "tenant-nav-active" : "secondary"} aria-current={workspaceView === "billing" ? "page" : undefined} onClick={() => setWorkspaceView("billing")}>Cobrança</button>
-          <button type="button" className={workspaceView === "settings" ? "tenant-nav-active" : "secondary"} aria-current={workspaceView === "settings" ? "page" : undefined} onClick={() => setWorkspaceView("settings")}>Conta e settings</button>
+          <button type="button" className={workspaceView === "builder" ? "tenant-nav-active" : "secondary"} aria-pressed={workspaceView === "builder"} onClick={() => setWorkspaceView("builder")}>Builder</button>
+          <button type="button" className={workspaceView === "billing" ? "tenant-nav-active" : "secondary"} aria-pressed={workspaceView === "billing"} onClick={() => setWorkspaceView("billing")}>Cobrança</button>
+          <button type="button" className={workspaceView === "settings" ? "tenant-nav-active" : "secondary"} aria-pressed={workspaceView === "settings"} onClick={() => setWorkspaceView("settings")}>Conta e settings</button>
         </nav>
         <button className="secondary" type="button" onClick={() => void signOut(client)}>Sair</button>
       </header>

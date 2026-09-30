@@ -28,8 +28,8 @@ Accepted Wave 0 source head:
 | UI-G6 Account/settings/onboarding | PASS | Existing Supabase Auth and `create_tenant_with_owner` onboarding preserved. Read-only Account/session, Brand, Theme, Tenant settings and effective entitlements reformatted into labelled fields; no unsupported identity/billing writes added. Builder typecheck/build PASS. |
 | UI-G7 Billing Center | PARTIAL | Added tenant Billing view gated by exact `has_tenant_permission(..., billing.read) === true` and RLS-protected latest 10 `ai_usage_events`; no invoice/monetary totals implied. Subscription/facturation/checkout/portal remain unavailable; see Backend follow-ups. Permission gate unit test PASS. |
 | UI-G8 Automations/Integrations | PARTIAL | Control Plane retains honest capability states. No automation/connection persistence, tenant-scoped management API or provider-health contract found; n8n remains private. See Backend follow-ups. |
-| UI-G9 Hardening | NOT RUN | Execution pending |
-| UI-G10 RC validation | NOT RUN | Execution pending |
+| UI-G9 Hardening | PARTIAL | Added shared reduced-motion behavior, semantic focus ring and responsive layouts/table overflow; static source review and unit security suites pass. Browser-dependent responsive/a11y review is BLOCKED because no Chromium executable is installed; no WCAG conformance claim. |
+| UI-G10 RC validation | PARTIAL | Locked install, lint, typecheck, unit tests, full workspace build and Cloudflare hosting policy gate pass. Playwright/axe/Lighthouse blocked by missing Chromium; production npm audit exits 1 on three moderate advisories. Full matrix below. |
 
 ## RC invariants
 
@@ -66,17 +66,18 @@ Never promote historical evidence into a current PASS unless the RC actually rer
 
 | Gate | Status | Evidence |
 |---|---|---|
-| Hosting policy gate | NOT RUN | Must run `npm run hosting:policy` |
-| Locked install | PASS | `npm ci` after shared package wiring; 345 packages added; npm reported 6 vulnerabilities (5 moderate, 1 high) |
-| Lint | NOT RUN | |
-| Typecheck | PASS | `npm run typecheck --workspaces --if-present` |
-| Unit tests | NOT RUN | |
-| Build | PARTIAL | `npm run build --workspace=tupiniquim-builder` and `npm run build --workspace=tupiniquim-platform` PASS; full workspace build pending |
-| Builder E2E | NOT RUN | |
-| axe | NOT RUN | |
-| npm audit | NOT RUN | Install reported 6 vulnerabilities; full audit review pending |
-| Manual responsive review | NOT RUN | |
-| Security regression review | NOT RUN | |
+| Hosting policy gate | PASS | `npm run hosting:policy`: `HOSTING_POLICY_GATE=PASS`; canonical Cloudflare Workers / Static Assets; no active Vercel deployment configuration |
+| Locked install | PASS | `npm ci` completed after package wiring (345 packages added). npm install summary reported 6 vulnerabilities (5 moderate, 1 high). |
+| Lint | PASS | `npm run lint` |
+| Typecheck | PASS | `npm run typecheck` across workspaces |
+| Unit tests | PASS | `npm test`: 159 tests passed across Builder/Auth/Database/SaaS Core/Tenancy |
+| Build | PASS | Full `npm run build` across workspaces, including Builder + Platform; existing warnings: 500k+ chunk and unresolved inline noise SVG reference in an unrelated app |
+| Builder E2E | BLOCKED | Attempted `npm run test:e2e --workspace=tupiniquim-builder`; all 3 cases could not launch because Playwright Chromium executable is absent (`chromium_headless_shell` ENOENT). Test expectations were updated for the redesigned shell. |
+| axe | BLOCKED | axe runs inside the same Playwright browser suite; browser unavailable, therefore no axe results. |
+| Lighthouse | BLOCKED | Attempted Builder Lighthouse gate; bundled Chromium path missing (`chrome` ENOENT). |
+| npm audit | BLOCKED | `npm audit --omit=dev --audit-level=moderate` exits 1: 3 moderate findings in transitive `react-router` and `uuid`; automatic breaking upgrades explicitly not applied. Full install summary reports 6 total (5 moderate, 1 high). |
+| Manual responsive review | BLOCKED | No Chromium/system browser present; responsive CSS authored, but no interactive visual review performed. |
+| Security regression review | PARTIAL | Existing cross-tenant/auth/RLS/Billing/AI unit suites passed, plus static review of client changes; browser negative-tenant E2E blocked with Chromium. No migrations or privilege/secret boundary changes. |
 
 ## Backend follow-ups
 
