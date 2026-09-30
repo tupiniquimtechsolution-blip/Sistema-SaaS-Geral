@@ -20,12 +20,12 @@ Accepted Wave 0 source head:
 
 | Phase | Status | Evidence |
 |---|---|---|
-| UI-G1 Design foundations | PASS | Added shared `packages/ui` semantic token package and consumed by Platform and Builder; Builder and Platform production builds PASS; all workspace typechecks PASS. Commit: pending |
-| UI-G2 Application shell | NOT RUN | Execution pending |
-| UI-G3 Control Plane | NOT RUN | Execution pending |
-| UI-G4 Builder | NOT RUN | Execution pending |
-| UI-G5 AI Tenant Studio | NOT RUN | Execution pending |
-| UI-G6 Account/settings/onboarding | NOT RUN | Execution pending |
+| UI-G1 Design foundations | PASS | Shared `packages/ui` semantic token package consumed by Platform and Builder; both production builds and all workspace typechecks PASS. Commit `f5da56a` |
+| UI-G2 Application shell | PASS | Inspected shared Platform shell: route-aware side navigation, mobile drawer with Escape/focus handling, skip link, responsive CSS; Platform production build and typecheck PASS. Manual responsive review remains a G9 gate. |
+| UI-G3 Control Plane | PASS | Inspected data-driven dashboard/tenant/vertical/core/deployment/status views and explicit capability states for unsupported billing/automation/integration contracts; Platform production build and typecheck PASS. |
+| UI-G4 Builder | PASS | Added tenant/vertical context bar, page/status workspace bar, Sections/Layers summary, preview/AI columns and revision-workflow jump while preserving existing revision actions. Builder build, typecheck and unit suite PASS (8 tests). |
+| UI-G5 AI Tenant Studio | PASS | Replaced raw proposal JSON with typed proposal summary and contract-derived operation/capability/permission/risk/protected-fields/confirmation/arguments. Fail-closed parser; explicit non-execution and retryable failure states. 3 new proposal contract tests PASS; Builder build/typecheck PASS. Execution/completion controls intentionally absent (no execution endpoint). |
+| UI-G6 Account/settings/onboarding | PASS | Existing Supabase Auth and `create_tenant_with_owner` onboarding preserved. Read-only Account/session, Brand, Theme, Tenant settings and effective entitlements reformatted into labelled fields; no unsupported identity/billing writes added. Builder typecheck/build PASS. |
 | UI-G7 Billing Center | NOT RUN | Execution pending |
 | UI-G8 Automations/Integrations | NOT RUN | Execution pending |
 | UI-G9 Hardening | NOT RUN | Execution pending |
