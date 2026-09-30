@@ -19,7 +19,7 @@ test("real QA session resolves tenant and rejects an unowned tenant", async ({ p
   await page.getByRole("button", { name: "Entrar" }).click();
 
   await expect(page.getByText("TUPINIQUIM SITE BUILDER")).toBeVisible();
-  const tenant = page.getByLabel("Tenant");
+  const tenant = page.getByRole("combobox", { name: "Tenant", exact: true });
   await expect(tenant).toBeVisible();
   const ownedTenantId = await tenant.inputValue();
   expect(ownedTenantId).not.toBe("");
