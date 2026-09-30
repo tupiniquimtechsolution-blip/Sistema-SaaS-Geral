@@ -50,7 +50,7 @@ Preserve:
 - RBAC as user action authorization.
 - Entitlements as tenant/product capability authorization.
 - SaaS Core.
-- Cloudflare Workers / Static Assets as canonical hosting.
+- Cloudflare Workers / Static Assets as the **only** canonical hosting.
 - Stripe as SaaS billing provider.
 - Builder revision/review/publish/rollback flow.
 - AI Tenant Studio proposal/tool model.
@@ -65,6 +65,8 @@ Never:
 - accept arbitrary Stripe Price IDs from browser;
 - replace Stripe with Paddle/Polar;
 - replace Supabase Auth;
+- deploy, preview, roll back, or configure production through Vercel;
+- add Vercel CLI/actions/config/secrets; Vercel references are historical-only;
 - migrate the monorepo to Next.js/SvelteKit merely for templates;
 - expose n8n editor to tenants;
 - run destructive migrations;
@@ -317,7 +319,8 @@ At minimum:
 - app/workspace-specific builds;
 - Playwright where available;
 - axe where available;
-- `npm audit --omit=dev --audit-level=moderate`.
+- `npm audit --omit=dev --audit-level=moderate`;
+- `npm run hosting:policy`.
 
 Do not use `npm audit fix --force`.
 
@@ -338,7 +341,8 @@ No RC acceptance if the work regresses:
 - AI policy;
 - revision/publish/rollback flow;
 - cross-tenant negative behavior;
-- Cloudflare-compatible builds.
+- Cloudflare-compatible builds;
+- Cloudflare-only hosting policy gate.
 
 ## Reference policy
 
