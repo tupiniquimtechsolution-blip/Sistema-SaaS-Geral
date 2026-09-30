@@ -120,7 +120,7 @@ test("authenticated tenant shell resolves canonical context and Builder preview"
   const tenantSelect = page.getByRole("combobox", { name: "Tenant", exact: true });
   await expect(tenantSelect).toHaveValue(TENANT_ID);
   await expect(tenantSelect.locator("option")).toHaveCount(1);
-  await expect(page.getByRole("heading", { name: "Pages & Layers" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Páginas e camadas" })).toBeVisible();
   await expect(page.getByLabel("Página ativa")).toBeVisible();
 
   await page.getByLabel("Vertical canônica").fill("bakery");
