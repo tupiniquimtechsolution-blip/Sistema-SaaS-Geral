@@ -22,7 +22,7 @@ export function AiCopilot({ client, tenantId, pageId, enabled }: AiCopilotProps)
     <p className="eyebrow">AI COPILOT · PROPOSAL ONLY</p>
     <h3>O que você quer mudar?</h3>
     <p>Descreva a alteração. A IA cria uma proposta; autorização, confirmação e publicação continuam separadas.</p>
-    <form onSubmit={async (event) => {
+    <form aria-busy={busy} onSubmit={async (event) => {
       event.preventDefault();
       if (!prompt.trim()) return;
       setBusy(true); setMessage(null); setProposal(null);
@@ -37,7 +37,7 @@ export function AiCopilot({ client, tenantId, pageId, enabled }: AiCopilotProps)
         setMessage(error instanceof Error ? error.message : "Copiloto indisponível.");
       } finally { setBusy(false); }
     }}>
-      <label>Pedido<textarea value={prompt} maxLength={4000} rows={5} placeholder="Ex.: Deixe a home mais sofisticada. Não altere o logo nem os produtos." onChange={(event) => setPrompt(event.target.value)} /></label>
+      <label htmlFor="tenant-ai-request">Pedido<textarea id="tenant-ai-request" value={prompt} maxLength={4000} rows={5} placeholder="Ex.: Deixe a home mais sofisticada. Não altere o logo nem os produtos." onChange={(event) => setPrompt(event.target.value)} /></label>
       <button type="submit" disabled={busy || !prompt.trim()}>{busy ? "Analisando…" : "Gerar proposta"}</button>
     </form>
     {message ? <p className="status-message" role="status">{message}</p> : null}
