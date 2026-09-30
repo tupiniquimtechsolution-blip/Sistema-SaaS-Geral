@@ -1,0 +1,253 @@
+name: Cloudflare RC Stage
+
+on:
+  push:
+    branches:
+      - freebuff/big-master-wave-01-monorepo
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: read
+
+concurrency:
+  group: cloudflare-rc-stage-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  wait-internal-gates:
+    name: wait-internal-gates
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Wait for same-SHA internal release gates
+        shell: bash
+        run: |
+          set -euo pipefail
+          required=(
+            "Monorepo Quality Gates"
+            "CodeQL"
+            "Salon Vanessa Gates"
+            "Builder Release Gates"
+          )
+
+          for attempt in $(seq 1 120); do
+            payload="$(gh api               -H "Accept: application/vnd.github+json"               "/repos/${GITHUB_REPOSITORY}/actions/runs?head_sha=${GITHUB_SHA}&event=push&per_page=100")"
+
+            ready=1
+            failed=0
+            : > /tmp/gates.txt
+
+            for workflow in "${required[@]}"; do
+              row="$(jq -r --arg workflow "$workflow" '
+                [.workflow_runs[] | select(.name == $workflow)]
+                | sort_by(.created_at)
+                | last
+                | if . == null then "MISSING|-"
+                  else (.status + "|" + (.conclusion // "-"))
+                  end
+              ' <<<"$payload")"
+
+              status="${row%%|*}"
+              conclusion="${row#*|}"
+              printf '%s: %s/%s\n' "$workflow" "$status" "$conclusion" | tee -a /tmp/gates.txt
+
+              if [ "$status" != "completed" ]; then
+                ready=0
+              elif [ "$conclusion" != "success" ]; then
+                failed=1
+              fi
+            done
+
+            if [ "$failed" -eq 1 ]; then
+              echo "::error::At least one same-SHA internal release gate failed."
+              cat /tmp/gates.txt
+              exit 1
+            fi
+
+            if [ "$ready" -eq 1 ]; then
+              cat /tmp/gates.txt >> "$GITHUB_STEP_SUMMARY"
+              exit 0
+            fi
+
+            sleep 15
+          done
+
+          echo "::error::Timed out waiting for same-SHA internal release gates."
+          exit 1
+
+  upload-versions:
+    name: upload-cloudflare-versions
+    needs: wait-internal-gates
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      VITE_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
+      VITE_DEMO_MODE: "false"
+      VITE_TENANT_SLUG: "vanessa-braz"
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Require Cloudflare and browser-safe Supabase secrets
+        shell: bash
+        run: |
+          set -euo pipefail
+          missing=0
+          for name in CLOUDFLARE_API_TOKEN CLOUDFLARE_ACCOUNT_ID VITE_SUPABASE_URL VITE_SUPABASE_PUBLISHABLE_KEY; do
+            if [ -z "${!name}" ]; then
+              echo "::error::Missing required GitHub Actions secret: ${name}"
+              missing=1
+            fi
+          done
+          exit "$missing"
+
+      - name: Install locked dependencies
+        run: npm ci
+
+      - name: Enforce Cloudflare-only hosting
+        run: npm run hosting:policy
+
+      - name: Build release surfaces
+        run: npm run build
+
+      - name: Upload Cloudflare versions without deploying traffic
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p cloudflare-stage-logs
+          printf '[]\n' > cloudflare-stage-urls.json
+
+          short_sha="${GITHUB_SHA:0:12}"
+          alias="rg-${short_sha}"
+          tag="rg-${short_sha}"
+
+          stage_one() {
+            local vertical="$1"
+            local config="$2"
+            local title="$3"
+            local log="cloudflare-stage-logs/${vertical}.log"
+
+            echo "::group::Stage ${vertical}"
+            npx wrangler versions upload               --config "$config"               --preview-alias "$alias"               --tag "$tag"               --message "Release GREEN staged version ${GITHUB_SHA}"               --keep-vars               --strict 2>&1 | tee "$log"
+            echo "::endgroup::"
+
+            local url
+            url="$(grep -Eo 'https://[A-Za-z0-9.-]+\.workers\.dev' "$log" | tail -1 || true)"
+            if [ -z "$url" ]; then
+              echo "::error::Wrangler did not return a Cloudflare Version URL for ${vertical}."
+              exit 1
+            fi
+
+            jq               --arg vertical "$vertical"               --arg config "$config"               --arg title "$title"               --arg url "$url"               '. += [{vertical:$vertical, config:$config, title:$title, url:$url}]'               cloudflare-stage-urls.json > cloudflare-stage-urls.tmp
+            mv cloudflare-stage-urls.tmp cloudflare-stage-urls.json
+          }
+
+          stage_one "platform" "apps/platform/wrangler.jsonc" "Tupiniquim SaaS"
+          stage_one "builder" "apps/builder/wrangler.jsonc" "Tupiniquim Site Builder"
+          stage_one "bakery" "apps/bakery/wrangler.jsonc" "Fornalha"
+          stage_one "pet" "apps/pet/wrangler.jsonc" "Amora Pet"
+          stage_one "restaurant" "apps/restaurant/wrangler.jsonc" "Chez Amis"
+          stage_one "metalart" "apps/metalart/wrangler.jsonc" "Metal & Art"
+          stage_one "heavy-machinery" "apps/heavy-machinery/wrangler.jsonc" "Lusomaq"
+          stage_one "religious-house" "apps/religious-house/wrangler.jsonc" "Templo"
+          stage_one "salon" "apps/salon/wrangler.jsonc" "Salão / Beleza"
+
+          {
+            echo "## Cloudflare staged versions"
+            echo
+            echo "These are uploaded Worker versions; no production traffic was changed."
+            echo
+            jq -r '.[] | "- **\(.vertical)** — \(.url)"' cloudflare-stage-urls.json
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload staged-version evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: cloudflare-rc-stage-${{ github.sha }}
+          if-no-files-found: error
+          retention-days: 14
+          path: |
+            cloudflare-stage-urls.json
+            cloudflare-stage-logs
+
+      - name: Preserve staged URL manifest for smoke job
+        uses: actions/upload-artifact@v4
+        with:
+          name: cloudflare-rc-stage-urls-${{ github.sha }}
+          if-no-files-found: error
+          retention-days: 14
+          path: cloudflare-stage-urls.json
+
+  smoke-staged-versions:
+    name: smoke-cloudflare-version-urls
+    needs: upload-versions
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install locked dependencies
+        run: npm ci
+
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Download staged URL manifest
+        uses: actions/download-artifact@v4
+        with:
+          name: cloudflare-rc-stage-urls-${{ github.sha }}
+          path: cloudflare-stage
+
+      - name: Smoke every staged Cloudflare version
+        shell: bash
+        run: |
+          set -euo pipefail
+          manifest="cloudflare-stage/cloudflare-stage-urls.json"
+          test -s "$manifest"
+
+          jq -c '.[]' "$manifest" | while read -r item; do
+            vertical="$(jq -r '.vertical' <<<"$item")"
+            url="$(jq -r '.url' <<<"$item")"
+            title="$(jq -r '.title' <<<"$item")"
+
+            case "$url" in
+              https://*.workers.dev) ;;
+              *)
+                echo "::error::Unexpected staged URL for ${vertical}: ${url}"
+                exit 1
+                ;;
+            esac
+
+            echo "::group::Smoke ${vertical} — ${url}"
+            curl --fail --silent --show-error --location --max-time 30 "$url" >/tmp/cloudflare-home.html
+            test -s /tmp/cloudflare-home.html
+
+            DURABLE_SMOKE_URL="$url"             DURABLE_SMOKE_TITLE="$title"               npx playwright test tests/e2e/durable-deploy-smoke.spec.ts --reporter=line
+            echo "::endgroup::"
+          done
+
+      - name: Stage smoke summary
+        shell: bash
+        run: |
+          {
+            echo "## Cloudflare RC stage smoke"
+            echo
+            echo "All uploaded Version URLs passed HTTPS/assets/SPA/console/network smoke."
+            echo
+            echo "No Worker version was promoted to production traffic by this workflow."
+          } >> "$GITHUB_STEP_SUMMARY"
