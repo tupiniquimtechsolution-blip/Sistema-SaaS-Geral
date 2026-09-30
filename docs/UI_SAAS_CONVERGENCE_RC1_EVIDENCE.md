@@ -28,8 +28,8 @@ Accepted Wave 0 source head:
 | UI-G6 Account/settings/onboarding | PASS | Existing Supabase Auth and `create_tenant_with_owner` onboarding preserved. Read-only Account/session, Brand, Theme, Tenant settings and effective entitlements reformatted into labelled fields; no unsupported identity/billing writes added. Builder typecheck/build PASS. Commit `9e07ba8`. |
 | UI-G7 Billing Center | PARTIAL | Added tenant Billing view gated by exact `has_tenant_permission(..., billing.read) === true` and RLS-protected latest 10 `ai_usage_events`; no invoice/monetary totals implied. Subscription/facturation/checkout/portal remain unavailable; see Backend follow-ups. Permission gate unit test PASS. Commit `455bb0a`. |
 | UI-G8 Automations/Integrations | PARTIAL | Control Plane retains honest capability states. No automation/connection persistence, tenant-scoped management API or provider-health contract found; n8n remains private. See Backend follow-ups. |
-| UI-G9 Hardening | PARTIAL | GitHub Actions now provides Chromium, Playwright, axe and Lighthouse. Automated desktop/tablet/mobile viewport coverage with screenshots and horizontal-overflow assertions was added to the Builder browser contract; same-SHA rerun pending. No unsupported WCAG conformance claim. |
-| UI-G10 RC validation | PARTIAL | Locked install, lint, typecheck, unit tests, full workspace build and Cloudflare hosting policy have passed on prior RC heads. CI now emits a moderate+ production dependency report while keeping high/critical advisories release-blocking. Final Quality + Builder Release Gates rerun on one common SHA is pending. |
+| UI-G9 Hardening | PASS | GitHub Actions installed Chromium and passed Playwright contract coverage, axe, Lighthouse, automated desktop/tablet/mobile viewport checks, horizontal-overflow assertions, screenshot capture, and authenticated live smoke against canonical Supabase. No unsupported blanket WCAG conformance claim. |
+| UI-G10 RC validation | PASS | Same-SHA Monorepo Quality Gates and Builder Release Gates passed on accepted RC code SHA `de6a9198af6eb3a73fe4fcef4533efe880a1764f`: locked install, lint, typecheck, tests, builds, Cloudflare-only policy, Postgres security contract, browser E2E, axe, Lighthouse, live canonical Supabase smoke, and high/critical production dependency audit. Moderate+ advisories remain automatically reported for triage. |
 
 ## RC invariants
 
@@ -72,12 +72,12 @@ Never promote historical evidence into a current PASS unless the RC actually rer
 | Typecheck | PASS | `npm run typecheck` across workspaces |
 | Unit tests | PASS | `npm test`: 159 tests passed across Builder/Auth/Database/SaaS Core/Tenancy |
 | Build | PASS | Full `npm run build` across workspaces, including Builder + Platform; existing warnings: 500k+ chunk and unresolved inline noise SVG reference in an unrelated app |
-| Builder E2E | PARTIAL | GitHub Actions run 36733009578 proved browser contract + accessibility + Lighthouse PASS. Live canonical smoke then exposed stale test selectors/headings rather than an RLS/Auth failure. The tenant locator and semantic Builder heading contracts are now corrected; final same-SHA rerun pending. |
-| axe | PARTIAL | axe-backed contract suite passed in GitHub Actions on the prior corrected Builder head. Final same-SHA rerun pending after responsive viewport automation. No blanket WCAG conformance claim. |
-| Lighthouse | PARTIAL | Lighthouse thresholds passed in GitHub Actions on the prior corrected Builder head. Final same-SHA rerun pending. |
-| Production dependency audit | PARTIAL | CI blocks high/critical production advisories with `npm audit --omit=dev --audit-level=high`. A moderate+ JSON report and job summary are now generated automatically as non-bypassing evidence. Final same-SHA run pending; moderate findings require disposition but are not silently hidden. |
-| Responsive viewport automation | PARTIAL | Playwright now validates desktop 1440×1000, tablet 900×1100 and mobile 390×844, checks for horizontal overflow, runs axe for each viewport and stores full-page screenshots in test artifacts. Final same-SHA run pending. |
-| Security regression review | PARTIAL | Existing cross-tenant/auth/RLS/Billing/AI unit suites passed. Live smoke reaches canonical Supabase with configured QA secrets; the test now uses exact tenant selectors and a semantic Builder heading before exercising default-deny for an unowned tenant. Final same-SHA rerun pending. |
+| Builder E2E | PASS | Builder Release Gates run `36739518943` passed the browser contract suite and the authenticated live smoke on the same RC SHA. The live smoke proves real login, owned membership resolution, default-deny for an unowned tenant, and recovery to the owned tenant. |
+| axe | PASS | axe-backed checks passed in the browser contract suite, including automated responsive viewports. This is automated evidence for the covered surfaces; it is not a blanket WCAG certification. |
+| Lighthouse | PASS | Lighthouse thresholds passed in Builder Release Gates on the accepted RC code SHA. |
+| Production dependency audit | PASS | High/critical production audit is release-blocking and passed. CI also generated the moderate+ JSON artifact/job summary so lower-severity advisories remain visible and triageable rather than hidden. |
+| Responsive viewport automation | PASS | Playwright validated desktop 1440×1000, tablet 900×1100 and mobile 390×844, checked horizontal overflow, ran axe for each viewport, and stored full-page screenshots in test artifacts. |
+| Security regression review | PASS | Existing cross-tenant/auth/RLS/Billing/AI suites passed, and the authenticated live smoke against canonical Supabase proved owned membership resolution plus default-deny for an unowned tenant. No migration, secret-boundary, RLS, RBAC, entitlement, Stripe-authority, or AI-authorization change was introduced by this UI RC. |
 
 ## Backend follow-ups
 
@@ -124,3 +124,38 @@ RC acceptance requires an evidence-based final matrix, test/build results, secur
 - `Builder Release Gates` now watches `packages/ui/**` and this RC evidence ledger, so shared-UI/evidence changes cannot advance the RC without a browser-gate rerun.
 - Production dependency advisory reporting is automated: moderate+ findings are captured as JSON/job summary; high/critical remain blocking.
 - Final acceptance still requires Monorepo Quality Gates and Builder Release Gates to complete successfully on the same final SHA.
+
+
+## Accepted automated gate evidence
+
+Accepted RC code SHA:
+
+`de6a9198af6eb3a73fe4fcef4533efe880a1764f`
+
+Same-SHA workflow results:
+
+- Monorepo Quality Gates run `36739518980`: **PASS**
+- Builder Release Gates run `36739518943`: **PASS**
+- RC1 Acceptance run `36739518968`: **PASS**
+- browser E2E / axe / Lighthouse: **PASS**
+- authenticated canonical Supabase membership + default-deny smoke: **PASS**
+- Cloudflare-only hosting policy: **PASS**
+- high/critical production dependency audit: **PASS**
+- moderate+ dependency advisory reporting: **generated automatically**
+
+Automated promotion performed by `RC1 Acceptance`:
+
+- `feature/ui-saas-convergence-wave-01` fast-forwarded to the accepted RC SHA;
+- `arena/01a0f263-sistema-saas-geral` fast-forwarded to the accepted RC SHA;
+- PR #19 received machine-generated acceptance evidence;
+- no merge to `main`;
+- no change/merge to PR #18;
+- no production deploy.
+
+## RC disposition
+
+**UI RC1: ACCEPTED WITH BACKEND FOLLOW-UPS.**
+
+UI-G1 through UI-G6, UI-G9 and UI-G10 are PASS. UI-G7 and UI-G8 remain PARTIAL by design because the repository still lacks the authorized tenant-scoped backend contracts documented above for full Billing/Automations/Integrations functionality. The UI does not fabricate those capabilities.
+
+This UI RC acceptance does not imply Release GREEN. Durable Cloudflare deploy/smoke, Stripe Test Mode E2E, AI provider live smoke, authorized hostname/TLS, rollback proof, and the remaining global release gates stay independent.
