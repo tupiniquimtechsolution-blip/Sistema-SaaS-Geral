@@ -7,6 +7,8 @@ on:
       - freebuff/big-master-wave-01-monorepo
       - automation/builder-release-gates-stage
       - rc/ui-saas-convergence-01
+      - feature/ui-saas-convergence-wave-01
+      - automation/release-green-external-gates-01
     paths:
       - "apps/builder/**"
       - "packages/auth/**"
