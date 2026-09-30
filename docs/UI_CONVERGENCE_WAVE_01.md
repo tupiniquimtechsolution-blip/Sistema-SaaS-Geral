@@ -1,6 +1,15 @@
 # UI Convergence Wave 01
 
-## Execution identity and status
+> **Historical corrective-pass snapshot:** the execution below predates the active RC1 continuation and is not its final status. Current authoritative execution evidence is maintained in `docs/UI_SAAS_CONVERGENCE_RC1_EVIDENCE.md`.
+
+## RC1 continuation (2026-09-30)
+
+- Starting HEAD `0ce28a7ca2a8c70fa8ed4c9f2557fdc339bd8aba` was verified as a descendant of `origin/rc/ui-saas-convergence-01`; work remains on `arena/01a0f263-sistema-saas-geral`.
+- This continuation completed the shared semantic token package, Builder workspace/AI proposal redesign, read-only settings/account polish, permission-gated recent AI usage surface, and reduced-motion/responsive CSS.
+- G1–G6 PASS; G7–G10 remain PARTIAL because subscription/invoice/automation backend contracts are missing and Chromium-dependent browser/a11y/Lighthouse gates are blocked. Production npm audit has three moderate findings. Full evidence, tests, blockers and backend follow-ups are in the RC1 ledger.
+- Commits: `f5da56a`, `9e07ba8`, `455bb0a`, `7c3fe41`.
+
+## Historical execution identity and status
 
 Execution lane: `arena/01a0f263-sistema-saas-geral`. Corrective-pass start HEAD: `10dcb5c4ca09215b3e595b37777df90ccac2797b`. The UI work is **PARTIAL**, not release-complete. No merge or PR creation is part of this execution.
 
