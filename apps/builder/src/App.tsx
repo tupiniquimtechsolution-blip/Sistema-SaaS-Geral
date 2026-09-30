@@ -119,19 +119,19 @@ export function App({ client }: AppProps) {
         <nav className="tenant-nav" aria-label="Navegação do tenant">
           <button type="button" className={workspaceView === "builder" ? "tenant-nav-active" : "secondary"} aria-pressed={workspaceView === "builder"} onClick={() => setWorkspaceView("builder")}>Builder</button>
           <button type="button" className={workspaceView === "billing" ? "tenant-nav-active" : "secondary"} aria-pressed={workspaceView === "billing"} onClick={() => setWorkspaceView("billing")}>Cobrança</button>
-          <button type="button" className={workspaceView === "settings" ? "tenant-nav-active" : "secondary"} aria-pressed={workspaceView === "settings"} onClick={() => setWorkspaceView("settings")}>Conta e settings</button>
+          <button type="button" className={workspaceView === "settings" ? "tenant-nav-active" : "secondary"} aria-pressed={workspaceView === "settings"} onClick={() => setWorkspaceView("settings")}>Conta e configurações</button>
         </nav>
         <button className="secondary" type="button" onClick={() => void signOut(client)}>Sair</button>
       </header>
       <section className="selection-card workspace-context" aria-labelledby="workspace-context-title">
-        <div className="workspace-context-heading"><div><p className="eyebrow">WORKSPACE</p><h2 id="workspace-context-title">Tenant &amp; vertical</h2></div><span className="context-trust-label">Membership validada · RLS ativo</span></div>
+        <div className="workspace-context-heading"><div><p className="eyebrow">ESPAÇO DE TRABALHO</p><h2 id="workspace-context-title">Tenant e vertical</h2></div><span className="context-trust-label">Membership validada · RLS ativo</span></div>
         <TenantSelector memberships={memberships} tenantId={selectedTenantId} verticalKey={verticalKey} onTenant={setTenantId} onVertical={setVerticalKey} onApply={applySelection} />
       </section>
       {workspaceView === "settings" ? <section className="grid" aria-label="Conta e configurações do tenant">
-        <ReadOnlyCard title="Account & session" value={{ session: "Sessão autenticada pelo Supabase Auth", tenant: context.tenant?.name ?? "Tenant selecionado" }} />
-        <ReadOnlyCard title="Brand" value={context.brand ? { display_name: context.brand.display_name, tagline: context.brand.tagline ?? null, logo_url: context.brand.logo_url ?? null, hero_media_url: context.brand.hero_media_url ?? null, whatsapp: context.brand.whatsapp ?? null, email: context.brand.email ?? null } : null} />
-        <ReadOnlyCard title="Theme" value={context.theme ?? null} />
-        <ReadOnlyCard title="Tenant settings" value={context.settings ? { locale: context.settings.locale, timezone: context.settings.timezone, currency: context.settings.currency, public_settings: context.settings.public_settings ?? {} } : null} />
+        <ReadOnlyCard title="Conta e sessão" value={{ session: "Sessão autenticada pelo Supabase Auth", tenant: context.tenant?.name ?? "Tenant selecionado" }} />
+        <ReadOnlyCard title="Marca" value={context.brand ? { display_name: context.brand.display_name, tagline: context.brand.tagline ?? null, logo_url: context.brand.logo_url ?? null, hero_media_url: context.brand.hero_media_url ?? null, whatsapp: context.brand.whatsapp ?? null, email: context.brand.email ?? null } : null} />
+        <ReadOnlyCard title="Tema" value={context.theme ?? null} />
+        <ReadOnlyCard title="Configurações do tenant" value={context.settings ? { locale: context.settings.locale, timezone: context.settings.timezone, currency: context.settings.currency, public_settings: context.settings.public_settings ?? {} } : null} />
         <ReadOnlyCard title="Entitlements" value={context.effectiveEntitlements} />
       </section> : null}
       {workspaceView === "billing" && selectedTenantId ? <BillingCenter client={client} tenantId={selectedTenantId} /> : null}
@@ -164,7 +164,7 @@ function ReadOnlyCard({ title, value }: { title: string; value: unknown }) {
     : value && typeof value === "object" ? Object.entries(value as Record<string, unknown>) : [];
   const label = (key: string) => ({ display_name: "Nome de exibição", tagline: "Descrição", logo_url: "Logo", hero_media_url: "Imagem principal", whatsapp: "WhatsApp", email: "E-mail", locale: "Idioma", timezone: "Fuso horário", currency: "Moeda", public_settings: "Configurações públicas", session: "Sessão", tenant: "Tenant" }[key] ?? key.replaceAll("_", " "));
   const display = (entry: unknown) => entry == null || entry === "" ? "Não configurado" : typeof entry === "boolean" ? (entry ? "Sim" : "Não") : typeof entry === "object" ? JSON.stringify(entry, null, 2) : String(entry);
-  return <article className="data-card"><div className="card-heading"><h2>{title}</h2><span>READ ONLY</span></div>
+  return <article className="data-card"><div className="card-heading"><h2>{title}</h2><span>SOMENTE LEITURA</span></div>
     {value == null ? <p className="read-only-empty">Nenhum dado disponível para o contexto atual.</p> : rows.length ? <dl className="read-only-list">{rows.map(([key, entry], index) => <div key={`${key}-${index}`}><dt>{label(key)}</dt><dd>{typeof entry === "object" && entry !== null ? <pre>{display(entry)}</pre> : display(entry)}</dd></div>)}</dl> : Array.isArray(value) ? <p className="read-only-empty">Nenhum entitlement efetivo reportado.</p> : <p className="read-only-empty">Sem campos disponíveis.</p>}
   </article>;
 }
