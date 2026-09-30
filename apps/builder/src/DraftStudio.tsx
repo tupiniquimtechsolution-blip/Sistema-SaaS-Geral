@@ -86,7 +86,7 @@ export function DraftStudio({ client, tenantId, userId, aiChatEnabled }: DraftSt
       <div className="studio-grid">
         <aside className="studio-controls" aria-label="Páginas e camadas">
           <div className="layers-panel">
-            <div className="layers-heading"><p className="eyebrow">ESTRUTURA</p><h3>Pages &amp; Layers</h3></div>
+            <div className="layers-heading"><p className="eyebrow">ESTRUTURA</p><h3>Páginas e camadas</h3></div>
             {!preview ? <p className="empty-editor">Selecione ou crie uma página para ver suas camadas.</p> : preview.sections.length === 0 ? <p className="empty-editor">Esta página ainda não possui seções.</p> : <ul className="layer-list">{preview.sections.map((section, index) => <li key={section.id}><span className="layer-index">{String(index + 1).padStart(2, "0")}</span><span className="layer-name">{section.section_type}</span><span className={section.is_enabled ? "layer-state enabled" : "layer-state"}>{section.is_enabled ? "Ativa" : "Oculta"}</span></li>)}</ul>}
           </div>
           <form
@@ -134,12 +134,12 @@ export function DraftStudio({ client, tenantId, userId, aiChatEnabled }: DraftSt
 
 function LivePreview({ bundle }: { bundle: PageBundle | null }) {
   if (!bundle) {
-    return <article className="preview-surface"><p className="eyebrow">LIVE STATE</p><h3>Nenhuma página selecionada</h3><p>Selecione uma página acessível ao tenant.</p></article>;
+    return <article className="preview-surface"><p className="eyebrow">ESTADO ATUAL</p><h3>Nenhuma página selecionada</h3><p>Selecione uma página acessível ao tenant.</p></article>;
   }
 
   return (
     <article className="preview-surface" aria-label={`Estado atual de ${bundle.page.title}`}>
-      <p className="eyebrow">LIVE · {bundle.page.status.toUpperCase()} · /{bundle.page.slug}</p>
+      <p className="eyebrow">ATUAL · {bundle.page.status.toUpperCase()} · /{bundle.page.slug}</p>
       <h3>{bundle.page.title}</h3>
       {bundle.sections.length === 0 ? <p>Esta página ainda não possui seções projetadas.</p> : null}
       {bundle.sections.filter((section) => section.is_enabled).map((section) => (
