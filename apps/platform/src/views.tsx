@@ -42,7 +42,7 @@ export function DashboardView({ env }: { env: Record<string, string | undefined>
         <p className="hint">
           Números refletem execução real registrada (docs/ + gates). Nada é
           estimado ou simulado — ver detalhes na aba{" "}
-          <a href="#/status">Status</a>.
+          <a href="#/status">Estado</a>.
         </p>
       </section>
 
@@ -54,7 +54,7 @@ export function DashboardView({ env }: { env: Record<string, string | undefined>
             const inner = (
               <>
                 <span className={`tag ${v.state === "ready" ? "ok" : v.state === "blocked" ? "blocked" : "soon"}`}>
-                  {v.state === "ready" ? "Preview ready" : v.state === "blocked" ? "Blocked" : "Not ready"}
+                  {v.state === "ready" ? "Prévia disponível" : v.state === "blocked" ? "Bloqueado" : "Não pronto"}
                 </span>
                 <h3>{v.name}</h3>
                 <p>{v.note}</p>
@@ -90,8 +90,7 @@ export function VerticalsView({ env }: { env: Record<string, string | undefined>
       <section>
         <h2>Catálogo de verticais</h2>
         <p className="hint">
-          Cada vertical é uma aplicação deployable independente (próprio projeto
-          Vercel). Clique em um card para o dossiê completo.
+          Cada vertical é uma aplicação nos Cloudflare Workers / Static Assets. O estado de deploy durável é apresentado somente quando há evidência. Clique em um card para o dossiê completo.
         </p>
         <div className="grid">
           {VERTICALS.map((v) => {
@@ -99,7 +98,7 @@ export function VerticalsView({ env }: { env: Record<string, string | undefined>
             return (
               <a key={v.slug} className="card" href={url ?? `#/verticals/${v.slug}`} target={url ? "_blank" : undefined} rel={url ? "noreferrer" : undefined}>
                 <span className={`tag ${v.state === "ready" ? "ok" : v.state === "blocked" ? "blocked" : "soon"}`}>
-                  {v.state === "ready" ? "Preview ready" : v.state === "blocked" ? "Blocked" : "Not ready"}
+                  {v.state === "ready" ? "Prévia disponível" : v.state === "blocked" ? "Bloqueado" : "Não pronto"}
                 </span>
                 <h3>{v.name}</h3>
                 <p>{v.blocker ?? v.note}</p>
@@ -138,7 +137,7 @@ export function VerticalDetailView({ slug }: { slug: string }) {
     ["BRANDING MODEL", "tenant_brands/tenant_themes por tenant (leitura live já provada na Bakery)"],
     ["DEMO READINESS", v.demo],
     ["COMMERCIAL READINESS", v.commercial],
-    ["PROJETO VERCEL", v.project],
+    ["HOSTING / WORKER", v.project],
   ];
   return (
     <div className="view">
@@ -247,11 +246,11 @@ export function DeploymentsView() {
         <table>
           <thead>
             <tr>
-              <th>Projeto Vercel</th>
+              <th>Worker / app</th>
               <th>App</th>
               <th>Build</th>
               <th>Output</th>
-              <th>Status real</th>
+              <th>Estado real</th>
             </tr>
           </thead>
           <tbody>
