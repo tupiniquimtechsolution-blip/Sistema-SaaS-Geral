@@ -175,7 +175,7 @@ export function CoreView() {
         <h2>SaaS Core — módulos e maturidade</h2>
         <p className="hint">
           Maturidade declarada honestamente: IMPLEMENTED (executado e provado),
-          FOUNDATION (contratos prontos, UI/provider pendente), COMING_SOON
+          FOUNDATION (base técnica parcial; produto ou gates externos incompletos), COMING_SOON
           (planejado). Ausência nunca é mascarada.
         </p>
         <table>
@@ -227,10 +227,10 @@ export function TenantsView() {
         </p>
         <table>
           <tbody>
-            <tr><th>Infra de tenants</th><td>IMPLEMENTED — memberships/roles/RLS provados (58/58)</td></tr>
+            <tr><th>Infra de tenants</th><td>IMPLEMENTED — memberships/RBAC/RLS; evidência registrada em RELEASE_GREEN_DOD, não reexecutada neste corrective pass</td></tr>
             <tr><th>Resolução de tenant</th><td>membership-scoped, fail-closed; seleção no browser é UX, RLS é enforcement</td></tr>
             <tr><th>Provisionamento</th><td>RPC canônica <code>create_tenant_with_owner</code> (idempotente, usada nos QA A/B)</td></tr>
-            <tr><th>Gestão UI</th><td>COMING_SOON — wave futura do control plane</td></tr>
+            <tr><th>Gestão de tenants</th><td>FOUNDATION — esta tela é informativa; operações de gestão completas e permissionadas não estão conectadas</td></tr>
           </tbody>
         </table>
       </section>
