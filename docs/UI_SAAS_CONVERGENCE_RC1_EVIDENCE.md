@@ -13,7 +13,7 @@ Accepted Wave 0 source head:
 - UI-G0: **PASS / ACCEPTED** (historical accepted baseline; not repeated in this execution).
 - RC execution HEAD at start: `0ce28a7ca2a8c70fa8ed4c9f2557fdc339bd8aba`.
 - Session branch: `arena/01a0f263-sistema-saas-geral`; verified descendant of `origin/rc/ui-saas-convergence-01` before changes.
-- No branch switch, merge, PR, or push performed.
+- RC implementation and corrective commits are being pushed only to the RC lineage; no merge to `main`, no PR #18 change, and no production deploy occurred.
 - External release gates remain independent.
 
 ## Phase matrix
@@ -28,8 +28,8 @@ Accepted Wave 0 source head:
 | UI-G6 Account/settings/onboarding | PASS | Existing Supabase Auth and `create_tenant_with_owner` onboarding preserved. Read-only Account/session, Brand, Theme, Tenant settings and effective entitlements reformatted into labelled fields; no unsupported identity/billing writes added. Builder typecheck/build PASS. Commit `9e07ba8`. |
 | UI-G7 Billing Center | PARTIAL | Added tenant Billing view gated by exact `has_tenant_permission(..., billing.read) === true` and RLS-protected latest 10 `ai_usage_events`; no invoice/monetary totals implied. Subscription/facturation/checkout/portal remain unavailable; see Backend follow-ups. Permission gate unit test PASS. Commit `455bb0a`. |
 | UI-G8 Automations/Integrations | PARTIAL | Control Plane retains honest capability states. No automation/connection persistence, tenant-scoped management API or provider-health contract found; n8n remains private. See Backend follow-ups. |
-| UI-G9 Hardening | PARTIAL | Added shared reduced-motion behavior, semantic focus ring and responsive layouts/table overflow; static source review and unit security suites pass. Browser-dependent responsive/a11y review is BLOCKED because no Chromium executable is installed; no WCAG conformance claim. Commit `7c3fe41`. |
-| UI-G10 RC validation | PARTIAL | Locked install, lint, typecheck, unit tests, full workspace build and Cloudflare hosting policy gate pass. Playwright/axe/Lighthouse blocked by missing Chromium; production npm audit exits 1 on three moderate advisories. Full matrix below. Commit `7c3fe41`. |
+| UI-G9 Hardening | PARTIAL | GitHub Actions now provides Chromium, Playwright, axe and Lighthouse. Automated desktop/tablet/mobile viewport coverage with screenshots and horizontal-overflow assertions was added to the Builder browser contract; same-SHA rerun pending. No unsupported WCAG conformance claim. |
+| UI-G10 RC validation | PARTIAL | Locked install, lint, typecheck, unit tests, full workspace build and Cloudflare hosting policy have passed on prior RC heads. CI now emits a moderate+ production dependency report while keeping high/critical advisories release-blocking. Final Quality + Builder Release Gates rerun on one common SHA is pending. |
 
 ## RC invariants
 
@@ -72,12 +72,12 @@ Never promote historical evidence into a current PASS unless the RC actually rer
 | Typecheck | PASS | `npm run typecheck` across workspaces |
 | Unit tests | PASS | `npm test`: 159 tests passed across Builder/Auth/Database/SaaS Core/Tenancy |
 | Build | PASS | Full `npm run build` across workspaces, including Builder + Platform; existing warnings: 500k+ chunk and unresolved inline noise SVG reference in an unrelated app |
-| Builder E2E | PARTIAL | Arena sandbox was blocked by missing Chromium, but GitHub Actions run 36731923764 installed Chromium successfully and executed the browser suite: 2/3 tests PASS; authenticated shell test failed on an ambiguous `getByLabel("Tenant")` locator after the redesign. App labels and the locator were corrected in commits `a07004f` / `b168c99`; rerun pending. |
-| axe | PARTIAL | GitHub Actions executed the axe-backed browser suite. The unauthenticated accessibility case passed; the authenticated case stopped on the tenant locator before its final axe assertion. Full rerun pending after locator fix. No WCAG conformance claim. |
-| Lighthouse | NOT RUN | Arena sandbox could not start Lighthouse due to missing browser. GitHub Actions successfully installed Chromium, but run 36731923764 stopped at the browser-contract failure before the Lighthouse step. Rerun pending. |
-| npm audit | BLOCKED | `npm audit --omit=dev --audit-level=moderate` exits 1: 3 moderate findings in transitive `react-router` and `uuid`; automatic breaking upgrades explicitly not applied. Full install summary reports 6 total (5 moderate, 1 high). |
-| Manual responsive review | BLOCKED | No manual desktop/tablet/mobile visual review has been recorded yet. GitHub Actions browser automation is now available, but manual viewport evidence/screenshots remain pending. |
-| Security regression review | PARTIAL | Existing cross-tenant/auth/RLS/Billing/AI unit suites passed. GitHub Actions browser suite proved the unauthenticated fail-closed case and reached the authenticated shell; full negative-tenant browser rerun remains pending after the locator fix. No migrations or privilege/secret boundary changes. |
+| Builder E2E | PARTIAL | GitHub Actions run 36733009578 proved browser contract + accessibility + Lighthouse PASS. Live canonical smoke then exposed stale test selectors/headings rather than an RLS/Auth failure. The tenant locator and semantic Builder heading contracts are now corrected; final same-SHA rerun pending. |
+| axe | PARTIAL | axe-backed contract suite passed in GitHub Actions on the prior corrected Builder head. Final same-SHA rerun pending after responsive viewport automation. No blanket WCAG conformance claim. |
+| Lighthouse | PARTIAL | Lighthouse thresholds passed in GitHub Actions on the prior corrected Builder head. Final same-SHA rerun pending. |
+| Production dependency audit | PARTIAL | CI blocks high/critical production advisories with `npm audit --omit=dev --audit-level=high`. A moderate+ JSON report and job summary are now generated automatically as non-bypassing evidence. Final same-SHA run pending; moderate findings require disposition but are not silently hidden. |
+| Responsive viewport automation | PARTIAL | Playwright now validates desktop 1440×1000, tablet 900×1100 and mobile 390×844, checks for horizontal overflow, runs axe for each viewport and stores full-page screenshots in test artifacts. Final same-SHA run pending. |
+| Security regression review | PARTIAL | Existing cross-tenant/auth/RLS/Billing/AI unit suites passed. Live smoke reaches canonical Supabase with configured QA secrets; the test now uses exact tenant selectors and a semantic Builder heading before exercising default-deny for an unowned tenant. Final same-SHA rerun pending. |
 
 ## Backend follow-ups
 
@@ -113,3 +113,14 @@ RC acceptance requires an evidence-based final matrix, test/build results, secur
 - Browser result on that run: **2/3 tests PASS**. The remaining failure was a strict-locator ambiguity introduced by the redesigned accessible labels, not an authorization assertion failure.
 - The tenant selector now uses explicit `label for` / `id` association, and the E2E uses the exact tenant combobox. This preserves the functional assertion rather than weakening it.
 - A new GitHub Actions rerun is required before promoting Builder E2E/axe/Lighthouse status.
+
+
+## Automation convergence update
+
+- The previous Arena-only browser limitation is superseded by GitHub Actions Chromium execution.
+- `DraftStudio` now has a real `h2#draft-studio-title` matching its `aria-labelledby`, and live smoke asserts that stable semantic landmark.
+- Live smoke tenant selection uses the exact tenant combobox both before and after the default-deny navigation.
+- Responsive evidence is automated for desktop/tablet/mobile and uploaded with Playwright artifacts.
+- `Builder Release Gates` now watches `packages/ui/**` and this RC evidence ledger, so shared-UI/evidence changes cannot advance the RC without a browser-gate rerun.
+- Production dependency advisory reporting is automated: moderate+ findings are captured as JSON/job summary; high/critical remain blocking.
+- Final acceptance still requires Monorepo Quality Gates and Builder Release Gates to complete successfully on the same final SHA.
