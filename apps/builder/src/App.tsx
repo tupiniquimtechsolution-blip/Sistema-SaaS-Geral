@@ -150,8 +150,10 @@ export function App({ client }: AppProps) {
 
 function TenantSelector(props: { memberships: TenantContextResult["memberships"]; tenantId: string; verticalKey: string; onTenant(value: string): void; onVertical(value: string): void; onApply(): void; }) {
   return <div className="selector-row">
-    <label>Tenant<select value={props.tenantId} onChange={(event) => props.onTenant(event.target.value)}>{props.memberships.map((entry) => <option key={entry.tenant.id} value={entry.tenant.id}>{entry.tenant.name}</option>)}</select></label>
-    <label>Vertical canônica<input value={props.verticalKey} placeholder="bakery" onChange={(event) => props.onVertical(event.target.value)} /></label>
+    <label htmlFor="tenant-select">Tenant</label>
+    <select id="tenant-select" value={props.tenantId} onChange={(event) => props.onTenant(event.target.value)}>{props.memberships.map((entry) => <option key={entry.tenant.id} value={entry.tenant.id}>{entry.tenant.name}</option>)}</select>
+    <label htmlFor="vertical-key">Vertical canônica</label>
+    <input id="vertical-key" value={props.verticalKey} placeholder="bakery" onChange={(event) => props.onVertical(event.target.value)} />
     <button type="button" onClick={props.onApply}>Aplicar seleção</button>
   </div>;
 }
