@@ -4,6 +4,8 @@ on:
   workflow_dispatch:
     inputs:
       platform_url: { description: "Durable platform HTTPS URL", required: true, type: string }
+      builder_url: { description: "Durable Builder HTTPS URL", required: true, type: string }
+      salon_url: { description: "Durable Salon HTTPS URL", required: true, type: string }
       bakery_url: { description: "Durable bakery HTTPS URL", required: true, type: string }
       pet_url: { description: "Durable pet HTTPS URL", required: true, type: string }
       restaurant_url: { description: "Durable restaurant HTTPS URL", required: true, type: string }
@@ -24,6 +26,8 @@ jobs:
       matrix:
         include:
           - { vertical: platform, url: "${{ inputs.platform_url }}", title: "Tupiniquim SaaS" }
+          - { vertical: builder, url: "${{ inputs.builder_url }}", title: "Tupiniquim Site Builder" }
+          - { vertical: salon, url: "${{ inputs.salon_url }}", title: "Salão / Beleza" }
           - { vertical: bakery, url: "${{ inputs.bakery_url }}", title: "Fornalha" }
           - { vertical: pet, url: "${{ inputs.pet_url }}", title: "Amora Pet" }
           - { vertical: restaurant, url: "${{ inputs.restaurant_url }}", title: "Chez Amis" }
