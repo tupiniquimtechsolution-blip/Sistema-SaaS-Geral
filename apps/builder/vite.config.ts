@@ -3,5 +3,5 @@ import react from "@vitejs/plugin-react";
 
 export default defineConfig({
   plugins: [react()],
-  server: { host: "0.0.0.0", allowedHosts: [".e2b.app"], port: 4174 },
+  server: { port: 4174 },
 });
