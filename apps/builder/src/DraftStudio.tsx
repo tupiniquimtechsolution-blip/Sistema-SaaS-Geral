@@ -69,6 +69,13 @@ export function DraftStudio({ client, tenantId, userId, aiChatEnabled }: DraftSt
 
   return (
     <section className="studio-card" aria-labelledby="draft-studio-title">
+      <header className="studio-heading">
+        <div>
+          <p className="eyebrow">BUILDER</p>
+          <h2 id="draft-studio-title">Studio de páginas e revisões</h2>
+          <p>Edite, pré-visualize e conduza o fluxo versionado até publicação ou rollback.</p>
+        </div>
+      </header>
       <div className="builder-workspace-bar">
         <label className="workspace-page-select">Página ativa
           <select value={selectedId} onChange={(event) => setSelectedId(event.target.value)}>
