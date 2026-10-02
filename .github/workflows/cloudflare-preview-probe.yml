@@ -6,6 +6,7 @@ on:
       - automation/release-green-external-gates-01
     paths:
       - ".github/workflows/cloudflare-preview-probe.yml"
+      - "apps/heavy-machinery/wrangler.jsonc"
   workflow_dispatch:
 
 permissions:
