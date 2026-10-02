@@ -9,15 +9,6 @@ on:
       - freebuff/big-master-wave-01-monorepo
       - feature/ui-saas-convergence-wave-01
       - automation/release-green-external-gates-01
-    paths:
-      - 'apps/salon/**'
-      - 'packages/**'
-      - 'supabase/**'
-      - 'scripts/provisioning/vanessa_braz_tenant.sql'
-      - 'tests/postgres/salon_*.real.sql'
-      - 'package.json'
-      - 'package-lock.json'
-      - '.github/workflows/salon.yml'
   pull_request:
     branches:
       - main
