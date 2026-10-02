@@ -33,10 +33,21 @@ jobs:
           set -euo pipefail
           preview="rg-probe-${GITHUB_SHA:0:8}"
           npx wrangler preview             --config apps/heavy-machinery/wrangler.jsonc             --name "$preview"             --tag "rg-probe"             --message "Release GREEN preview probe ${GITHUB_SHA}"             --json 2>&1 | tee /tmp/preview.json.log
-          grep -Eo 'https://[A-Za-z0-9.-]+\.workers\.dev' /tmp/preview.json.log | sort -u | tee /tmp/preview-urls.txt
+          grep -Eo 'https://[A-Za-z0-9.-]+\.workers\.dev' /tmp/preview.json.log | awk '!seen[$0]++' | tee /tmp/preview-urls.txt
           test -s /tmp/preview-urls.txt
-          url="$(tail -1 /tmp/preview-urls.txt)"
-          curl --fail --silent --show-error --location --max-time 30 "$url" >/tmp/preview-home.html
+          # Wrangler emits the stable Preview URL before the immutable deployment URL.
+          # Prefer immutable exact-deployment evidence and allow time for edge propagation.
+          url="$(sed -n '2p' /tmp/preview-urls.txt)"
+          test -n "$url" || url="$(head -1 /tmp/preview-urls.txt)"
+          ready=0
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent --show-error --location --max-time 30 "$url" >/tmp/preview-home.html; then
+              ready=1
+              break
+            fi
+            sleep 2
+          done
+          test "$ready" -eq 1
           test -s /tmp/preview-home.html
           {
             echo "## Heavy Machinery Cloudflare Preview probe"
