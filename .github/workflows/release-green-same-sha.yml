@@ -101,7 +101,7 @@ jobs:
             echo
             printf '%s\n' "${{ steps.gates.outputs.summary }}"
             echo
-            echo "INTERNAL + CLOUDFLARE-STAGE GREEN"
+            echo "INTERNAL + CLOUDFLARE-PREVIEW-STAGE GREEN"
             echo
             echo "This does not declare full Release GREEN."
             echo "Stripe Test Mode E2E, AI provider live smoke, authorized hostname/TLS, production deployment/rollback proof and any remaining external gates stay independent."
@@ -127,7 +127,7 @@ jobs:
           Builder Release Gates — PASS
           Cloudflare RC Stage — PASS
 
-          Cloudflare stage uploads Worker versions and runs browser/HTTPS smoke without promoting production traffic.
+          Cloudflare stage creates isolated Worker Previews and runs browser/HTTPS smoke against immutable Preview deployment URLs without promoting production traffic.
 
           State: INTERNAL + CLOUDFLARE-STAGE GREEN, not full Release GREEN.
 

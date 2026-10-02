@@ -25,6 +25,7 @@ Any Vercel references retained in historical documents are evidence of earlier m
 
 Allowed deployment tooling:
 
+- `wrangler preview` for isolated non-production RC/branch staging
 - `wrangler deploy`
 - `wrangler versions upload`
 - `wrangler versions list`
@@ -69,4 +70,10 @@ Historical prose may mention Vercel when clearly describing past state. Executab
 
 A product surface is not considered deployed because a local preview, temporary sandbox URL, Vercel deployment, or historical URL exists.
 
-Current release evidence requires the Cloudflare gates defined by `docs/RELEASE_GREEN_DOD.md`, including durable deployment and smoke evidence where applicable.
+An isolated Worker Preview may satisfy the RC **staging** gate when its immutable
+Preview deployment URL passes the required smoke tests, but it is never counted
+as a durable or production deployment.
+
+Current release evidence requires the Cloudflare gates defined by
+`docs/RELEASE_GREEN_DOD.md`, including separate durable deployment, hostname/TLS
+and rollback evidence where applicable.

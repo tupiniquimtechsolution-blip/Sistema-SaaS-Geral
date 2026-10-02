@@ -79,11 +79,12 @@ jobs:
           echo "::error::Timed out waiting for same-SHA internal release gates."
           exit 1
 
-  upload-versions:
-    name: upload-cloudflare-versions
+
+  stage-previews:
+    name: stage-cloudflare-previews
     needs: wait-internal-gates
     runs-on: ubuntu-latest
-    timeout-minutes: 35
+    timeout-minutes: 45
     env:
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
@@ -121,15 +122,14 @@ jobs:
       - name: Build release surfaces
         run: npm run build
 
-      - name: Upload Cloudflare versions without deploying traffic
+      - name: Create isolated Cloudflare Previews without production traffic
         shell: bash
         run: |
           set -euo pipefail
           mkdir -p cloudflare-stage-logs
-          printf '[]\n' > cloudflare-stage-urls.json
+          printf '[]\n' > cloudflare-stage-previews.json
 
           short_sha="${GITHUB_SHA:0:12}"
-          alias="rg-${short_sha}"
           tag="rg-${short_sha}"
 
           stage_one() {
@@ -137,20 +137,62 @@ jobs:
             local config="$2"
             local title="$3"
             local log="cloudflare-stage-logs/${vertical}.log"
+            local urls="cloudflare-stage-logs/${vertical}.urls"
 
-            echo "::group::Stage ${vertical}"
-            npx wrangler versions upload               --config "$config"               --preview-alias "$alias"               --tag "$tag"               --message "Release GREEN staged version ${GITHUB_SHA}"               --keep-vars               --strict 2>&1 | tee "$log"
+            echo "::group::Preview ${vertical}"
+            npx wrangler preview \
+              --config "$config" \
+              --name "release-green" \
+              --tag "$tag" \
+              --message "Release GREEN isolated preview ${GITHUB_SHA}" \
+              --json 2>&1 | tee "$log"
             echo "::endgroup::"
 
-            local url
-            url="$(grep -Eo 'https://[A-Za-z0-9.-]+\.workers\.dev' "$log" | tail -1 || true)"
-            if [ -z "$url" ]; then
-              echo "::error::Wrangler did not return a Cloudflare Version URL for ${vertical}."
+            grep -Eo 'https://[A-Za-z0-9.-]+\.workers\.dev' "$log" | awk '!seen[$0]++' > "$urls"
+
+            local preview_url
+            local immutable_url
+            preview_url="$(sed -n '1p' "$urls")"
+            immutable_url="$(sed -n '2p' "$urls")"
+
+            if [ -z "$preview_url" ] || [ -z "$immutable_url" ]; then
+              echo "::error::Wrangler did not return both Preview and immutable deployment URLs for ${vertical}."
+              cat "$log"
               exit 1
             fi
 
-            jq               --arg vertical "$vertical"               --arg config "$config"               --arg title "$title"               --arg url "$url"               '. += [{vertical:$vertical, config:$config, title:$title, url:$url}]'               cloudflare-stage-urls.json > cloudflare-stage-urls.tmp
-            mv cloudflare-stage-urls.tmp cloudflare-stage-urls.json
+            case "$preview_url" in
+              https://*.workers.dev) ;;
+              *) echo "::error::Unexpected Preview URL for ${vertical}: $preview_url"; exit 1 ;;
+            esac
+            case "$immutable_url" in
+              https://*.workers.dev) ;;
+              *) echo "::error::Unexpected immutable Preview deployment URL for ${vertical}: $immutable_url"; exit 1 ;;
+            esac
+
+            ready=0
+            for attempt in $(seq 1 30); do
+              if curl --fail --silent --show-error --location --max-time 30 "$immutable_url" >/tmp/cloudflare-preview-home.html; then
+                ready=1
+                break
+              fi
+              sleep 2
+            done
+            if [ "$ready" -ne 1 ]; then
+              echo "::error::Cloudflare Preview did not become ready for ${vertical}: $immutable_url"
+              exit 1
+            fi
+            test -s /tmp/cloudflare-preview-home.html
+
+            jq \
+              --arg vertical "$vertical" \
+              --arg config "$config" \
+              --arg title "$title" \
+              --arg preview_url "$preview_url" \
+              --arg url "$immutable_url" \
+              '. += [{vertical:$vertical, config:$config, title:$title, preview_url:$preview_url, url:$url}]' \
+              cloudflare-stage-previews.json > cloudflare-stage-previews.tmp
+            mv cloudflare-stage-previews.tmp cloudflare-stage-previews.json
           }
 
           stage_one "platform" "apps/platform/wrangler.jsonc" "Tupiniquim SaaS"
@@ -164,36 +206,36 @@ jobs:
           stage_one "salon" "apps/salon/wrangler.jsonc" "Salão / Beleza"
 
           {
-            echo "## Cloudflare staged versions"
+            echo "## Cloudflare isolated RC Previews"
             echo
-            echo "These are uploaded Worker versions; no production traffic was changed."
+            echo "All entries below are non-production Cloudflare Previews. Production traffic was not changed."
             echo
-            jq -r '.[] | "- **\(.vertical)** — \(.url)"' cloudflare-stage-urls.json
+            jq -r '.[] | "- **\(.vertical)** — immutable: \(.url) — stable preview: \(.preview_url)"' cloudflare-stage-previews.json
           } >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Upload staged-version evidence
+      - name: Upload isolated Preview evidence
         uses: actions/upload-artifact@v4
         with:
           name: cloudflare-rc-stage-${{ github.sha }}
           if-no-files-found: error
           retention-days: 14
           path: |
-            cloudflare-stage-urls.json
+            cloudflare-stage-previews.json
             cloudflare-stage-logs
 
-      - name: Preserve staged URL manifest for smoke job
+      - name: Preserve Preview URL manifest for smoke job
         uses: actions/upload-artifact@v4
         with:
           name: cloudflare-rc-stage-urls-${{ github.sha }}
           if-no-files-found: error
           retention-days: 14
-          path: cloudflare-stage-urls.json
+          path: cloudflare-stage-previews.json
 
-  smoke-staged-versions:
-    name: smoke-cloudflare-version-urls
-    needs: upload-versions
+  smoke-staged-previews:
+    name: smoke-cloudflare-preview-urls
+    needs: stage-previews
     runs-on: ubuntu-latest
-    timeout-minutes: 35
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
 
@@ -208,17 +250,17 @@ jobs:
       - name: Install Chromium
         run: npx playwright install --with-deps chromium
 
-      - name: Download staged URL manifest
+      - name: Download staged Preview URL manifest
         uses: actions/download-artifact@v4
         with:
           name: cloudflare-rc-stage-urls-${{ github.sha }}
           path: cloudflare-stage
 
-      - name: Smoke every staged Cloudflare version
+      - name: Smoke every immutable Cloudflare Preview deployment
         shell: bash
         run: |
           set -euo pipefail
-          manifest="cloudflare-stage/cloudflare-stage-urls.json"
+          manifest="cloudflare-stage/cloudflare-stage-previews.json"
           test -s "$manifest"
 
           jq -c '.[]' "$manifest" | while read -r item; do
@@ -229,26 +271,25 @@ jobs:
             case "$url" in
               https://*.workers.dev) ;;
               *)
-                echo "::error::Unexpected staged URL for ${vertical}: ${url}"
+                echo "::error::Unexpected isolated Preview URL for ${vertical}: ${url}"
                 exit 1
                 ;;
             esac
 
-            echo "::group::Smoke ${vertical} — ${url}"
-            curl --fail --silent --show-error --location --max-time 30 "$url" >/tmp/cloudflare-home.html
-            test -s /tmp/cloudflare-home.html
-
-            DURABLE_SMOKE_URL="$url"             DURABLE_SMOKE_TITLE="$title"               npx playwright test tests/e2e/durable-deploy-smoke.spec.ts --reporter=line
+            echo "::group::Smoke Preview ${vertical} — ${url}"
+            DURABLE_SMOKE_URL="$url" \
+              DURABLE_SMOKE_TITLE="$title" \
+              npx playwright test tests/e2e/durable-deploy-smoke.spec.ts --reporter=line
             echo "::endgroup::"
           done
 
-      - name: Stage smoke summary
+      - name: RC Preview smoke summary
         shell: bash
         run: |
           {
-            echo "## Cloudflare RC stage smoke"
+            echo "## Cloudflare RC isolated Preview smoke"
             echo
-            echo "All uploaded Version URLs passed HTTPS/assets/SPA/console/network smoke."
+            echo "All immutable Preview deployment URLs passed HTTPS/assets/SPA/console/network smoke."
             echo
-            echo "No Worker version was promoted to production traffic by this workflow."
+            echo "This proves non-production staging only; no Preview was promoted to production traffic."
           } >> "$GITHUB_STEP_SUMMARY"

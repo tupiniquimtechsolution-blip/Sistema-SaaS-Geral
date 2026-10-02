@@ -19,12 +19,17 @@ Workers/configs preparados no repositório:
 - religious-house → `apps/religious-house/wrangler.jsonc`
 - salon → `apps/salon/wrangler.jsonc`
 
-A automação `Cloudflare RC Stage` roda no branch
-`freebuff/big-master-wave-01-monorepo` somente depois dos gates internos do
-mesmo SHA. Ela usa `wrangler versions upload` para enviar versões autenticadas
-sem promover tráfego de produção, captura as Version URLs e executa smoke
-HTTPS/browser/assets/SPA/console/network automaticamente. Production branch
-permanece `freebuff/big-master-wave-01-monorepo` até o cutover aprovado.
+A automação `Cloudflare RC Stage` roda nos branches de convergência/release
+somente depois dos gates internos do mesmo SHA. O estágio de RC usa
+`wrangler preview` para criar **Worker Previews isolados**, inclusive quando o
+Worker de produção ainda não existe. O workflow captura a URL estável do
+Preview e a URL imutável do deployment associado, aguarda propagação e executa
+smoke HTTPS/browser/assets/SPA/console/network na URL imutável.
+
+Esse estágio **não cria nem promove deployment de produção**, não aplica routes,
+custom domains ou DNS e não satisfaz sozinho o gate de deploy durável.
+O primeiro `wrangler deploy`/promoção de produção continua uma etapa separada,
+explicitamente autorizada, posterior aos gates de release.
 
 Secrets exigidos no GitHub Actions:
 - `CLOUDFLARE_API_TOKEN`
@@ -39,11 +44,15 @@ Nenhum `service_role` é necessário para build ou smoke de frontend.
 O fluxo principal é automático:
 
 1. `Cloudflare RC Stage` aguarda Quality, CodeQL, Salon e Builder Gates no mesmo SHA;
-2. faz upload de versões Cloudflare sem mudar tráfego;
-3. captura as Version URLs;
-4. executa o smoke Playwright em todas as superfícies;
+2. cria Worker Previews isolados sem mudar tráfego de produção;
+3. captura a URL estável do Preview e a URL imutável do deployment;
+4. aguarda readiness e executa o smoke Playwright em todas as superfícies usando a URL imutável;
 5. publica manifest/logs como artifacts;
 6. `Release GREEN Same-SHA Evidence` agrega os resultados.
+
+Worker Preview é evidência de **staging de RC**, não evidência de deployment
+durável/produção. Os gates de deployment durável, hostname/TLS e rollback
+continuam independentes.
 
 O workflow `Durable Cloudflare Smoke Matrix` permanece apenas como fallback
 operacional/reteste e agora cobre Platform, Builder, Salon e todas as verticais
