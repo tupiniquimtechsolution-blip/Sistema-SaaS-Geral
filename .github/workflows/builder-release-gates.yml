@@ -6,15 +6,26 @@ on:
     branches:
       - freebuff/big-master-wave-01-monorepo
       - automation/builder-release-gates-stage
+      - rc/ui-saas-convergence-01
+      - feature/ui-saas-convergence-wave-01
+      - automation/release-green-external-gates-01
     paths:
       - "apps/builder/**"
       - "packages/auth/**"
       - "packages/tenancy/**"
       - "packages/database/**"
       - "packages/saas-core/**"
+      - "packages/ui/**"
+      - "docs/UI_SAAS_CONVERGENCE_RC1_EVIDENCE.md"
       - "package.json"
       - "package-lock.json"
       - ".github/workflows/builder-release-gates.yml"
+      - ".github/workflows/rc-ui-acceptance.yml"
+      - ".github/workflows/cloudflare-rc-stage.yml"
+      - ".github/workflows/release-green-same-sha.yml"
+      - ".github/workflows/durable-cloudflare-smoke.yml"
+      - ".github/workflows/salon.yml"
+      - ".github/workflows/quality.yml"
   pull_request:
     branches:
       - main
@@ -24,9 +35,17 @@ on:
       - "packages/tenancy/**"
       - "packages/database/**"
       - "packages/saas-core/**"
+      - "packages/ui/**"
+      - "docs/UI_SAAS_CONVERGENCE_RC1_EVIDENCE.md"
       - "package.json"
       - "package-lock.json"
       - ".github/workflows/builder-release-gates.yml"
+      - ".github/workflows/rc-ui-acceptance.yml"
+      - ".github/workflows/cloudflare-rc-stage.yml"
+      - ".github/workflows/release-green-same-sha.yml"
+      - ".github/workflows/durable-cloudflare-smoke.yml"
+      - ".github/workflows/salon.yml"
+      - ".github/workflows/quality.yml"
 
 permissions:
   contents: read

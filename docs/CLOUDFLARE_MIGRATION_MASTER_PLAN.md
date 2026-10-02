@@ -1,5 +1,8 @@
 # CLOUDFLARE MIGRATION MASTER PLAN
 
+> **CURRENT HOSTING POLICY (2026-09-30): CLOUDFLARE ONLY.** This document contains historical migration evidence. Any Vercel reference below is historical context only and MUST NOT be interpreted as an active deploy, preview, fallback, rollback, DNS target, or production instruction. Current operational authority: `docs/HOSTING_POLICY.md` and `docs/CLOUDFLARE_ROLLBACK_RUNBOOK.md`.
+
+
 Data: 2026-09-18 · **REVISADO: alvo = WORKERS STATIC ASSETS (não Pages)** ·
 Execução: docs/CLOUDFLARE_EXECUTION_REPORT.md · Matrix: docs/CLOUDFLARE_WORKER_MATRIX.md
 

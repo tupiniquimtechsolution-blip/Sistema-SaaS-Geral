@@ -1,5 +1,8 @@
 # CLOUDFLARE EXECUTION REPORT
 
+> **CURRENT HOSTING POLICY (2026-09-30): CLOUDFLARE ONLY.** This document contains historical migration evidence. Any Vercel reference below is historical context only and MUST NOT be interpreted as an active deploy, preview, fallback, rollback, DNS target, or production instruction. Current operational authority: `docs/HOSTING_POLICY.md` and `docs/CLOUDFLARE_ROLLBACK_RUNBOOK.md`.
+
+
 Data: 2026-09-18 · Branch `freebuff/big-master-wave-01-monorepo` · base `ed91895`
 Wave: MIGRAÇÃO FINAL VERCEL → CLOUDFLARE (autorização expressa do owner).
 Alvo revisado: **Workers Static Assets** (Pages descartado — ver MASTER PLAN).

@@ -10,23 +10,53 @@ O Release GREEN exige deployments autenticados na conta Cloudflare; previews
 
 Workers/configs preparados no repositório:
 - platform → `apps/platform/wrangler.jsonc`
+- builder → `apps/builder/wrangler.jsonc`
 - bakery → `apps/bakery/wrangler.jsonc`
 - pet → `apps/pet/wrangler.jsonc`
 - restaurant → `apps/restaurant/wrangler.jsonc`
 - metalart → `apps/metalart/wrangler.jsonc`
 - heavy-machinery → `apps/heavy-machinery/wrangler.jsonc`
 - religious-house → `apps/religious-house/wrangler.jsonc`
-- salon → configuração/release gate próprio já validado
+- salon → `apps/salon/wrangler.jsonc`
 
-GitHub/Cloudflare Workers Builds pode executar os deploys sem PC. Production
-branch permanece `freebuff/big-master-wave-01-monorepo` até o cutover aprovado.
+A automação `Cloudflare RC Stage` roda nos branches de convergência/release
+somente depois dos gates internos do mesmo SHA. O estágio de RC usa
+`wrangler preview` para criar **Worker Previews isolados**, inclusive quando o
+Worker de produção ainda não existe. O workflow captura a URL estável do
+Preview e a URL imutável do deployment associado, aguarda propagação e executa
+smoke HTTPS/browser/assets/SPA/console/network na URL imutável.
+
+Esse estágio **não cria nem promove deployment de produção**, não aplica routes,
+custom domains ou DNS e não satisfaz sozinho o gate de deploy durável.
+O primeiro `wrangler deploy`/promoção de produção continua uma etapa separada,
+explicitamente autorizada, posterior aos gates de release.
+
+Secrets exigidos no GitHub Actions:
+- `CLOUDFLARE_API_TOKEN`
+- `CLOUDFLARE_ACCOUNT_ID`
+- `SUPABASE_URL`
+- `SUPABASE_PUBLISHABLE_KEY`
+
+Nenhum `service_role` é necessário para build ou smoke de frontend.
 
 ## 2. Smoke remoto
 
-Após obter URLs duráveis HTTPS, executar manualmente o workflow
-`Durable Cloudflare Smoke Matrix` preenchendo as sete URLs. O workflow rejeita
-explicitamente hostnames temporários antigos e prova HTTPS, assets, SPA refresh,
-console e falhas de rede.
+O fluxo principal é automático:
+
+1. `Cloudflare RC Stage` aguarda Quality, CodeQL, Salon e Builder Gates no mesmo SHA;
+2. cria Worker Previews isolados sem mudar tráfego de produção;
+3. captura a URL estável do Preview e a URL imutável do deployment;
+4. aguarda readiness e executa o smoke Playwright em todas as superfícies usando a URL imutável;
+5. publica manifest/logs como artifacts;
+6. `Release GREEN Same-SHA Evidence` agrega os resultados.
+
+Worker Preview é evidência de **staging de RC**, não evidência de deployment
+durável/produção. Os gates de deployment durável, hostname/TLS e rollback
+continuam independentes.
+
+O workflow `Durable Cloudflare Smoke Matrix` permanece apenas como fallback
+operacional/reteste e agora cobre Platform, Builder, Salon e todas as verticais
+de release. Não é mais a etapa principal do processo.
 
 ## 3. Domínio customizado
 

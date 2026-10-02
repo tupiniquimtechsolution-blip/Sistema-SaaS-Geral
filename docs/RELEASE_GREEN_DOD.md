@@ -10,6 +10,9 @@ Release candidate must satisfy all items on the SAME commit SHA.
 - [ ] production dependency audit PASS
 - [ ] CodeQL PASS
 - [ ] Salon Vanessa Gates PASS
+- [ ] Builder Release Gates PASS
+- [ ] Cloudflare RC Stage isolated Worker Preview + immutable Preview deployment URL smoke PASS
+- [ ] Release GREEN Same-SHA Evidence aggregate PASS
 - [ ] Bakery real Postgres checkout security contract PASS
 - [ ] secret/bundle scan PASS
 - [ ] tenant/RLS A↔B regression PASS
@@ -24,7 +27,8 @@ Release candidate must satisfy all items on the SAME commit SHA.
 ## Domain / Cloudflare
 - [x] fail-closed hostname -> tenant resolver with unknown/unverified/A↔B tests
 - [x] Cloudflare-only architecture and Worker configs
-- [x] remote smoke rejects temporary preview URLs
+- [x] durable/production evidence policy rejects temporary Preview URLs as durable deployment proof
+- [ ] authenticated isolated Cloudflare Preview staging for Platform/Builder/Salon/release verticals PASS
 - [ ] authenticated durable deployments for release verticals
 - [ ] durable HTTPS smoke matrix PASS
 - [ ] one authorized custom QA hostname + TLS + tenant resolution PASS

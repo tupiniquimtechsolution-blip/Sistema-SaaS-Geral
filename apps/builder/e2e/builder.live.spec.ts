@@ -19,20 +19,20 @@ test("real QA session resolves tenant and rejects an unowned tenant", async ({ p
   await page.getByRole("button", { name: "Entrar" }).click();
 
   await expect(page.getByText("TUPINIQUIM SITE BUILDER")).toBeVisible();
-  const tenant = page.getByLabel("Tenant");
+  const tenant = page.getByRole("combobox", { name: "Tenant", exact: true });
   await expect(tenant).toBeVisible();
   const ownedTenantId = await tenant.inputValue();
   expect(ownedTenantId).not.toBe("");
   expect(await tenant.locator("option").count()).toBeGreaterThan(0);
-  await expect(page.getByRole("heading", { name: "Draft Studio + Workflow" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Studio de páginas e revisões", level: 2 })).toBeVisible();
 
   const deniedTenant = "99999999-9999-4999-8999-999999999999";
   await page.goto(`/?tenant=${deniedTenant}&vertical=bakery`);
   await expect(page.getByRole("heading", { name: "Seleção não autorizada" })).toBeVisible();
   await expect(page.getByText("não pertence às memberships ativas", { exact: false })).toBeVisible();
 
-  await page.getByLabel("Tenant").selectOption(ownedTenantId);
+  await page.getByRole("combobox", { name: "Tenant", exact: true }).selectOption(ownedTenantId);
   await page.getByRole("button", { name: "Aplicar seleção" }).click();
   await expect(page.getByText("TUPINIQUIM SITE BUILDER")).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Draft Studio + Workflow" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Studio de páginas e revisões", level: 2 })).toBeVisible();
 });

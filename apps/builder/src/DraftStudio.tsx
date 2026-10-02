@@ -69,24 +69,33 @@ export function DraftStudio({ client, tenantId, userId, aiChatEnabled }: DraftSt
 
   return (
     <section className="studio-card" aria-labelledby="draft-studio-title">
-      <div className="card-heading studio-heading">
+      <header className="studio-heading">
         <div>
-          <p className="eyebrow">PRIVATE BUILDER</p>
-          <h2 id="draft-studio-title">Draft Studio + Workflow</h2>
+          <p className="eyebrow">BUILDER</p>
+          <h2 id="draft-studio-title">Studio de páginas e revisões</h2>
+          <p>Edite, pré-visualize e conduza o fluxo versionado até publicação ou rollback.</p>
         </div>
-        <span>RLS + cms.write</span>
+      </header>
+      <div className="builder-workspace-bar">
+        <label className="workspace-page-select">Página ativa
+          <select value={selectedId} onChange={(event) => setSelectedId(event.target.value)}>
+            <option value="">Selecione uma página</option>
+            {pages.map((page) => <option key={page.id} value={page.id}>{page.title} · /{page.slug}</option>)}
+          </select>
+        </label>
+        <div className="workspace-status-group" aria-label="Estado do workspace">
+          <span className="workspace-status-label">Status da página</span>
+          <span className="workspace-status-value">{preview?.page.status ?? "Sem página selecionada"}</span>
+          <a className="workflow-jump" href="#revision-workflow">Revisão e publicação ↓</a>
+        </div>
       </div>
 
       <div className="studio-grid">
-        <div className="studio-controls">
-          <label>
-            Página
-            <select value={selectedId} onChange={(event) => setSelectedId(event.target.value)}>
-              <option value="">Selecione uma página</option>
-              {pages.map((page) => <option key={page.id} value={page.id}>{page.title} · /{page.slug} · {page.status}</option>)}
-            </select>
-          </label>
-
+        <aside className="studio-controls" aria-label="Páginas e camadas">
+          <div className="layers-panel">
+            <div className="layers-heading"><p className="eyebrow">ESTRUTURA</p><h3>Páginas e camadas</h3></div>
+            {!preview ? <p className="empty-editor">Selecione ou crie uma página para ver suas camadas.</p> : preview.sections.length === 0 ? <p className="empty-editor">Esta página ainda não possui seções.</p> : <ul className="layer-list">{preview.sections.map((section, index) => <li key={section.id}><span className="layer-index">{String(index + 1).padStart(2, "0")}</span><span className="layer-name">{section.section_type}</span><span className={section.is_enabled ? "layer-state enabled" : "layer-state"}>{section.is_enabled ? "Ativa" : "Oculta"}</span></li>)}</ul>}
+          </div>
           <form
             className="draft-form"
             onSubmit={(event) => {
@@ -112,7 +121,7 @@ export function DraftStudio({ client, tenantId, userId, aiChatEnabled }: DraftSt
 
           <p className="guardrail compact">Edição versionada ocorre no snapshot abaixo. `pages/page_sections` só recebem o snapshot quando uma revisão aprovada é publicada.</p>
           {message ? <p className="status-message" role="status">{message}</p> : null}
-        </div>
+        </aside>
 
         <LivePreview bundle={preview} />
         <AiCopilot client={client} tenantId={tenantId} pageId={selectedId || undefined} enabled={aiChatEnabled} />
@@ -132,12 +141,12 @@ export function DraftStudio({ client, tenantId, userId, aiChatEnabled }: DraftSt
 
 function LivePreview({ bundle }: { bundle: PageBundle | null }) {
   if (!bundle) {
-    return <article className="preview-surface"><p className="eyebrow">LIVE STATE</p><h3>Nenhuma página selecionada</h3><p>Selecione uma página acessível ao tenant.</p></article>;
+    return <article className="preview-surface"><p className="eyebrow">ESTADO ATUAL</p><h3>Nenhuma página selecionada</h3><p>Selecione uma página acessível ao tenant.</p></article>;
   }
 
   return (
     <article className="preview-surface" aria-label={`Estado atual de ${bundle.page.title}`}>
-      <p className="eyebrow">LIVE · {bundle.page.status.toUpperCase()} · /{bundle.page.slug}</p>
+      <p className="eyebrow">ATUAL · {bundle.page.status.toUpperCase()} · /{bundle.page.slug}</p>
       <h3>{bundle.page.title}</h3>
       {bundle.sections.length === 0 ? <p>Esta página ainda não possui seções projetadas.</p> : null}
       {bundle.sections.filter((section) => section.is_enabled).map((section) => (
