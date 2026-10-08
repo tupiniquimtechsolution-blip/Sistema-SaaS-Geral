@@ -1,0 +1,119 @@
+name: Release Live Diagnostics (read-only)
+
+on:
+  push:
+    branches:
+      - automation/release-green-external-gates-01
+    paths:
+      - ".github/workflows/release-live-diagnostics.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  canonical-provider-readonly:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
+      TEST_A_EMAIL: ${{ secrets.TEST_A_EMAIL }}
+      TEST_A_PASSWORD: ${{ secrets.TEST_A_PASSWORD }}
+    steps:
+      - name: Inspect canonical Supabase hostname, public bootstrap and QA membership without writes
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --input-type=module <<'NODE'
+          import { appendFileSync } from 'node:fs';
+
+          const expectedHost = 'mmykyzzkcugxunmekwew.supabase.co';
+          const required = ['SUPABASE_URL', 'SUPABASE_PUBLISHABLE_KEY', 'TEST_A_EMAIL', 'TEST_A_PASSWORD'];
+          const missing = required.filter((name) => !process.env[name]?.trim());
+          if (missing.length) {
+            console.error('Missing GitHub secrets: ' + missing.join(', '));
+            process.exit(1);
+          }
+
+          const origin = new URL(process.env.SUPABASE_URL).origin;
+          const actualHost = new URL(origin).hostname;
+          console.log('Supabase configured host matches canonical project:', actualHost === expectedHost);
+          if (actualHost !== expectedHost) {
+            console.error('Canonical Supabase project mismatch: expected ' + expectedHost + ', got ' + actualHost);
+            process.exit(1);
+          }
+
+          const apiKey = process.env.SUPABASE_PUBLISHABLE_KEY;
+          const baseHeaders = { apikey: apiKey, 'Content-Type': 'application/json' };
+          let passed = true;
+
+          const inspect = async (label, path, opts = {}) => {
+            try {
+              const res = await fetch(origin + path, {
+                ...opts, signal: AbortSignal.timeout(20000),
+                headers: { ...baseHeaders, ...(opts.headers || {}) }
+              });
+              const json = await res.json().catch(() => null);
+              const errorCode = typeof json?.code === 'string' ? json.code
+                : typeof json?.error_code === 'string' ? json.error_code
+                : typeof json?.error === 'string' ? json.error : 'none';
+              console.log(label + ': HTTP ' + res.status + '; provider_error_code=' + errorCode);
+              return { status: res.status, ok: res.ok, json };
+            } catch (err) {
+              console.log(label + ': NETWORK_EXCEPTION type=' + (err?.name || 'Unknown'));
+              return { status: 0, ok: false, json: null };
+            }
+          };
+
+          const publicRPC = await inspect('Salon anonymous bootstrap', '/rest/v1/rpc/get_storefront_bootstrap', {
+            method: 'POST',
+            headers: { Authorization: 'Bearer ' + apiKey },
+            body: JSON.stringify({ p_tenant_slug: 'vanessa-braz' })
+          });
+          const records = Array.isArray(publicRPC.json) ? publicRPC.json
+            : publicRPC.json && publicRPC.ok ? [publicRPC.json] : [];
+          console.log('Salon bootstrap returns exactly one salon tenant:',
+            publicRPC.ok && records.length === 1
+            && records[0]?.vertical_id === 'salon'
+            && !!records[0]?.tenant_id && !!records[0]?.tenant_slug);
+          if (!publicRPC.ok || records.length !== 1 || records[0]?.vertical_id !== 'salon') passed = false;
+
+          const login = await inspect('Builder QA password grant', '/auth/v1/token?grant_type=password', {
+            method: 'POST',
+            body: JSON.stringify({
+              email: process.env.TEST_A_EMAIL,
+              password: process.env.TEST_A_PASSWORD
+            })
+          });
+          if (!login.ok || !login.json?.access_token || !login.json?.user?.id) {
+            passed = false;
+            console.log('Builder membership reads skipped: QA login was not successful.');
+          } else {
+            const bearer = { Authorization: 'Bearer ' + login.json.access_token };
+            const query = new URLSearchParams({
+              select: 'id,tenant_id,status',
+              user_id: 'eq.' + login.json.user.id,
+              status: 'eq.active',
+              limit: '2'
+            });
+            const membership = await inspect('Builder QA own active memberships', '/rest/v1/memberships?' + query, { headers: bearer });
+            const count = Array.isArray(membership.json) ? membership.json.length : 0;
+            console.log('Builder QA has at least one RLS-visible active membership:', membership.ok && count > 0);
+
+            const admin = await inspect('Builder QA platform admin RPC', '/rest/v1/rpc/is_platform_admin', {
+              method: 'POST', body: '{}', headers: bearer
+            });
+            const isAdmin = admin.ok && admin.json === true;
+            console.log('Builder QA platform-admin flag:', isAdmin);
+            if (!membership.ok || !admin.ok || (count === 0 && !isAdmin)) passed = false;
+          }
+
+          appendFileSync(process.env.GITHUB_STEP_SUMMARY,
+            '## Canonical live dependency diagnostics\n\n' +
+            '- Supabase target: `' + expectedHost + '`\n' +
+            '- Salon public bootstrap, Builder QA password grant and RLS-visible membership checked read-only.\n' +
+            '- Sensitive credentials, user IDs, tokens, tenant identifiers and response payloads were not logged.\n' +
+            '- Outcome: **' + (passed ? 'PASS' : 'FAIL — inspect step log for HTTP/code categories') + '**\n');
+          if (!passed) process.exit(1);
+          NODE
