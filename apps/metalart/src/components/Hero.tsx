@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { VerifiedImage } from "./VerifiedImage";
 import { Link } from "react-router-dom";
 import { assets } from "../config/assets";
 import { business } from "../config/business";
@@ -18,13 +19,13 @@ import { IconArrowRight, IconArrowUpRight, IconWhatsApp, Magnetic, Marquee } fro
 const HERO_SLIDES = [
   {
     src: assets.official.heroSparks,
-    alt: "Produção Metal & Art — corte de metal com esmerilhadeira e faíscas",
+    alt: "Portão metálico preto — foto real da Metal & Art",
   },
   {
     src: assets.official.heroWorkshop,
     alt: "Oficina Metal & Art — estrutura metálica em fabricação",
   },
-];
+].filter((slide) => Boolean(slide.src));
 
 function HeroSlideshow() {
   const reduced = prefersReduced();
@@ -40,7 +41,7 @@ function HeroSlideshow() {
   return (
     <div className="absolute inset-0">
       {HERO_SLIDES.map((s, i) => (
-        <img
+        <VerifiedImage
           key={s.src}
           src={s.src}
           alt={i === idx ? s.alt : ""}

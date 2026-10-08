@@ -1,4 +1,5 @@
 import { Link, useParams } from "react-router-dom";
+import { VerifiedImage } from "../components/VerifiedImage";
 import { business } from "../config/business";
 import { getService, services } from "../data/services";
 import { categoryLabels, projects } from "../data/projects";
@@ -189,13 +190,13 @@ export function ServiceDetail() {
         <div className="mx-auto max-w-[1440px] px-5 md:px-8">
           <div className="grid gap-12 lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)] lg:gap-20">
             <div>
-              <img
+              <VerifiedImage
                 src={service.images[0]}
                 alt={`${service.name} — trabalho da Metal & Art`}
                 className="border-coal-600 aspect-[16/10] w-full border object-cover"
               />
               {service.images[1] && (
-                <img
+                <VerifiedImage
                   src={service.images[1]}
                   alt={`${service.name} — detalhe`}
                   className="border-coal-600 mt-5 hidden aspect-[16/10] w-full border object-cover md:block"
@@ -240,7 +241,7 @@ export function ServiceDetail() {
               <div className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
                 {related.map((p) => (
                   <Link key={p.slug} to={`/projetos/${p.slug}`} className="img-zoom border-coal-600 group relative block overflow-hidden border" data-cursor="ABRIR">
-                    <img src={p.images[0]} alt={p.title} loading="lazy" className="aspect-[4/3] w-full object-cover" />
+                    <VerifiedImage src={p.images[0]} alt={p.title} loading="lazy" className="aspect-[4/3] w-full object-cover" />
                     <div className="absolute inset-0 bg-gradient-to-t from-coal-950/90 via-transparent to-transparent" />
                     <p className="font-mono absolute bottom-4 left-4 text-[0.6rem] tracking-[0.22em] text-ember-400 uppercase">
                       {categoryLabels[p.category]}

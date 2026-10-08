@@ -1,4 +1,5 @@
 import { useRef, useState } from "react";
+import { VerifiedImage } from "./VerifiedImage";
 import { Link } from "react-router-dom";
 import { assets } from "../config/assets";
 import { business } from "../config/business";
@@ -17,6 +18,9 @@ import {
 export function BeforeAfter() {
   const [pos, setPos] = useState(50);
   const wrapRef = useRef<HTMLDivElement>(null);
+
+  // Sem dois frames auditados do mesmo vão, não simular a transformação.
+  if (!assets.beforeAfter.before || !assets.beforeAfter.after) return null;
 
   return (
     <section id="antes-depois" className="blueprint-grid border-y border-coal-700/60 bg-coal-850 py-24 md:py-32">
@@ -45,7 +49,7 @@ export function BeforeAfter() {
           data-cursor="ARRASTE"
         >
           {/* depois (fundo) */}
-          <img
+          <VerifiedImage
             src={assets.beforeAfter.after}
             alt="Portão depois da reforma completa pela Metal & Art"
             className="absolute inset-0 h-full w-full object-cover"
@@ -53,7 +57,7 @@ export function BeforeAfter() {
           />
           {/* antes (recortado) */}
           <div className="absolute inset-0" style={{ clipPath: `inset(0 ${100 - pos}% 0 0)` }}>
-            <img
+            <VerifiedImage
               src={assets.beforeAfter.before}
               alt="Portão antes da reforma, com ferrugem e pintura desgastada"
               className="absolute inset-0 h-full w-full object-cover"

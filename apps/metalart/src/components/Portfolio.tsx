@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { VerifiedImage } from "./VerifiedImage";
 import { Link } from "react-router-dom";
 import { business } from "../config/business";
 import {
@@ -43,7 +44,7 @@ function ProjectCard({
   const inner = (
     <>
       <div className="img-zoom border-coal-600 group relative overflow-hidden border bg-coal-800">
-        <img
+        <VerifiedImage
           src={p.images[0]}
           alt={p.title}
           loading="lazy"
@@ -125,7 +126,7 @@ export function Lightbox({ project, onClose }: { project: Project; onClose: () =
       >
         {/* galeria */}
         <div className="relative bg-coal-950">
-          <img
+          <VerifiedImage
             src={project.images[imgIdx]}
             alt={`${project.title} — imagem ${imgIdx + 1}`}
             className="aspect-[4/3] w-full object-cover lg:aspect-auto lg:h-full lg:min-h-[26rem]"

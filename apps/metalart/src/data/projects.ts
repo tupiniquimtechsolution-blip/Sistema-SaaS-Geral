@@ -43,7 +43,7 @@ export const categoryLabels: Record<ProjectCategory, string> = {
 // do Instagram @serralheriametaleart antes da publicação.
 const TEMP = "Asset temporário de protótipo — substituir por foto real do Instagram @serralheriametaleart";
 
-export const projects: Project[] = [
+const projectCatalog: Project[] = [
   {
     id: "p1",
     slug: "portao-deslizante-sob-medida",
@@ -188,6 +188,12 @@ export const projects: Project[] = [
     location: "São Paulo — SP",
   },
 ];
+
+// Não apresentar cases do protótipo sem fotografia original identificada.
+// A revisão de descrições e escopos pelo cliente permanece pendente.
+export const projects: Project[] = projectCatalog
+  .map((project) => ({ ...project, images: project.images.filter(Boolean) }))
+  .filter((project) => project.images.length > 0);
 
 export const getProject = (slug: string) =>
   projects.find((p) => p.slug === slug);

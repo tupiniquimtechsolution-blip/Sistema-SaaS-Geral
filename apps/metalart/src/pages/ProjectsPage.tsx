@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { VerifiedImage } from "../components/VerifiedImage";
 import { Link, useParams } from "react-router-dom";
 import { business } from "../config/business";
 import { categoryLabels, getProject, projects } from "../data/projects";
@@ -19,9 +20,9 @@ function Compare({ before, after }: { before: string; after: string }) {
   const [pos, setPos] = useState(50);
   return (
     <div className="border-coal-600 relative aspect-[4/3] overflow-hidden border select-none" data-cursor="ARRASTE">
-      <img src={after} alt="Depois da reforma" className="absolute inset-0 h-full w-full object-cover" draggable={false} />
+      <VerifiedImage src={after} alt="Depois da reforma" className="absolute inset-0 h-full w-full object-cover" draggable={false} />
       <div className="absolute inset-0" style={{ clipPath: `inset(0 ${100 - pos}% 0 0)` }}>
-        <img src={before} alt="Antes da reforma" className="absolute inset-0 h-full w-full object-cover" draggable={false} />
+        <VerifiedImage src={before} alt="Antes da reforma" className="absolute inset-0 h-full w-full object-cover" draggable={false} />
       </div>
       <div className="pointer-events-none absolute inset-y-0 z-10 w-0.5 bg-ember-500" style={{ left: `${pos}%` }} aria-hidden="true">
         <span className="border-ember-500 absolute top-1/2 left-1/2 flex h-10 w-10 -translate-x-1/2 -translate-y-1/2 items-center justify-center border-2 bg-coal-950/85 text-ember-400">
@@ -123,7 +124,7 @@ export function ProjectDetail() {
     <article className="bg-coal-950">
       <header className="relative">
         <div className="img-zoom relative h-[52vh] min-h-[22rem] overflow-hidden md:h-[64vh]">
-          <img src={project.images[0]} alt={project.title} className="h-full w-full object-cover" />
+          <VerifiedImage src={project.images[0]} alt={project.title} className="h-full w-full object-cover" />
           <div className="absolute inset-0 bg-gradient-to-t from-coal-950 via-coal-950/30 to-coal-950/40" />
         </div>
         <div className="absolute right-0 bottom-0 left-0">
@@ -168,7 +169,7 @@ export function ProjectDetail() {
             {project.images.length > 1 && (
               <div className="mt-10 grid gap-5 sm:grid-cols-2">
                 {project.images.slice(1).map((img, i) => (
-                  <img key={i} src={img} alt={`${project.title} — imagem ${i + 2}`} loading="lazy" className="border-coal-600 aspect-[4/3] w-full border object-cover" />
+                  <VerifiedImage key={i} src={img} alt={`${project.title} — imagem ${i + 2}`} loading="lazy" className="border-coal-600 aspect-[4/3] w-full border object-cover" />
                 ))}
               </div>
             )}
@@ -229,7 +230,7 @@ export function ProjectDetail() {
             data-cursor="ABRIR"
           >
             <div className="img-zoom border-coal-600 relative overflow-hidden border">
-              <img src={next.images[0]} alt={next.title} loading="lazy" className={cn("w-full object-cover", "aspect-[4/3]")} />
+              <VerifiedImage src={next.images[0]} alt={next.title} loading="lazy" className={cn("w-full object-cover", "aspect-[4/3]")} />
             </div>
             <div>
               <p className="font-mono text-[0.62rem] tracking-[0.25em] text-ember-400 uppercase">{categoryLabels[next.category]}</p>
