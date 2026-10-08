@@ -35,6 +35,23 @@ jobs:
             exit 1
           fi
           echo "Canonical Supabase hostname: verified"
+          for target in github.com supabase.co "$host"; do
+            if getent ahostsv4 "$target" >/dev/null 2>&1; then
+              echo "System DNS resolution for $target: OK"
+            else
+              echo "System DNS resolution for $target: FAILED"
+            fi
+          done
+          # Public DNS status (0=NOERROR, 3=NXDOMAIN) distinguishes an
+          # absent provider hostname from a local resolver outage.
+          doh_json="$(curl -fsS --max-time 15 --get \
+            --data-urlencode "name=$host" --data-urlencode 'type=A' \
+            'https://dns.google/resolve' || true)"
+          if [ -n "$doh_json" ]; then
+            printf '%s' "$doh_json" | jq -r '"Public DNS response status: " + (.Status | tostring), "Public DNS A answer count: " + ((.Answer // [] | length) | tostring)' || true
+          else
+            echo "Public DNS check unavailable"
+          fi
           base="${SUPABASE_URL%/}"
           tmp="$(mktemp -d)"
           trap 'rm -rf "$tmp"' EXIT
