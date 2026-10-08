@@ -120,7 +120,12 @@ jobs:
         run: npm run hosting:policy
 
       - name: Build release surfaces
-        run: npm run build
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm run build
+          # apps/salon intentionally has no package.json/workspace entry; build it explicitly.
+          npm run build:salon
 
       - name: Create isolated Cloudflare Previews without production traffic
         shell: bash
