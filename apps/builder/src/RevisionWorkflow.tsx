@@ -103,7 +103,7 @@ export function RevisionWorkflow({ client, tenantId, bundle, onLiveChanged }: Re
   };
 
   return (
-    <section className="revision-workflow" aria-labelledby="revision-workflow-title">
+    <section id="revision-workflow" className="revision-workflow" aria-labelledby="revision-workflow-title">
       <div className="revision-header">
         <div>
           <p className="eyebrow">VERSIONED WORKFLOW</p>

@@ -1,5 +1,8 @@
 # DEPLOYMENT RELEASE MATRIX
 
+> **CURRENT HOSTING POLICY (2026-09-30): CLOUDFLARE ONLY.** This document contains historical migration evidence. Any Vercel reference below is historical context only and MUST NOT be interpreted as an active deploy, preview, fallback, rollback, DNS target, or production instruction. Current operational authority: `docs/HOSTING_POLICY.md` and `docs/CLOUDFLARE_ROLLBACK_RUNBOOK.md`.
+
+
 Data: 2026-09-18 · **ATUALIZADA (fechamento do produto — nova semântica)** ·
 Branch `freebuff/big-master-wave-01-monorepo`
 Estados: PASS · FAIL · BLOCKED · NOT RUN · MISSING · NOT READY · OPTIONAL ·

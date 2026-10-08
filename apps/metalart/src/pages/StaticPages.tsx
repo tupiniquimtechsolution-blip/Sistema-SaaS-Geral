@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { VerifiedImage } from "../components/VerifiedImage";
 import { Link } from "react-router-dom";
 import { assets } from "../config/assets";
 import { business } from "../config/business";
@@ -109,10 +110,10 @@ export function AboutPage() {
               </Reveal>
             </div>
             <div className="grid content-start gap-5 sm:grid-cols-2">
-              <img src={assets.workshop.fabrication} alt="Trabalho de corte e solda na oficina" className="border-coal-600 aspect-[3/4] w-full border object-cover" />
-              <img src={assets.gates.sliding} alt="Portão entregue e instalado" loading="lazy" className="border-coal-600 aspect-[3/4] w-full translate-y-8 border object-cover" />
-              <img src={assets.automation.motor} alt="Automação instalada em portão" loading="lazy" className="border-coal-600 aspect-[3/4] w-full border object-cover" />
-              <img src={assets.railings.handrail} alt="Corrimão instalado em escada" loading="lazy" className="border-coal-600 aspect-[3/4] w-full translate-y-8 border object-cover" />
+              <VerifiedImage src={assets.workshop.fabrication} alt="Trabalho de corte e solda na oficina" className="border-coal-600 aspect-[3/4] w-full border object-cover" />
+              <VerifiedImage src={assets.gates.sliding} alt="Portão entregue e instalado" loading="lazy" className="border-coal-600 aspect-[3/4] w-full translate-y-8 border object-cover" />
+              <VerifiedImage src={assets.automation.motor} alt="Automação instalada em portão" loading="lazy" className="border-coal-600 aspect-[3/4] w-full border object-cover" />
+              <VerifiedImage src={assets.railings.handrail} alt="Corrimão instalado em escada" loading="lazy" className="border-coal-600 aspect-[3/4] w-full translate-y-8 border object-cover" />
             </div>
           </div>
 

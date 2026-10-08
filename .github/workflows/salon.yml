@@ -1,20 +1,18 @@
 name: Salon Vanessa Gates
 
 on:
+  workflow_dispatch:
   push:
     branches:
       - chatgpt/integrate-salon-vanessa
       - automation/salon-rc1-gates
-    paths:
-      - 'apps/salon/**'
-      - 'packages/**'
-      - 'supabase/**'
-      - 'scripts/provisioning/vanessa_braz_tenant.sql'
-      - 'tests/postgres/salon_*.real.sql'
-      - 'package.json'
-      - 'package-lock.json'
-      - '.github/workflows/salon.yml'
+      - freebuff/big-master-wave-01-monorepo
+      - feature/ui-saas-convergence-wave-01
+      - automation/release-green-external-gates-01
   pull_request:
+    branches:
+      - main
+      - freebuff/big-master-wave-01-monorepo
     paths:
       - 'apps/salon/**'
       - 'packages/**'

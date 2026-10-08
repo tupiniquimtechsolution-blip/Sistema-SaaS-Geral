@@ -1,0 +1,68 @@
+name: Cloudflare Preview Probe
+
+on:
+  push:
+    branches:
+      - automation/release-green-external-gates-01
+    paths:
+      - ".github/workflows/cloudflare-preview-probe.yml"
+      - "apps/heavy-machinery/wrangler.jsonc"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  heavy-machinery-preview:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install locked dependencies
+        run: npm ci
+      - name: Create isolated Heavy Machinery Preview
+        shell: bash
+        run: |
+          set -euo pipefail
+          preview="rg-probe-${GITHUB_SHA:0:8}"
+          npx wrangler preview             --config apps/heavy-machinery/wrangler.jsonc             --name "$preview"             --tag "rg-probe"             --message "Release GREEN preview probe ${GITHUB_SHA}"             --json 2>&1 | tee /tmp/preview.json.log
+          grep -Eo 'https://[A-Za-z0-9.-]+\.workers\.dev' /tmp/preview.json.log | awk '!seen[$0]++' | tee /tmp/preview-urls.txt
+          test -s /tmp/preview-urls.txt
+          # Wrangler emits the stable Preview URL before the immutable deployment URL.
+          # Prefer immutable exact-deployment evidence and allow time for edge propagation.
+          url="$(sed -n '2p' /tmp/preview-urls.txt)"
+          test -n "$url" || url="$(head -1 /tmp/preview-urls.txt)"
+          ready=0
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent --show-error --location --max-time 30 "$url" >/tmp/preview-home.html; then
+              ready=1
+              break
+            fi
+            sleep 2
+          done
+          test "$ready" -eq 1
+          test -s /tmp/preview-home.html
+          {
+            echo "## Heavy Machinery Cloudflare Preview probe"
+            echo
+            echo "Preview creation and HTTPS fetch succeeded without production deployment."
+            echo
+            echo "URL: $url"
+          } >> "$GITHUB_STEP_SUMMARY"
+      - name: Upload probe evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cloudflare-preview-probe-${{ github.sha }}
+          path: |
+            /tmp/preview.json.log
+            /tmp/preview-urls.txt
+          if-no-files-found: ignore
+          retention-days: 7

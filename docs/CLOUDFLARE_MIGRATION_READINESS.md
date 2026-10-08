@@ -1,35 +1,55 @@
-# CLOUDFLARE MIGRATION READINESS
+# Cloudflare Hosting Readiness
 
-Data: 2026-09-18 · **EXECUÇÃO REALIZADA (workers.dev)** — evidência viva em
-docs/CLOUDFLARE_EXECUTION_REPORT.md + docs/CLOUDFLARE_WORKER_MATRIX.md.
-Plano revisado (Workers Static Assets): docs/CLOUDFLARE_MIGRATION_MASTER_PLAN.md.
+Status: **CURRENT POLICY SUMMARY**
 
-## Pré-condições
+Canonical policy: `docs/HOSTING_POLICY.md`
 
-| Pré-condição | Estado |
-|---|---|
-| CODE_PRODUCT_COMPLETE | **YES** (ver docs/PLATFORM_COMPLETION_REPORT.md + docs/MVP_COMMERCIAL_READINESS.md) |
-| HOSTING PORTABILITY | **PASS** (docs/HOSTING_PORTABILITY_AUDIT.md — zero lock-in) |
-| Security gates | PASS (58/58 · 42/42 · secret scan) |
-| Builds por app | PASS (6 apps) |
-| Preview HTTP gate reutilizável | SIM (HTTP puro — funciona contra Pages) |
+The earlier Vercel-to-Cloudflare migration phase is historical. Current product hosting is Cloudflare Workers / Static Assets only.
 
-## Checklist de execução (futura wave, autorização do owner exigida)
+## Current requirements
 
-1. Criar Pages projects (mapping no master plan §2) — **a fazer**
-2. Env matrix por projeto (VITE_* apenas) — **a fazer**
-3. Preview deploy + `preview-http-gate.ts deployment:<url>` por app — **a fazer**
-4. Headers/cache (_headers) + not-found = index.html — **a fazer**
-5. Domínios/DNS (fase 2/3 do plano; TTL baixo; rollback Vercel intacto) — **a fazer**
-6. Cutover por app + observação + deprecação formal do Vercel — **a fazer**
+A deployable app must have:
 
-## Veredito
+- locked repository install;
+- successful build/typecheck gates applicable to that app;
+- no browser/server secret leakage;
+- canonical Wrangler configuration;
+- Cloudflare-compatible static asset output;
+- SPA fallback where required;
+- release evidence that does not rely on temporary sandbox URLs;
+- tenant/domain security rules preserved.
 
-**CLOUDFLARE_MIGRATION_READY = YES (consumido) → CLOUDFLARE_MIGRATION = PASS
-parcial-durável:** 5/6 apps deployados e validados HTTP/identidade no
-workers.dev (bakery/pet/restaurant/heavy-machinery/platform); MetalArt
-**BLOCKED_STATIC_ASSET_LIMIT** apenas no caminho temporary-preview (limite
-5 MiB/arquivo da API de preview; o deploy durável com login do owner usa o
-limite de 25 MiB/arquivo e cobre o vídeo de 22M — config commitada, nenhum
-corte de mídia). DNS/custom domains: NOT EXECUTED (PENDING_OWNER_AUTHORIZATION).
-Vercel intacto como rollback.
+## Canonical tooling
+
+- Wrangler pinned in the root repository.
+- Per-app `wrangler.jsonc` configuration.
+- Cloudflare Workers Builds may be connected to GitHub.
+- Durable deploys require authenticated Cloudflare execution.
+- Durable release proof uses the Cloudflare smoke matrix and rollback evidence.
+
+## Vercel
+
+Vercel is not part of the current hosting architecture.
+
+Do not:
+
+- create new Vercel projects;
+- deploy previews or production to Vercel;
+- configure Vercel environment variables/secrets;
+- use Vercel as rollback;
+- treat historical Vercel URLs as release evidence.
+
+Historical documentation may retain Vercel references solely to explain migration history.
+
+## Remaining release evidence
+
+See `docs/RELEASE_GREEN_DOD.md`.
+
+At the time this policy was adopted, relevant external gates still included:
+
+- authenticated durable Cloudflare deployments;
+- durable HTTPS smoke;
+- authorized custom QA hostname + TLS + tenant resolution;
+- rollback proof.
+
+Those gates remain NOT RUN/BLOCKED until actual evidence exists.

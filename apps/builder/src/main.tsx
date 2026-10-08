@@ -2,6 +2,7 @@ import React from "react";
 import ReactDOM from "react-dom/client";
 import { createSupabaseBrowserClient } from "tupiniquim-database";
 import { App } from "./App";
+import "tupiniquim-ui/tokens.css";
 import "./styles.css";
 
 const root = ReactDOM.createRoot(document.getElementById("root")!);

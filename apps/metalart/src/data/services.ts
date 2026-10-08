@@ -39,7 +39,7 @@ export const services: Service[] = [
       "Portões pivotantes",
       "Portões de condomínios",
     ],
-    images: [assets.beforeAfter.after, assets.beforeAfter.before],
+    images: [assets.beforeAfter.after, assets.beforeAfter.before].filter(Boolean),
     featured: true,
     storyChapter: "Manutenção",
     whatsappMessage:
@@ -68,7 +68,7 @@ export const services: Service[] = [
       "Portões de empresas",
       "Portões deslizantes e basculantes",
     ],
-    images: [assets.automation.motor, assets.gates.sliding],
+    images: [assets.automation.motor, assets.gates.sliding].filter(Boolean),
     featured: true,
     storyChapter: "Automação",
     whatsappMessage:
@@ -97,7 +97,7 @@ export const services: Service[] = [
       "Residências e condomínios",
       "Empresas e galpões",
     ],
-    images: [assets.gates.sliding, assets.gates.social],
+    images: [assets.gates.sliding, assets.gates.social].filter(Boolean),
     featured: true,
     storyChapter: "Portões",
     whatsappMessage:
@@ -126,7 +126,7 @@ export const services: Service[] = [
       "Muros e áreas de serviço",
       "Comércios e escolas",
     ],
-    images: [assets.grids.window, assets.gates.social],
+    images: [assets.grids.window, assets.gates.social].filter(Boolean),
     featured: true,
     storyChapter: "Proteção",
     whatsappMessage:
@@ -155,7 +155,7 @@ export const services: Service[] = [
       "Comércios e clínicas",
       "Acessos e rampas",
     ],
-    images: [assets.railings.handrail],
+    images: [assets.railings.handrail].filter(Boolean),
     featured: true,
     storyChapter: "Corrimãos",
     whatsappMessage:
@@ -184,7 +184,7 @@ export const services: Service[] = [
       "Escadas e patamares",
       "Terraços de comércios",
     ],
-    images: [assets.railings.handrail, assets.workshop.fabrication],
+    images: [assets.railings.handrail, assets.workshop.fabrication].filter(Boolean),
     featured: false,
     whatsappMessage:
       "Olá, Metal & Art! Vim pelo site e gostaria de um orçamento para guarda-corpo.",
@@ -212,7 +212,7 @@ export const services: Service[] = [
       "Galpões e docas",
       "Quiosques e boxes",
     ],
-    images: [assets.rollingDoors.storefront],
+    images: [assets.rollingDoors.storefront].filter(Boolean),
     featured: true,
     whatsappMessage:
       "Olá, Metal & Art! Vim pelo site e preciso de manutenção/troca de mola em porta de enrolar.",
@@ -240,7 +240,7 @@ export const services: Service[] = [
       "Coberturas e pergolados",
       "Reforços estruturais",
     ],
-    images: [assets.workshop.fabrication, assets.gates.sliding],
+    images: [assets.workshop.fabrication, assets.gates.sliding].filter(Boolean),
     featured: false,
     whatsappMessage:
       "Olá, Metal & Art! Vim pelo site e gostaria de um orçamento para estrutura metálica.",
@@ -268,7 +268,7 @@ export const services: Service[] = [
       "Portas de condomínios",
       "Acessos comerciais",
     ],
-    images: [assets.automation.motor, assets.gates.social],
+    images: [assets.automation.motor, assets.gates.social].filter(Boolean),
     featured: false,
     whatsappMessage:
       "Olá, Metal & Art! Vim pelo site e preciso de fechadura/trava para portão.",

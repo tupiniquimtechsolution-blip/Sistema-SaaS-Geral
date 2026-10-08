@@ -1,8 +1,12 @@
 name: Monorepo Quality Gates
 
 on:
+  workflow_dispatch:
   push:
   pull_request:
+    branches:
+      - main
+      - freebuff/big-master-wave-01-monorepo
 
 permissions:
   contents: read
@@ -49,6 +53,9 @@ jobs:
           test -f docs/MIGRATION_MANIFEST.md
           test -f docs/PLANEJAMENTO_MESTRE_TUPINIQUIM_VERTICAL_SAAS.md
 
+      - name: Enforce Cloudflare-only hosting policy
+        run: npm run hosting:policy
+
   node-quality:
     runs-on: ubuntu-latest
     timeout-minutes: 25
@@ -83,8 +90,43 @@ jobs:
       - name: Build
         run: npm run build --if-present
 
-      - name: Production dependency audit
+      - name: Production dependency advisory report (moderate+)
+        shell: bash
+        run: |
+          set +e
+          npm audit --omit=dev --audit-level=moderate --json > npm-audit-production.json
+          audit_code=$?
+          node <<'NODE'
+          const fs = require("node:fs");
+          const report = JSON.parse(fs.readFileSync("npm-audit-production.json", "utf8"));
+          const v = report.metadata?.vulnerabilities ?? {};
+          const lines = [
+            "## Production dependency advisory report",
+            "",
+            "| Severity | Count |",
+            "|---|---:|",
+            `| critical | ${v.critical ?? 0} |`,
+            `| high | ${v.high ?? 0} |`,
+            `| moderate | ${v.moderate ?? 0} |`,
+            `| low | ${v.low ?? 0} |`,
+            "",
+            "Moderate findings are tracked automatically; high/critical findings are release-blocking in the next gate."
+          ];
+          fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, lines.join("\n") + "\n");
+          NODE
+          echo "npm audit moderate+ exit code: $audit_code"
+          exit 0
+
+      - name: Production dependency audit (high+ blocking)
         run: npm audit --omit=dev --audit-level=high
+
+      - name: Upload production dependency audit
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: npm-audit-production-${{ github.run_id }}
+          if-no-files-found: ignore
+          path: npm-audit-production.json
 
   bakery-postgres-contract:
     runs-on: ubuntu-latest

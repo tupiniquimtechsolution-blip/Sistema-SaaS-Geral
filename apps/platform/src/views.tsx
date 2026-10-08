@@ -10,10 +10,9 @@ import { Badge, gateTone, maturityTone } from "./ui";
 
 export function DashboardView({ env }: { env: Record<string, string | undefined> }) {
   const previewUrls = readPreviewUrls(env);
-  const readyCount = VERTICALS.filter((v) => v.state === "ready").length;
-  const blockedCount = VERTICALS.filter((v) => v.state === "blocked").length;
+  const appCount = VERTICALS.filter((v) => v.app === "EXISTS").length;
+  const buildPassCount = VERTICALS.filter((v) => v.build === "PASS").length;
   const gatesPass = GATES.filter((g) => g.state === "PASS").length;
-  const ownerActions = PROJECTS.filter((p) => p.status.includes("OWNER_ACTION_REQUIRED")).length;
 
   return (
     <div className="view">
@@ -21,28 +20,25 @@ export function DashboardView({ env }: { env: Record<string, string | undefined>
         <h2>Estado da plataforma</h2>
         <div className="statgrid">
           <div className="stat">
-            <div className="stat-num">{readyCount}</div>
-            <div className="stat-label">verticais prontos p/ deploy</div>
+            <div className="stat-num">{VERTICALS.length}</div>
+            <div className="stat-label">verticais no catálogo</div>
           </div>
           <div className="stat">
-            <div className="stat-num">{blockedCount}</div>
-            <div className="stat-label">bloqueados (blocker externo real)</div>
+            <div className="stat-num">{appCount}</div>
+            <div className="stat-label">apps com código no repositório</div>
           </div>
           <div className="stat">
-            <div className="stat-num">
-              {gatesPass}/{GATES.length}
-            </div>
-            <div className="stat-label">gates de segurança/qualidade PASS</div>
+            <div className="stat-num">{buildPassCount}/{VERTICALS.length}</div>
+            <div className="stat-label">builds PASS registrados no catálogo</div>
           </div>
           <div className="stat">
-            <div className="stat-num">{ownerActions}</div>
-            <div className="stat-label">projetos aguardando ação do owner</div>
+            <div className="stat-num">{gatesPass}/{GATES.length}</div>
+            <div className="stat-label">gates PASS na evidência registrada</div>
           </div>
         </div>
         <p className="hint">
-          Números refletem execução real registrada (docs/ + gates). Nada é
-          estimado ou simulado — ver detalhes na aba{" "}
-          <a href="#/status">Status</a>.
+          Contagens derivadas do catálogo versionado, não de telemetria live. Estados dos gates são a evidência registrada e podem não ter sido reexecutados nesta sessão. Consulte detalhes em{" "}
+          <a href="#/status">Estado</a>.
         </p>
       </section>
 
@@ -54,7 +50,7 @@ export function DashboardView({ env }: { env: Record<string, string | undefined>
             const inner = (
               <>
                 <span className={`tag ${v.state === "ready" ? "ok" : v.state === "blocked" ? "blocked" : "soon"}`}>
-                  {v.state === "ready" ? "Preview ready" : v.state === "blocked" ? "Blocked" : "Not ready"}
+                  {v.state === "ready" ? "Prévia disponível" : v.state === "blocked" ? "Bloqueado" : "Não pronto"}
                 </span>
                 <h3>{v.name}</h3>
                 <p>{v.note}</p>
@@ -90,8 +86,7 @@ export function VerticalsView({ env }: { env: Record<string, string | undefined>
       <section>
         <h2>Catálogo de verticais</h2>
         <p className="hint">
-          Cada vertical é uma aplicação deployable independente (próprio projeto
-          Vercel). Clique em um card para o dossiê completo.
+          Cada vertical é uma aplicação nos Cloudflare Workers / Static Assets. O estado de deploy durável é apresentado somente quando há evidência. Clique em um card para o dossiê completo.
         </p>
         <div className="grid">
           {VERTICALS.map((v) => {
@@ -99,7 +94,7 @@ export function VerticalsView({ env }: { env: Record<string, string | undefined>
             return (
               <a key={v.slug} className="card" href={url ?? `#/verticals/${v.slug}`} target={url ? "_blank" : undefined} rel={url ? "noreferrer" : undefined}>
                 <span className={`tag ${v.state === "ready" ? "ok" : v.state === "blocked" ? "blocked" : "soon"}`}>
-                  {v.state === "ready" ? "Preview ready" : v.state === "blocked" ? "Blocked" : "Not ready"}
+                  {v.state === "ready" ? "Prévia disponível" : v.state === "blocked" ? "Bloqueado" : "Não pronto"}
                 </span>
                 <h3>{v.name}</h3>
                 <p>{v.blocker ?? v.note}</p>
@@ -125,20 +120,20 @@ export function VerticalDetailView({ slug }: { slug: string }) {
     );
   }
   const rows: Array<[string, string]> = [
-    ["SOURCE", v.source],
-    ["APP", v.app],
+    ["ORIGEM", v.source],
+    ["APLICAÇÃO", v.app],
     ["BUILD", v.build],
-    ["TYPECHECK", v.typecheck],
-    ["TEST", v.test],
-    ["ROUTER", v.router],
-    ["ENV (VITE_*)", v.env],
+    ["VERIFICAÇÃO DE TIPOS", v.typecheck],
+    ["TESTES", v.test],
+    ["ROTEAMENTO", v.router],
+    ["AMBIENTE (VITE_*)", v.env],
     ["SUPABASE", v.supabase],
     ["CLIENTES", v.clients],
-    ["TENANT MODEL", "Um cliente = um tenant no Supabase canônico — sem fork por cliente"],
-    ["BRANDING MODEL", "tenant_brands/tenant_themes por tenant (leitura live já provada na Bakery)"],
-    ["DEMO READINESS", v.demo],
-    ["COMMERCIAL READINESS", v.commercial],
-    ["PROJETO VERCEL", v.project],
+    ["MODELO DE TENANCY", "Um cliente = um tenant no Supabase canônico — sem fork por cliente"],
+    ["MODELO DE MARCA", "tenant_brands/tenant_themes por tenant; validar estado live atual"],
+    ["PRONTIDÃO DE PRÉVIA", v.demo],
+    ["PRONTIDÃO COMERCIAL", v.commercial],
+    ["HOSTING / WORKER", v.project],
   ];
   return (
     <div className="view">
@@ -176,7 +171,7 @@ export function CoreView() {
         <h2>SaaS Core — módulos e maturidade</h2>
         <p className="hint">
           Maturidade declarada honestamente: IMPLEMENTED (executado e provado),
-          FOUNDATION (contratos prontos, UI/provider pendente), COMING_SOON
+          FOUNDATION (base técnica parcial; produto ou gates externos incompletos), COMING_SOON
           (planejado). Ausência nunca é mascarada.
         </p>
         <table>
@@ -228,10 +223,10 @@ export function TenantsView() {
         </p>
         <table>
           <tbody>
-            <tr><th>Infra de tenants</th><td>IMPLEMENTED — memberships/roles/RLS provados (58/58)</td></tr>
+            <tr><th>Infra de tenants</th><td>IMPLEMENTED — memberships/RBAC/RLS; evidência registrada em RELEASE_GREEN_DOD, não reexecutada neste corrective pass</td></tr>
             <tr><th>Resolução de tenant</th><td>membership-scoped, fail-closed; seleção no browser é UX, RLS é enforcement</td></tr>
             <tr><th>Provisionamento</th><td>RPC canônica <code>create_tenant_with_owner</code> (idempotente, usada nos QA A/B)</td></tr>
-            <tr><th>Gestão UI</th><td>COMING_SOON — wave futura do control plane</td></tr>
+            <tr><th>Gestão de tenants</th><td>FOUNDATION — esta tela é informativa; operações de gestão completas e permissionadas não estão conectadas</td></tr>
           </tbody>
         </table>
       </section>
@@ -243,15 +238,15 @@ export function DeploymentsView() {
   return (
     <div className="view">
       <section>
-        <h2>Deployments — matriz de projetos</h2>
+        <h2>Implantações — matriz de Workers</h2>
         <table>
           <thead>
             <tr>
-              <th>Projeto Vercel</th>
+              <th>Worker / app</th>
               <th>App</th>
               <th>Build</th>
               <th>Output</th>
-              <th>Status real</th>
+              <th>Estado real</th>
             </tr>
           </thead>
           <tbody>

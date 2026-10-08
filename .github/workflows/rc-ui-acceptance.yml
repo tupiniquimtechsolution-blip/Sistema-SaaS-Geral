@@ -1,0 +1,171 @@
+name: RC1 Acceptance
+
+on:
+  push:
+    branches:
+      - rc/ui-saas-convergence-01
+
+permissions:
+  actions: read
+  contents: write
+  issues: write
+  pull-requests: write
+
+concurrency:
+  group: rc1-acceptance-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  accept-same-sha:
+    name: accept-same-sha
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      GH_TOKEN: ${{ github.token }}
+      RC_BRANCH: rc/ui-saas-convergence-01
+      FEATURE_BRANCH: feature/ui-saas-convergence-wave-01
+      ARENA_BRANCH: arena/01a0f263-sistema-saas-geral
+      TRACKING_PR: "19"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Wait for required same-SHA gates
+        id: gates
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          required=("Monorepo Quality Gates" "Builder Release Gates")
+
+          for attempt in $(seq 1 80); do
+            payload="$(gh api               -H "Accept: application/vnd.github+json"               "/repos/${GITHUB_REPOSITORY}/actions/runs?head_sha=${GITHUB_SHA}&event=push&per_page=100")"
+
+            ready=1
+            summary=""
+
+            for workflow in "${required[@]}"; do
+              row="$(jq -r --arg workflow "$workflow" '
+                [.workflow_runs[] | select(.name == $workflow)]
+                | sort_by(.created_at)
+                | last
+                | if . == null then "MISSING|-"
+                  else (.status + "|" + (.conclusion // "-"))
+                  end
+              ' <<<"$payload")"
+
+              status="${row%%|*}"
+              conclusion="${row#*|}"
+              summary+="${workflow}: ${status}/${conclusion}"$'\n'
+
+              if [ "$status" != "completed" ]; then
+                ready=0
+              fi
+            done
+
+            if [ "$ready" -eq 1 ]; then
+              printf '%s' "$summary"
+              {
+                echo "summary<<EOF"
+                printf '%s' "$summary"
+                echo "EOF"
+              } >> "$GITHUB_OUTPUT"
+
+              while IFS= read -r line; do
+                [ -z "$line" ] && continue
+                case "$line" in
+                  *"completed/success") ;;
+                  *)
+                    echo "::error::Required RC gate is not green: $line"
+                    exit 1
+                    ;;
+                esac
+              done <<<"$summary"
+
+              exit 0
+            fi
+
+            echo "Attempt $attempt: waiting for same-SHA gates..."
+            printf '%s' "$summary"
+            sleep 15
+          done
+
+          echo "::error::Timed out waiting for same-SHA RC gates."
+          exit 1
+
+      - name: Reject stale acceptance run
+        shell: bash
+        run: |
+          set -euo pipefail
+          remote_rc="$(git ls-remote origin "refs/heads/${RC_BRANCH}" | awk '{print $1}')"
+          if [ "$remote_rc" != "$GITHUB_SHA" ]; then
+            echo "::error::RC advanced while this acceptance run was executing. Current=${remote_rc} run=${GITHUB_SHA}"
+            exit 1
+          fi
+
+      - name: Verify fast-forward ancestry
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin             "refs/heads/${FEATURE_BRANCH}:refs/remotes/origin/${FEATURE_BRANCH}"             "refs/heads/${ARENA_BRANCH}:refs/remotes/origin/${ARENA_BRANCH}"
+
+          git merge-base --is-ancestor "origin/${FEATURE_BRANCH}" "$GITHUB_SHA" || {
+            echo "::error::Feature branch is not an ancestor of the accepted RC SHA."
+            exit 1
+          }
+
+          git merge-base --is-ancestor "origin/${ARENA_BRANCH}" "$GITHUB_SHA" || {
+            echo "::error::Arena branch is not an ancestor of the accepted RC SHA."
+            exit 1
+          }
+
+      - name: Fast-forward integration branches
+        shell: bash
+        run: |
+          set -euo pipefail
+          git push origin "$GITHUB_SHA:refs/heads/${FEATURE_BRANCH}"
+          git push origin "$GITHUB_SHA:refs/heads/${ARENA_BRANCH}"
+
+      - name: Record acceptance evidence on PR 19
+        shell: bash
+        run: |
+          set -euo pipefail
+          body="$(cat <<EOF
+          ## RC1 automated same-SHA acceptance
+
+          Accepted RC SHA:
+
+          \`$GITHUB_SHA\`
+
+          Required same-SHA gates:
+
+          \`Monorepo Quality Gates\` — PASS
+          \`Builder Release Gates\` — PASS
+
+          Automated actions:
+
+          - fast-forwarded \`${FEATURE_BRANCH}\` to the accepted RC SHA;
+          - fast-forwarded \`${ARENA_BRANCH}\` to the accepted RC SHA;
+          - no merge to \`main\`;
+          - no PR #18 change;
+          - no production deploy;
+          - Cloudflare-only hosting policy remains authoritative.
+
+          Production deployment remains separately gated by the Release GREEN Cloudflare evidence.
+          EOF
+          )"
+
+          gh api             --method POST             "/repos/${GITHUB_REPOSITORY}/issues/${TRACKING_PR}/comments"             -f body="$body"
+
+      - name: Acceptance summary
+        shell: bash
+        run: |
+          {
+            echo "## RC1 accepted on same SHA"
+            echo
+            echo "SHA: \`$GITHUB_SHA\`"
+            echo
+            echo "Feature and Arena integration branches were fast-forwarded."
+            echo "No merge or production deploy was performed."
+          } >> "$GITHUB_STEP_SUMMARY"

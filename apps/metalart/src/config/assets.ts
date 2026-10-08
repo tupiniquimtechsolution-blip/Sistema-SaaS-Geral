@@ -10,94 +10,77 @@
  *  >> REGRA: usar SOMENTE as mídias dessa pasta. ZERO imagens
  *     geradas/banco. Nenhum arquivo fora dela deve ser referenciado. <<
  *
- *  COMO ATIVAR (1 passo):
- *  1. No Drive: selecionar tudo → "Fazer download" (gera um .zip).
- *  2. Descompactar e copiar os arquivos para public/client-assets/media/
- *     renomeando cada um conforme o MAPA abaixo (prefixo → slot local).
- *  Pronto: todas as imagens/vídeos reais aparecem no site automaticamente.
- *  Enquanto isso, os slots sem arquivo ficam com o fundo da marca
- *  (nenhuma imagem quebrada, nenhuma imagem gerada).
- *
- *  MAPA (prefixo real da pasta → slot local):
- *  logo.jpg                     → media/logo/logo.jpg
- *  1784984255 (portão preto)    → media/fotos/portoes/portao-deslizante.jpg
- *  portão social                → media/fotos/portoes/portao-social.jpg
- *  1774786200 (automação)       → media/fotos/automacao/motor.jpg
- *  1771634438/1771639042        → media/fotos/corrimaos/corrimao.jpg
- *  1771634656 (grades janela)   → media/fotos/grades/grade-janela.jpg
- *  1771634799 (porta/fecham.)   → media/fotos/portas-enrolar/porta.jpg
- *  1774112432 (portão verde)    → media/fotos/antes-depois/antes.jpg + depois.jpg
- *  1775044474 (instalação)      → media/fotos/oficina/fabricacao.jpg
- *  (bastidores/reels)           → media/social/*.jpg
+ *  Release Candidate: fotos originais presentes em media/photos/*.jpg
+ *  e selecionadas pelo prefixo documentado em ASSET_AUDIT.md.
+ *  Slots que dependem de frames validados, thumbnails ou imagens ainda
+ *  não entregues ficam vazios: o componente VerifiedImage não os carrega.
+ *  Sem fotografias artificiais, renomes arbitrários ou mídia de terceiros.
  * ============================================================
  */
 
 /** Base local das mídias da pasta do cliente (public/client-assets/media) */
 const MEDIA = "/client-assets/media";
-const FOTOS = `${MEDIA}/fotos`;
+const FOTOS = `${MEDIA}/photos`;
 
 export const assets = {
   /**
-   * Mídias reais da pasta do Drive (slots locais).
+   * Mídias reais da pasta oficial que já estão versionadas no projeto.
    * Mantidas as chaves `official.*` para compatibilidade — agora
    * apontam para os arquivos reais da pasta, não para o site.
    */
   official: {
     /** Hero slide 1 — portão preto instalado (1784984255) */
-    heroSparks: `${FOTOS}/portoes/portao-deslizante.jpg`,
-    /** Hero slide 2 — instalação com profissional em cena (1775044474) */
-    heroWorkshop: `${FOTOS}/oficina/fabricacao.jpg`,
+    heroSparks: `${FOTOS}/serralheriametaleart_1784984255_3949056512797263160_39911767544.jpg`,
+    /** Vídeo 1775044474 existe, mas seu poster JPG ainda não foi validado. */
+    heroWorkshop: "",
     /** Seção "Sob medida" — conjunto residencial claro (1771640508) */
-    aboutImage: `${FOTOS}/portoes/portao-social.jpg`,
+    aboutImage: `${FOTOS}/serralheriametaleart_1771640508_3837120832259104449_39911767544.jpg`,
     /** Logo original da pasta (logo.jpg) */
     logoUrl: `${MEDIA}/logo/logo.jpg`,
   },
 
   hero: {
-    main: `${FOTOS}/portoes/portao-deslizante.jpg`,
+    main: `${FOTOS}/serralheriametaleart_1784984255_3949056512797263160_39911767544.jpg`,
   },
   gates: {
     /** Portão preto residencial/condominial (1784984255) */
-    sliding: `${FOTOS}/portoes/portao-deslizante.jpg`,
+    sliding: `${FOTOS}/serralheriametaleart_1784984255_3949056512797263160_39911767544.jpg`,
     /** Portão social (conjunto 1771640508) */
-    social: `${FOTOS}/portoes/portao-social.jpg`,
+    social: `${FOTOS}/serralheriametaleart_1771640508_3837120832259104449_39911767544.jpg`,
   },
   automation: {
-    /** Automação de portão (1774786200) */
-    motor: `${FOTOS}/automacao/motor.jpg`,
+    /** Somente o vídeo 1774786200 existe; fotografia específica pendente. */
+    motor: "",
   },
   railings: {
     /** Corrimão/guarda-corpo preto (1771634438 / 1771639042) */
-    handrail: `${FOTOS}/corrimaos/corrimao.jpg`,
+    handrail: `${FOTOS}/serralheriametaleart_1771634800_3837072955478564876_39911767544.jpg`,
   },
   grids: {
     /** Grades de proteção em janela (1771634656) */
-    window: `${FOTOS}/grades/grade-janela.jpg`,
+    window: `${FOTOS}/serralheriametaleart_1771634656_3837071934794659759_39911767544.jpg`,
   },
   rollingDoors: {
     /** Porta/fechamento metálico (1771634799) */
-    storefront: `${FOTOS}/portas-enrolar/porta.jpg`,
+    storefront: `${FOTOS}/serralheriametaleart_1771634799_3837072918266651562_39911767544.jpg`,
   },
   beforeAfter: {
-    /**
-     * Par REAL do mesmo vão — portão verde de garagem (1774112432).
-     * Use um frame "antes" e um "depois" do mesmo ângulo.
-     */
-    before: `${FOTOS}/antes-depois/antes.jpg`,
-    after: `${FOTOS}/antes-depois/depois.jpg`,
+    /** Par real do mesmo vão exige extração e revisão visual de 1774112432. */
+    before: "",
+    after: "",
   },
   workshop: {
-    /** Bastidores de fabricação/instalação (1775044474) */
-    fabrication: `${FOTOS}/oficina/fabricacao.jpg`,
+    /** Somente o vídeo 1775044474 existe; fotografia específica pendente. */
+    fabrication: "",
   },
 
-  /** Bastidores/reels — mídia real da pasta para os cards do Instagram */
+  /** Links sociais mantidos; miniaturas específicas ainda não estão verificadas. */
   instagram: {
-    reelAluminio: `${MEDIA}/social/reel-aluminio.jpg`,
-    reforma: `${MEDIA}/social/reforma.jpg`,
-    gradesCentro: `${MEDIA}/social/grades-centro.jpg`,
-    servicoConcluido: `${MEDIA}/social/servico-concluido.jpg`,
-    heroSolda: `${FOTOS}/oficina/fabricacao.jpg`,
+    reelAluminio: "",
+    reforma: "",
+    gradesCentro: "",
+    servicoConcluido: "",
+    heroSolda: "",
   },
 
   logo: {

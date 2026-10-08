@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import { VerifiedImage } from "./VerifiedImage";
 import { assets } from "../config/assets";
 import { business } from "../config/business";
 import { MaskLines, Reveal, track, useParallax, waLink } from "../lib/motion";
@@ -60,9 +61,9 @@ export function AboutSection() {
                 {/* imagem institucional oficial do site do cliente */}
                 <div className="img-zoom border-ink-900/15 relative aspect-[2/3] max-h-[34rem] overflow-hidden border">
                   <div ref={imgPar} className="h-[114%] w-full will-change-transform">
-                    <img
+                    <VerifiedImage
                       src={assets.official.aboutImage}
-                      alt="Metal & Art Serralheria — fabricação sob medida"
+                      alt="Conjunto residencial metálico documentado da Metal & Art"
                       className="h-full w-full object-cover"
                       loading="lazy"
                     />
@@ -71,9 +72,10 @@ export function AboutSection() {
                     Metal &amp; Art — {business.address.region}, SP
                   </p>
                 </div>
-                {/* moldura sobreposta — dia a dia da oficina */}
+                {/* Sem fotografia de oficina validada, a moldura é ocultada. */}
+                {assets.workshop.fabrication && (
                 <div className="img-zoom border-ember-600/70 absolute -right-3 -bottom-10 hidden w-[46%] overflow-hidden border-4 bg-paper-100 shadow-[0_18px_40px_rgba(20,22,26,0.28)] sm:block lg:-right-8">
-                  <img
+                  <VerifiedImage
                     src={assets.workshop.fabrication}
                     alt="Corte de perfis metálicos na oficina da Metal & Art"
                     className="aspect-[4/3] w-full object-cover"
@@ -83,6 +85,7 @@ export function AboutSection() {
                     Oficina — corte &amp; solda
                   </p>
                 </div>
+                )}
               </div>
             </Reveal>
           </div>

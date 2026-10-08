@@ -1,0 +1,171 @@
+name: Release Live Diagnostics (read-only)
+
+on:
+  push:
+    branches:
+      - automation/release-green-external-gates-01
+    paths:
+      - ".github/workflows/release-live-diagnostics.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  canonical-provider-readonly:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
+      TEST_A_EMAIL: ${{ secrets.TEST_A_EMAIL }}
+      TEST_A_PASSWORD: ${{ secrets.TEST_A_PASSWORD }}
+    steps:
+      - name: Inspect canonical Supabase hostname, public bootstrap and QA membership without writes
+        shell: bash
+        run: |
+          set -euo pipefail
+          for key in SUPABASE_URL SUPABASE_PUBLISHABLE_KEY TEST_A_EMAIL TEST_A_PASSWORD; do
+            test -n "${!key}" || { echo "::error::Missing $key"; exit 1; }
+          done
+
+          host="$(node -e 'process.stdout.write(new URL(process.env.SUPABASE_URL).hostname)')"
+          if [ "$host" != "mmykyzzkcugxunmekwew.supabase.co" ]; then
+            echo "::error::SUPABASE_URL does not point to the canonical SaaS project."
+            exit 1
+          fi
+          echo "Canonical Supabase hostname: verified"
+          # Resume can take time for DNS to propagate. Require the exact
+          # canonical hostname to resolve before attempting Auth/PostgREST;
+          # never fall back to a different Supabase project.
+          dns_ready=0
+          for attempt in $(seq 1 8); do
+            if getent ahostsv4 "$host" >/dev/null 2>&1; then
+              echo "Canonical SaaS DNS readiness: PASS on attempt $attempt"
+              dns_ready=1
+              break
+            fi
+            echo "Canonical SaaS DNS readiness: pending (attempt $attempt/8)"
+            if [ "$attempt" -lt 8 ]; then sleep 10; fi
+          done
+          if [ "$dns_ready" -ne 1 ]; then
+            echo "::error::Canonical SaaS DNS has not recovered after 8 checks; do not run downstream live gates."
+          fi
+          for target in github.com supabase.co "$host"; do
+            if getent ahostsv4 "$target" >/dev/null 2>&1; then
+              echo "System DNS resolution for $target: OK"
+            else
+              echo "System DNS resolution for $target: FAILED"
+            fi
+          done
+          # Public DNS status (0=NOERROR, 3=NXDOMAIN) distinguishes an
+          # absent provider hostname from a local resolver outage.
+          doh_json="$(curl -fsS --max-time 15 --get \
+            --data-urlencode "name=$host" --data-urlencode 'type=A' \
+            'https://dns.google/resolve' || true)"
+          if [ -n "$doh_json" ]; then
+            printf '%s' "$doh_json" | jq -r '"Public DNS response status: " + (.Status | tostring), "Public DNS A answer count: " + ((.Answer // [] | length) | tostring)' || true
+          else
+            echo "Public DNS check unavailable"
+          fi
+          base="${SUPABASE_URL%/}"
+          tmp="$(mktemp -d)"
+          trap 'rm -rf "$tmp"' EXIT
+
+          provider_code() {
+            jq -r 'if type=="object" then (.code // .error_code // "none") else "none" end' "$1" 2>/dev/null | head -c 70 || true
+          }
+          note() {
+            echo "$1 HTTP=$2 code=$(provider_code "$3")"
+          }
+
+          # Uses curl rather than Node fetch because the GH runner may require
+          # HTTPS_PROXY, which curl respects automatically.
+          set +e
+          salon_http="$(curl -sS --retry 2 --retry-delay 1 --max-time 25 -o "$tmp/salon.json" -w '%{http_code}' \
+            -X POST -H "apikey: $SUPABASE_PUBLISHABLE_KEY" \
+            -H "Authorization: Bearer $SUPABASE_PUBLISHABLE_KEY" \
+            -H "Content-Type: application/json" \
+            --data '{"p_tenant_slug":"vanessa-braz"}' \
+            "$base/rest/v1/rpc/get_storefront_bootstrap")"
+          salon_exit=$?
+          set -e
+          touch "$tmp/salon.json"
+          note "Salon anonymous bootstrap" "$salon_http" "$tmp/salon.json"
+          salon_ok=false
+          if [ "$salon_exit" -eq 0 ] && [ "$salon_http" = "200" ] && jq -e 'type=="array" and length==1 and .[0].vertical_id=="salon" and (.[0].tenant_id|type)=="string" and (.[0].tenant_slug|type)=="string"' "$tmp/salon.json" >/dev/null 2>&1; then
+            salon_ok=true
+          fi
+          echo "Salon bootstrap resolves one canonical salon tenant: $salon_ok"
+
+          # Auth is test-only and does not modify persistent tenant data.
+          set +e
+          auth_http="$(jq -nc --arg email "$TEST_A_EMAIL" --arg password "$TEST_A_PASSWORD" \
+            '{email:$email,password:$password}' | curl -sS --retry 2 --retry-delay 1 --max-time 25 \
+            -o "$tmp/auth.json" -w '%{http_code}' -X POST \
+            -H "apikey: $SUPABASE_PUBLISHABLE_KEY" \
+            -H "Content-Type: application/json" --data-binary @- \
+            "$base/auth/v1/token?grant_type=password")"
+          auth_exit=$?
+          set -e
+          touch "$tmp/auth.json"
+          note "Builder QA password grant" "$auth_http" "$tmp/auth.json"
+          auth_ok=false
+          scope_ok=false
+          if [ "$auth_exit" -eq 0 ] && [ "$auth_http" = "200" ]; then
+            token="$(jq -r '.access_token // empty' "$tmp/auth.json")"
+            user_id="$(jq -r '.user.id // empty' "$tmp/auth.json")"
+            if [ -n "$token" ] && [ -n "$user_id" ]; then
+              auth_ok=true
+              set +e
+              membership_http="$(curl -sS --retry 2 --max-time 25 -G \
+                -o "$tmp/membership.json" -w '%{http_code}' \
+                -H "apikey: $SUPABASE_PUBLISHABLE_KEY" \
+                -H "Authorization: Bearer $token" \
+                --data-urlencode 'select=id,tenant_id,status' \
+                --data-urlencode "user_id=eq.$user_id" \
+                --data-urlencode 'status=eq.active' \
+                --data-urlencode 'limit=2' \
+                "$base/rest/v1/memberships")"
+              membership_exit=$?
+              admin_http="$(curl -sS --retry 2 --max-time 25 \
+                -o "$tmp/admin.json" -w '%{http_code}' -X POST \
+                -H "apikey: $SUPABASE_PUBLISHABLE_KEY" \
+                -H "Authorization: Bearer $token" \
+                -H 'Content-Type: application/json' --data '{}' \
+                "$base/rest/v1/rpc/is_platform_admin")"
+              admin_exit=$?
+              set -e
+              touch "$tmp/membership.json" "$tmp/admin.json"
+              note "Builder QA own active memberships" "$membership_http" "$tmp/membership.json"
+              note "Builder QA platform-admin RPC" "$admin_http" "$tmp/admin.json"
+              member_visible=false
+              if [ "$membership_exit" -eq 0 ] && [ "$membership_http" = "200" ] && jq -e 'type=="array" and length>0' "$tmp/membership.json" >/dev/null 2>&1; then
+                member_visible=true
+              fi
+              platform_admin=false
+              if [ "$admin_exit" -eq 0 ] && [ "$admin_http" = "200" ] && jq -e '. == true' "$tmp/admin.json" >/dev/null 2>&1; then
+                platform_admin=true
+              fi
+              echo "Builder own RLS membership visible: $member_visible; platform admin authorized: $platform_admin"
+              if [ "$membership_exit" -eq 0 ] && [ "$membership_http" = "200" ] && [ "$admin_exit" -eq 0 ] && [ "$admin_http" = "200" ] && { [ "$member_visible" = true ] || [ "$platform_admin" = true ]; }; then
+                scope_ok=true
+              fi
+            fi
+          fi
+
+          {
+            echo '## Canonical Supabase dependency preflight'
+            echo
+            echo "- Canonical project hostname: verified"
+            echo "- Salon bootstrap: $salon_ok"
+            echo "- Builder QA login: $auth_ok"
+            echo "- Builder tenant visibility: $scope_ok"
+            echo
+            echo "Only HTTP status and provider error codes are printed; no secrets, emails, user IDs or tenant IDs."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          if [ "$salon_ok" != true ] || [ "$auth_ok" != true ] || [ "$scope_ok" != true ]; then
+            echo "::error::At least one canonical live prerequisite is not ready; no provider data were changed."
+            exit 1
+          fi

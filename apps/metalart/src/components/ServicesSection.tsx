@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { VerifiedImage } from "./VerifiedImage";
 import { Link } from "react-router-dom";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
@@ -191,7 +192,7 @@ export function ServicesSection() {
                 {CHAPTERS.map((c, i) => {
                   const s = services.find((x) => x.slug === c.slug);
                   return (
-                    <img
+                    <VerifiedImage
                       key={c.n}
                       src={s?.images[0]}
                       alt={c.title}
@@ -223,7 +224,7 @@ export function ServicesSection() {
                 className="border-coal-700 border-b py-14 first:pt-0 md:py-20"
               >
                 <div className="mb-6 lg:hidden">
-                  <img
+                  <VerifiedImage
                     src={services.find((x) => x.slug === c.slug)?.images[0]}
                     alt={c.title}
                     loading="lazy"
@@ -252,7 +253,7 @@ function EditorialImg({ src, alt }: { src: string; alt: string }) {
   const par = useParallax<HTMLDivElement>(28);
   return (
     <div ref={par} className="h-[114%] w-full will-change-transform">
-      <img src={src} alt={alt} className="h-full w-full object-cover" loading="lazy" />
+      <VerifiedImage src={src} alt={alt} className="h-full w-full object-cover" loading="lazy" />
     </div>
   );
 }

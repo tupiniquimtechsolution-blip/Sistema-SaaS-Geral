@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import { VerifiedImage } from "./VerifiedImage";
 import { Link } from "react-router-dom";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
@@ -14,8 +15,8 @@ const PANELS = [
     n: "01",
     title: "Residências",
     text: "Portão de garagem e social, grades de janela, corrimão de escada e automação para o dia a dia ficar leve e seguro.",
-    img: assets.beforeAfter.after,
-    alt: "Portão residencial reformado e pintado",
+    img: assets.gates.social,
+    alt: "Conjunto residencial metálico da Metal & Art",
     tags: ["Portões", "Grades", "Corrimãos", "Automação"],
     wa: "Olá, Metal & Art! Quero um orçamento para minha CASA.",
   },
@@ -113,7 +114,7 @@ export function Spaces() {
             className="border-coal-600 grid w-[88vw] shrink-0 snap-center grid-cols-1 overflow-hidden border bg-coal-850 sm:w-[75vw] lg:w-[64vw] lg:snap-none lg:grid-cols-[minmax(0,6fr)_minmax(0,5fr)]"
           >
             <div className="img-zoom relative min-h-64 overflow-hidden lg:min-h-[26rem]">
-              <img src={p.img} alt={p.alt} loading="lazy" className="absolute inset-0 h-full w-full object-cover" />
+              <VerifiedImage src={p.img} alt={p.alt} loading="lazy" className="absolute inset-0 h-full w-full object-cover" />
               <span className="font-mono absolute top-3 left-3 bg-coal-950/85 px-2.5 py-1 text-[0.6rem] tracking-[0.22em] text-weld-400 uppercase">
                 Espaço {p.n}
               </span>

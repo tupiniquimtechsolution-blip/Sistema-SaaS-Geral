@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import { VerifiedImage } from "./VerifiedImage";
 import { assets } from "../config/assets";
 import { business } from "../config/business";
 import { MaskLines, Reveal, SparkField, track, waLink } from "../lib/motion";
@@ -124,7 +125,7 @@ const IG_POSTS: {
 }[] = [
   {
     url: "https://www.instagram.com/reel/DWd8MePjoju/",
-    type: "REEL",
+    type: "REEL" as const,
     date: "29/03/2026",
     tag: "Troca de portão",
     caption: "Substituição rápida: sai o portão de alumínio antigo, entra o novo no mesmo vão.",
@@ -132,7 +133,7 @@ const IG_POSTS: {
   },
   {
     url: "https://www.instagram.com/p/DbN3hOkDuTQ/",
-    type: "POST",
+    type: "POST" as const,
     date: "25/07/2026",
     tag: "Antes × Depois",
     caption: "“Bora começar a reforma desse portão” — mais uma reforma acompanhada do início ao fim.",
@@ -140,7 +141,7 @@ const IG_POSTS: {
   },
   {
     url: "https://www.instagram.com/p/DU_-_JTDqCL/",
-    type: "POST",
+    type: "POST" as const,
     date: "20/02/2026",
     tag: "Proteção",
     caption: "Grades de proteção em metalon instaladas no centro de SP.",
@@ -148,7 +149,7 @@ const IG_POSTS: {
   },
   {
     url: "https://www.instagram.com/p/DbN25GGjosC/",
-    type: "POST",
+    type: "POST" as const,
     date: "25/07/2026",
     tag: "Concluído",
     caption: "Mais um serviço concluído com sucesso — parceria @samsclubbrasil.",
@@ -156,14 +157,14 @@ const IG_POSTS: {
   },
   {
     url: business.instagram.url,
-    type: "POST",
+    type: "POST" as const,
     date: "Dia a dia",
     tag: "Bastidores",
     caption: "Produção com faíscas: mídia real do site oficial da Metal & Art.",
     image: assets.instagram.heroSolda,
     real: true,
   },
-];
+].filter((post) => Boolean(post.image));
 
 export function InstaStrip() {
   return (
@@ -198,6 +199,7 @@ export function InstaStrip() {
         </div>
       </div>
 
+      {IG_POSTS.length > 0 && (
       <div className="no-scrollbar mt-12 flex snap-x gap-5 overflow-x-auto px-5 pb-2 md:px-8">
         {IG_POSTS.map((c, i) => (
           <a
@@ -211,7 +213,7 @@ export function InstaStrip() {
             aria-label={`${c.tag}: ${c.caption} — ver publicação original no Instagram`}
           >
             <div className="img-zoom border-coal-600 relative aspect-[3/4] overflow-hidden border">
-              <img src={c.image} alt="" loading="lazy" className="h-full w-full object-cover" />
+              <VerifiedImage src={c.image} alt="" loading="lazy" className="h-full w-full object-cover" />
               <div className="absolute inset-0 bg-gradient-to-t from-coal-950/95 via-coal-950/20 to-transparent" />
               <span
                 className={
@@ -241,11 +243,11 @@ export function InstaStrip() {
           </a>
         ))}
       </div>
+      )}
 
       <p className="font-mono mt-6 px-5 text-[0.6rem] leading-relaxed tracking-[0.18em] text-steel-500 uppercase md:px-8">
-        Publicações reais do perfil oficial — cada card abre o post original no Instagram.
-        Imagens exibidas aqui são referências ilustrativas: solicitar os arquivos originais em HD
-        ao cliente antes da publicação (ver ASSET_SOURCES.md).
+        O perfil oficial está disponível acima. A galeria de cards fica temporariamente
+        oculta até a validação das miniaturas originais de cada publicação.
       </p>
     </section>
   );
