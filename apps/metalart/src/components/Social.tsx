@@ -125,7 +125,7 @@ const IG_POSTS: {
 }[] = [
   {
     url: "https://www.instagram.com/reel/DWd8MePjoju/",
-    type: "REEL",
+    type: "REEL" as const,
     date: "29/03/2026",
     tag: "Troca de portão",
     caption: "Substituição rápida: sai o portão de alumínio antigo, entra o novo no mesmo vão.",
@@ -133,7 +133,7 @@ const IG_POSTS: {
   },
   {
     url: "https://www.instagram.com/p/DbN3hOkDuTQ/",
-    type: "POST",
+    type: "POST" as const,
     date: "25/07/2026",
     tag: "Antes × Depois",
     caption: "“Bora começar a reforma desse portão” — mais uma reforma acompanhada do início ao fim.",
@@ -141,7 +141,7 @@ const IG_POSTS: {
   },
   {
     url: "https://www.instagram.com/p/DU_-_JTDqCL/",
-    type: "POST",
+    type: "POST" as const,
     date: "20/02/2026",
     tag: "Proteção",
     caption: "Grades de proteção em metalon instaladas no centro de SP.",
@@ -149,7 +149,7 @@ const IG_POSTS: {
   },
   {
     url: "https://www.instagram.com/p/DbN25GGjosC/",
-    type: "POST",
+    type: "POST" as const,
     date: "25/07/2026",
     tag: "Concluído",
     caption: "Mais um serviço concluído com sucesso — parceria @samsclubbrasil.",
@@ -157,7 +157,7 @@ const IG_POSTS: {
   },
   {
     url: business.instagram.url,
-    type: "POST",
+    type: "POST" as const,
     date: "Dia a dia",
     tag: "Bastidores",
     caption: "Produção com faíscas: mídia real do site oficial da Metal & Art.",
