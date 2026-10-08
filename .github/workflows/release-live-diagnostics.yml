@@ -25,95 +25,114 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          node --input-type=module <<'NODE'
-          import { appendFileSync } from 'node:fs';
+          for key in SUPABASE_URL SUPABASE_PUBLISHABLE_KEY TEST_A_EMAIL TEST_A_PASSWORD; do
+            test -n "${!key}" || { echo "::error::Missing $key"; exit 1; }
+          done
 
-          const expectedHost = 'mmykyzzkcugxunmekwew.supabase.co';
-          const required = ['SUPABASE_URL', 'SUPABASE_PUBLISHABLE_KEY', 'TEST_A_EMAIL', 'TEST_A_PASSWORD'];
-          const missing = required.filter((name) => !process.env[name]?.trim());
-          if (missing.length) {
-            console.error('Missing GitHub secrets: ' + missing.join(', '));
-            process.exit(1);
+          host="$(node -e 'process.stdout.write(new URL(process.env.SUPABASE_URL).hostname)')"
+          if [ "$host" != "mmykyzzkcugxunmekwew.supabase.co" ]; then
+            echo "::error::SUPABASE_URL does not point to the canonical SaaS project."
+            exit 1
+          fi
+          echo "Canonical Supabase hostname: verified"
+          base="${SUPABASE_URL%/}"
+          tmp="$(mktemp -d)"
+          trap 'rm -rf "$tmp"' EXIT
+
+          provider_code() {
+            jq -r 'if type=="object" then (.code // .error_code // "none") else "none" end' "$1" 2>/dev/null | head -c 70 || true
+          }
+          note() {
+            echo "$1 HTTP=$2 code=$(provider_code "$3")"
           }
 
-          const origin = new URL(process.env.SUPABASE_URL).origin;
-          const actualHost = new URL(origin).hostname;
-          console.log('Supabase configured host matches canonical project:', actualHost === expectedHost);
-          if (actualHost !== expectedHost) {
-            console.error('Canonical Supabase project mismatch: expected ' + expectedHost + ', got ' + actualHost);
-            process.exit(1);
-          }
+          # Uses curl rather than Node fetch because the GH runner may require
+          # HTTPS_PROXY, which curl respects automatically.
+          set +e
+          salon_http="$(curl -sS --retry 2 --retry-delay 1 --max-time 25 -o "$tmp/salon.json" -w '%{http_code}' \
+            -X POST -H "apikey: $SUPABASE_PUBLISHABLE_KEY" \
+            -H "Authorization: Bearer $SUPABASE_PUBLISHABLE_KEY" \
+            -H "Content-Type: application/json" \
+            --data '{"p_tenant_slug":"vanessa-braz"}' \
+            "$base/rest/v1/rpc/get_storefront_bootstrap")"
+          salon_exit=$?
+          set -e
+          touch "$tmp/salon.json"
+          note "Salon anonymous bootstrap" "$salon_http" "$tmp/salon.json"
+          salon_ok=false
+          if [ "$salon_exit" -eq 0 ] && [ "$salon_http" = "200" ] && jq -e 'type=="array" and length==1 and .[0].vertical_id=="salon" and (.[0].tenant_id|type)=="string" and (.[0].tenant_slug|type)=="string"' "$tmp/salon.json" >/dev/null 2>&1; then
+            salon_ok=true
+          fi
+          echo "Salon bootstrap resolves one canonical salon tenant: $salon_ok"
 
-          const apiKey = process.env.SUPABASE_PUBLISHABLE_KEY;
-          const baseHeaders = { apikey: apiKey, 'Content-Type': 'application/json' };
-          let passed = true;
+          # Auth is test-only and does not modify persistent tenant data.
+          set +e
+          auth_http="$(jq -nc --arg email "$TEST_A_EMAIL" --arg password "$TEST_A_PASSWORD" \
+            '{email:$email,password:$password}' | curl -sS --retry 2 --retry-delay 1 --max-time 25 \
+            -o "$tmp/auth.json" -w '%{http_code}' -X POST \
+            -H "apikey: $SUPABASE_PUBLISHABLE_KEY" \
+            -H "Content-Type: application/json" --data-binary @- \
+            "$base/auth/v1/token?grant_type=password")"
+          auth_exit=$?
+          set -e
+          touch "$tmp/auth.json"
+          note "Builder QA password grant" "$auth_http" "$tmp/auth.json"
+          auth_ok=false
+          scope_ok=false
+          if [ "$auth_exit" -eq 0 ] && [ "$auth_http" = "200" ]; then
+            token="$(jq -r '.access_token // empty' "$tmp/auth.json")"
+            user_id="$(jq -r '.user.id // empty' "$tmp/auth.json")"
+            if [ -n "$token" ] && [ -n "$user_id" ]; then
+              auth_ok=true
+              set +e
+              membership_http="$(curl -sS --retry 2 --max-time 25 -G \
+                -o "$tmp/membership.json" -w '%{http_code}' \
+                -H "apikey: $SUPABASE_PUBLISHABLE_KEY" \
+                -H "Authorization: Bearer $token" \
+                --data-urlencode 'select=id,tenant_id,status' \
+                --data-urlencode "user_id=eq.$user_id" \
+                --data-urlencode 'status=eq.active' \
+                --data-urlencode 'limit=2' \
+                "$base/rest/v1/memberships")"
+              membership_exit=$?
+              admin_http="$(curl -sS --retry 2 --max-time 25 \
+                -o "$tmp/admin.json" -w '%{http_code}' -X POST \
+                -H "apikey: $SUPABASE_PUBLISHABLE_KEY" \
+                -H "Authorization: Bearer $token" \
+                -H 'Content-Type: application/json' --data '{}' \
+                "$base/rest/v1/rpc/is_platform_admin")"
+              admin_exit=$?
+              set -e
+              touch "$tmp/membership.json" "$tmp/admin.json"
+              note "Builder QA own active memberships" "$membership_http" "$tmp/membership.json"
+              note "Builder QA platform-admin RPC" "$admin_http" "$tmp/admin.json"
+              member_visible=false
+              if [ "$membership_exit" -eq 0 ] && [ "$membership_http" = "200" ] && jq -e 'type=="array" and length>0' "$tmp/membership.json" >/dev/null 2>&1; then
+                member_visible=true
+              fi
+              platform_admin=false
+              if [ "$admin_exit" -eq 0 ] && [ "$admin_http" = "200" ] && jq -e '. == true' "$tmp/admin.json" >/dev/null 2>&1; then
+                platform_admin=true
+              fi
+              echo "Builder own RLS membership visible: $member_visible; platform admin authorized: $platform_admin"
+              if [ "$membership_exit" -eq 0 ] && [ "$membership_http" = "200" ] && [ "$admin_exit" -eq 0 ] && [ "$admin_http" = "200" ] && { [ "$member_visible" = true ] || [ "$platform_admin" = true ]; }; then
+                scope_ok=true
+              fi
+            fi
+          fi
 
-          const inspect = async (label, path, opts = {}) => {
-            try {
-              const res = await fetch(origin + path, {
-                ...opts, signal: AbortSignal.timeout(20000),
-                headers: { ...baseHeaders, ...(opts.headers || {}) }
-              });
-              const json = await res.json().catch(() => null);
-              const errorCode = typeof json?.code === 'string' ? json.code
-                : typeof json?.error_code === 'string' ? json.error_code
-                : typeof json?.error === 'string' ? json.error : 'none';
-              console.log(label + ': HTTP ' + res.status + '; provider_error_code=' + errorCode);
-              return { status: res.status, ok: res.ok, json };
-            } catch (err) {
-              console.log(label + ': NETWORK_EXCEPTION type=' + (err?.name || 'Unknown'));
-              return { status: 0, ok: false, json: null };
-            }
-          };
+          {
+            echo '## Canonical Supabase dependency preflight'
+            echo
+            echo "- Canonical project hostname: verified"
+            echo "- Salon bootstrap: $salon_ok"
+            echo "- Builder QA login: $auth_ok"
+            echo "- Builder tenant visibility: $scope_ok"
+            echo
+            echo "Only HTTP status and provider error codes are printed; no secrets, emails, user IDs or tenant IDs."
+          } >> "$GITHUB_STEP_SUMMARY"
 
-          const publicRPC = await inspect('Salon anonymous bootstrap', '/rest/v1/rpc/get_storefront_bootstrap', {
-            method: 'POST',
-            headers: { Authorization: 'Bearer ' + apiKey },
-            body: JSON.stringify({ p_tenant_slug: 'vanessa-braz' })
-          });
-          const records = Array.isArray(publicRPC.json) ? publicRPC.json
-            : publicRPC.json && publicRPC.ok ? [publicRPC.json] : [];
-          console.log('Salon bootstrap returns exactly one salon tenant:',
-            publicRPC.ok && records.length === 1
-            && records[0]?.vertical_id === 'salon'
-            && !!records[0]?.tenant_id && !!records[0]?.tenant_slug);
-          if (!publicRPC.ok || records.length !== 1 || records[0]?.vertical_id !== 'salon') passed = false;
-
-          const login = await inspect('Builder QA password grant', '/auth/v1/token?grant_type=password', {
-            method: 'POST',
-            body: JSON.stringify({
-              email: process.env.TEST_A_EMAIL,
-              password: process.env.TEST_A_PASSWORD
-            })
-          });
-          if (!login.ok || !login.json?.access_token || !login.json?.user?.id) {
-            passed = false;
-            console.log('Builder membership reads skipped: QA login was not successful.');
-          } else {
-            const bearer = { Authorization: 'Bearer ' + login.json.access_token };
-            const query = new URLSearchParams({
-              select: 'id,tenant_id,status',
-              user_id: 'eq.' + login.json.user.id,
-              status: 'eq.active',
-              limit: '2'
-            });
-            const membership = await inspect('Builder QA own active memberships', '/rest/v1/memberships?' + query, { headers: bearer });
-            const count = Array.isArray(membership.json) ? membership.json.length : 0;
-            console.log('Builder QA has at least one RLS-visible active membership:', membership.ok && count > 0);
-
-            const admin = await inspect('Builder QA platform admin RPC', '/rest/v1/rpc/is_platform_admin', {
-              method: 'POST', body: '{}', headers: bearer
-            });
-            const isAdmin = admin.ok && admin.json === true;
-            console.log('Builder QA platform-admin flag:', isAdmin);
-            if (!membership.ok || !admin.ok || (count === 0 && !isAdmin)) passed = false;
-          }
-
-          appendFileSync(process.env.GITHUB_STEP_SUMMARY,
-            '## Canonical live dependency diagnostics\n\n' +
-            '- Supabase target: `' + expectedHost + '`\n' +
-            '- Salon public bootstrap, Builder QA password grant and RLS-visible membership checked read-only.\n' +
-            '- Sensitive credentials, user IDs, tokens, tenant identifiers and response payloads were not logged.\n' +
-            '- Outcome: **' + (passed ? 'PASS' : 'FAIL — inspect step log for HTTP/code categories') + '**\n');
-          if (!passed) process.exit(1);
-          NODE
+          if [ "$salon_ok" != true ] || [ "$auth_ok" != true ] || [ "$scope_ok" != true ]; then
+            echo "::error::At least one canonical live prerequisite is not ready; no provider data were changed."
+            exit 1
+          fi
