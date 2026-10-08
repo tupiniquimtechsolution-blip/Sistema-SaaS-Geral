@@ -35,6 +35,22 @@ jobs:
             exit 1
           fi
           echo "Canonical Supabase hostname: verified"
+          # Resume can take time for DNS to propagate. Require the exact
+          # canonical hostname to resolve before attempting Auth/PostgREST;
+          # never fall back to a different Supabase project.
+          dns_ready=0
+          for attempt in $(seq 1 8); do
+            if getent ahostsv4 "$host" >/dev/null 2>&1; then
+              echo "Canonical SaaS DNS readiness: PASS on attempt $attempt"
+              dns_ready=1
+              break
+            fi
+            echo "Canonical SaaS DNS readiness: pending (attempt $attempt/8)"
+            if [ "$attempt" -lt 8 ]; then sleep 10; fi
+          done
+          if [ "$dns_ready" -ne 1 ]; then
+            echo "::error::Canonical SaaS DNS has not recovered after 8 checks; do not run downstream live gates."
+          fi
           for target in github.com supabase.co "$host"; do
             if getent ahostsv4 "$target" >/dev/null 2>&1; then
               echo "System DNS resolution for $target: OK"
