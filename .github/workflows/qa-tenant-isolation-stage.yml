@@ -1,0 +1,115 @@
+name: QA Tenant Isolation Staging
+
+on:
+  push:
+    branches:
+      - 'qa/tenant-isolation-*'
+    paths:
+      - 'scripts/qa-stage-guard.mjs'
+      - 'tests/qa-stage-guard.test.mjs'
+      - '.github/workflows/qa-tenant-isolation-stage.yml'
+  workflow_dispatch:
+    inputs:
+      qa_project_ref:
+        description: 'Supabase DEVELOPMENT BRANCH project ref (never production)'
+        required: true
+        type: string
+      matrix_mode:
+        description: 'Read-only isolation or controlled staging-only write matrix'
+        required: true
+        type: choice
+        options:
+          - readonly
+          - write
+        default: readonly
+      approve_write_test:
+        description: 'For write mode: enter AUTHORIZE_ISOLATED_QA_WRITES'
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  qa-guard-unit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify isolated QA guard's fail-closed cases
+        run: node --test tests/qa-stage-guard.test.mjs
+
+  staged-matrix:
+    if: github.event_name == 'workflow_dispatch'
+    needs: qa-guard-unit
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment: qa-isolation
+    env:
+      QA_PROJECT_REF: ${{ inputs.qa_project_ref }}
+      QA_APPROVED_PROJECT_REF: ${{ vars.QA_APPROVED_PROJECT_REF }}
+      QA_SUPABASE_URL: ${{ secrets.QA_SUPABASE_URL }}
+      QA_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.QA_SUPABASE_PUBLISHABLE_KEY }}
+      QA_TEST_A_EMAIL: ${{ secrets.QA_TEST_A_EMAIL }}
+      QA_TEST_A_PASSWORD: ${{ secrets.QA_TEST_A_PASSWORD }}
+      QA_TEST_B_EMAIL: ${{ secrets.QA_TEST_B_EMAIL }}
+      QA_TEST_B_PASSWORD: ${{ secrets.QA_TEST_B_PASSWORD }}
+      QA_TENANT_A_SLUG: qa-isolation-a
+      QA_TENANT_B_SLUG: qa-isolation-b
+      QA_TEST_MODE: ${{ inputs.matrix_mode }}
+      QA_WRITES_CONFIRM: ${{ inputs.approve_write_test }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Refuse unapproved projects, production, and missing write confirmation
+        run: node scripts/qa-stage-guard.mjs
+      - name: Install locked dependencies
+        run: npm ci
+      - name: Verify non-Platform-Master identities and isolated tenant memberships
+        run: node scripts/qa-stage-identity-check.mjs
+      - name: Read-only A/B isolation regression (development branch only)
+        if: inputs.matrix_mode == 'readonly'
+        shell: bash
+        env:
+          SUPABASE_URL: ${{ secrets.QA_SUPABASE_URL }}
+          SUPABASE_PUBLISHABLE_KEY: ${{ secrets.QA_SUPABASE_PUBLISHABLE_KEY }}
+          TEST_A_EMAIL: ${{ secrets.QA_TEST_A_EMAIL }}
+          TEST_A_PASSWORD: ${{ secrets.QA_TEST_A_PASSWORD }}
+          TEST_B_EMAIL: ${{ secrets.QA_TEST_B_EMAIL }}
+          TEST_B_PASSWORD: ${{ secrets.QA_TEST_B_PASSWORD }}
+          TEST_A_TENANT_SLUG: qa-isolation-a
+          TEST_B_TENANT_SLUG: qa-isolation-b
+        run: |
+          set -euo pipefail
+          node --experimental-strip-types scripts/cross-tenant-smoke.ts | tee /tmp/qa-isolation-readonly.log
+          grep -Fq '[cross-tenant-smoke] status: PASS' /tmp/qa-isolation-readonly.log || { echo '::error::A/B read matrix not PASS'; exit 1; }
+      - name: A/B read-write RLS regression (development branch only)
+        if: inputs.matrix_mode == 'write'
+        shell: bash
+        env:
+          SUPABASE_URL: ${{ secrets.QA_SUPABASE_URL }}
+          SUPABASE_PUBLISHABLE_KEY: ${{ secrets.QA_SUPABASE_PUBLISHABLE_KEY }}
+          TEST_A_EMAIL: ${{ secrets.QA_TEST_A_EMAIL }}
+          TEST_A_PASSWORD: ${{ secrets.QA_TEST_A_PASSWORD }}
+          TEST_B_EMAIL: ${{ secrets.QA_TEST_B_EMAIL }}
+          TEST_B_PASSWORD: ${{ secrets.QA_TEST_B_PASSWORD }}
+          TEST_A_TENANT_SLUG: qa-isolation-a
+          TEST_B_TENANT_SLUG: qa-isolation-b
+        run: |
+          set -euo pipefail
+          node --experimental-strip-types scripts/rls-gate.ts | tee /tmp/qa-isolation-write.log
+          grep -Eq '^\[gate\] RLS GATE = PASS \([0-9]+/[0-9]+\)$' /tmp/qa-isolation-write.log || { echo '::error::A/B write matrix not PASS'; exit 1; }
+      - name: Report the limited QA scope
+        if: success()
+        run: |
+          echo "### QA tenant isolation" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Project: isolated development branch (not production)" >> "$GITHUB_STEP_SUMMARY"
+          echo "- QA mode: $QA_TEST_MODE" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Identities: distinct and non-Platform-Master, one own tenant each" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Result: PASS for selected staging matrix only; no production acceptance implied" >> "$GITHUB_STEP_SUMMARY"
