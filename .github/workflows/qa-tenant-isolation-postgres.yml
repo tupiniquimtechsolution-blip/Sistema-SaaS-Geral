@@ -55,9 +55,11 @@ jobs:
         run: |
           set -euo pipefail
           # The source is a disposable, generated-only CI fixture.
-          pg_dump -Fc --file="$RUNNER_TEMP/qa_tenant_model.dump"
-          createdb -h "$PGHOST" -p "$PGPORT" -U "$PGUSER" qa_restore
-          pg_restore --no-owner --exit-on-error -h "$PGHOST" -p "$PGPORT" -U "$PGUSER" -d qa_restore "$RUNNER_TEMP/qa_tenant_model.dump"
+          # Runner client may be older than PostgreSQL 17; use the server image's matching tools.
+          container_id="${{ job.services.postgres.id }}"
+          docker exec "$container_id" pg_dump -U postgres -Fc -d qa_contract > "$RUNNER_TEMP/qa_tenant_model.dump"
+          docker exec "$container_id" createdb -U postgres qa_restore
+          docker exec -i "$container_id" pg_restore --no-owner --exit-on-error -U postgres -d qa_restore < "$RUNNER_TEMP/qa_tenant_model.dump"
           psql -v ON_ERROR_STOP=1 -d qa_restore -At -c "SELECT count(*) FROM public.tenants" | grep -Fx '2'
           psql -v ON_ERROR_STOP=1 -d qa_restore -f tests/postgres/tenant_isolation_contract.real.sql 2>&1 \
             | tee "$RUNNER_TEMP/qa_tenant_restore_proof.log"
