@@ -40,6 +40,9 @@ begin
   update public.memberships set status='inactive' where tenant_id=b;
   get diagnostics affected = row_count;
   if affected<>0 then raise exception 'SECURITY: Actor A updated B membership'; end if;
+  delete from public.contacts where tenant_id=b;
+  get diagnostics affected = row_count;
+  if affected<>0 then raise exception 'SECURITY: Actor A deleted B contact'; end if;
   begin
     insert into public.memberships(id,tenant_id,user_id,status)
       values ('71000000-0000-4000-8000-00000000000a',b,'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa','active');
@@ -96,6 +99,12 @@ begin
   update public.contacts set name='viewer tamper' where tenant_id=b;
   get diagnostics affected = row_count;
   if affected<>0 then raise exception 'SECURITY: viewer updated own B contact'; end if;
+  update public.contacts set name='cross tamper' where tenant_id=a;
+  get diagnostics affected = row_count;
+  if affected<>0 then raise exception 'SECURITY: Actor B updated A contact'; end if;
+  delete from public.contacts where tenant_id=a;
+  get diagnostics affected = row_count;
+  if affected<>0 then raise exception 'SECURITY: Actor B deleted A contact'; end if;
   begin
     insert into public.contacts(id,tenant_id,name)
       values ('74000000-0000-4000-8000-00000000000a',a,'cross write');
