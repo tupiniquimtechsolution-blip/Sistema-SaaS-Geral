@@ -166,6 +166,30 @@ begin
 end $checks$;
 rollback;
 
+-- Remote six-table ACL grants SELECT to anon while policies allow authenticated only.
+-- Verify RLS blocks all rows despite the underlying SQL SELECT privilege.
+begin;
+set local role anon;
+do $checks$
+begin
+  if not row_security_active('public.tenants'::regclass) then
+    raise exception 'Anonymous role did not activate RLS';
+  end if;
+  if auth.uid() is not null or public.is_platform_admin() then
+    raise exception 'Anonymous subject acquired a non-null identity or platform privilege';
+  end if;
+  if (select count(*) from public.tenants)<>0
+    or (select count(*) from public.memberships)<>0
+    or (select count(*) from public.contacts)<>0
+    or (select count(*) from public.subscriptions)<>0
+    or (select count(*) from public.tenant_entitlements)<>0
+    or (select count(*) from public.platform_admins)<>0 then
+      raise exception 'Anonymous subject bypassed authenticated-only RLS';
+  end if;
+  raise notice 'ANON_ROLE=PASS (table SELECT granted, RLS denies all)';
+end $checks$;
+rollback;
+
 -- Positive control: Platform Master is a deliberately different actor.
 begin;
 set local role authenticated;
