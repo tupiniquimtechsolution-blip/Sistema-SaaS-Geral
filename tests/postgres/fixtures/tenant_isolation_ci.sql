@@ -123,6 +123,10 @@ alter table public.platform_admins enable row level security;
 alter table public.contacts enable row level security;
 alter table public.subscriptions enable row level security;
 alter table public.tenant_entitlements enable row level security;
+-- Remote grants include SELECT for anon; RLS policies still only target authenticated.
+-- Model both layers so anonymous default-deny is exercised with SQL ACL access.
+grant select on public.tenants,public.memberships,public.contacts,
+  public.platform_admins,public.subscriptions,public.tenant_entitlements to anon;
 grant select,update on public.tenants to authenticated;
 grant select,insert,update,delete on public.memberships to authenticated;
 grant select,insert,update,delete on public.platform_admins to authenticated;
