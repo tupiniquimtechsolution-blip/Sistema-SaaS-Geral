@@ -1,0 +1,65 @@
+name: QA Tenant Isolation PostgreSQL Contract
+
+on:
+  push:
+    branches:
+      - 'qa/tenant-isolation-*'
+    paths:
+      - 'tests/postgres/fixtures/tenant_isolation_ci.sql'
+      - 'tests/postgres/tenant_isolation_contract.real.sql'
+      - '.github/workflows/qa-tenant-isolation-postgres.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  disposable-postgres-rls:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: qa_contract
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d qa_contract"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+    env:
+      PGPASSWORD: postgres
+      PGHOST: 127.0.0.1
+      PGPORT: '5432'
+      PGUSER: postgres
+      PGDATABASE: qa_contract
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build disposable modeled-policy fixture
+        run: psql -v ON_ERROR_STOP=1 -f tests/postgres/fixtures/tenant_isolation_ci.sql
+      - name: Test ordinary A/B RLS, RBAC and privilege escalation
+        shell: bash
+        run: |
+          set -euo pipefail
+          psql -v ON_ERROR_STOP=1 -f tests/postgres/tenant_isolation_contract.real.sql 2>&1 | tee /tmp/qa-tenant-rls-contract.log
+          grep -Fq 'TENANT_ISOLATION_PG_CONTRACT=PASS' /tmp/qa-tenant-rls-contract.log
+          grep -Fq 'ACTOR_A=PASS' /tmp/qa-tenant-rls-contract.log
+          grep -Fq 'ACTOR_B=PASS' /tmp/qa-tenant-rls-contract.log
+          grep -Fq 'NO_IDENTITY=PASS' /tmp/qa-tenant-rls-contract.log
+          grep -Fq 'PLATFORM_MASTER=PASS' /tmp/qa-tenant-rls-contract.log
+      - name: Document scope of evidence
+        if: always()
+        shell: bash
+        run: |
+          {
+            echo "## Disposable PostgreSQL 17 tenant-isolation contract"
+            echo
+            echo "- Fixture: synthetic identities and modeled authorization helpers/policies"
+            echo "- No hosted Supabase project, credentials, migrations or customer data accessed"
+            echo "- Coverage: A owner / B viewer, SELECT, INSERT, UPDATE, membership, billing, entitlements, privilege escalation"
+            echo "- Scope: SQL-contract result only; does NOT prove hosted Supabase Auth, live RLS policy parity, deployed Builder, backups or production safety"
+            echo "- Staging matrix remains NOT RUN unless separately authorized"
+          } >> "$GITHUB_STEP_SUMMARY"
