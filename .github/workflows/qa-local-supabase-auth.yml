@@ -53,6 +53,8 @@ jobs:
           # psql \set/\echo are NOT valid SQL migration commands.
           sed '/^\\/d' "$GITHUB_WORKSPACE/tests/postgres/fixtures/tenant_isolation_ci.sql" \
             > "$work/supabase/migrations/20261014000000_disposable_ci_model.sql"
+          # Local GoTrue already owns auth.uid(); never overwrite Supabase internal auth schema.
+          sed -i '/^create or replace function auth.uid()/,+1d' "$work/supabase/migrations/20261014000000_disposable_ci_model.sql"
           echo "LOCAL_SUPABASE_WORKDIR=$work" >> "$GITHUB_ENV"
       - name: Start local-only Supabase with genuine Auth and PostgREST
         working-directory: ${{ env.LOCAL_SUPABASE_WORKDIR }}
