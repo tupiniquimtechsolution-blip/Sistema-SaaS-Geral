@@ -49,6 +49,7 @@ jobs:
           mkdir -p "$work"
           cd "$work"
           supabase init
+          mkdir -p "$work/supabase/migrations"
           # psql \set/\echo are NOT valid SQL migration commands.
           sed '/^\\/d' "$GITHUB_WORKSPACE/tests/postgres/fixtures/tenant_isolation_ci.sql" \
             > "$work/supabase/migrations/20261014000000_disposable_ci_model.sql"
