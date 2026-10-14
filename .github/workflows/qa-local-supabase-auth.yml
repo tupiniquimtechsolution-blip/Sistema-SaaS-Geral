@@ -1,0 +1,82 @@
+name: QA Local Supabase Auth Isolation
+
+on:
+  push:
+    branches:
+      - 'qa/tenant-isolation-*'
+    paths:
+      - 'scripts/qa-local-supabase-auth.mjs'
+      - 'tests/postgres/fixtures/tenant_isolation_ci.sql'
+      - '.github/workflows/qa-local-supabase-auth.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: qa-local-supabase-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  local-auth-rls:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - uses: supabase/setup-cli@v3
+        with:
+          version: 2.84.2
+      - name: Verify no remote Supabase access is configured
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Fail closed rather than accidentally follow hosted link or CI token.
+          if [[ -n "${SUPABASE_ACCESS_TOKEN:-}" || -n "${SUPABASE_PROJECT_ID:-}" || -n "${SUPABASE_DB_PASSWORD:-}" ]]; then
+            echo "::error::Remote Supabase configuration must not be present in disposable local QA"
+            exit 1
+          fi
+      - name: Install locked local app dependencies
+        run: npm ci
+      - name: Initialize isolated Supabase CLI project and modeled SQL fixture
+        shell: bash
+        run: |
+          set -euo pipefail
+          work="$RUNNER_TEMP/qa-supabase-auth"
+          mkdir -p "$work"
+          cd "$work"
+          supabase init
+          # psql \set/\echo are NOT valid SQL migration commands.
+          sed '/^\\/d' "$GITHUB_WORKSPACE/tests/postgres/fixtures/tenant_isolation_ci.sql" \
+            > "$work/supabase/migrations/20261014000000_disposable_ci_model.sql"
+          echo "LOCAL_SUPABASE_WORKDIR=$work" >> "$GITHUB_ENV"
+      - name: Start local-only Supabase with genuine Auth and PostgREST
+        working-directory: ${{ env.LOCAL_SUPABASE_WORKDIR }}
+        run: supabase start
+      - name: Test real local password sessions and tenant authorization
+        shell: bash
+        working-directory: ${{ env.LOCAL_SUPABASE_WORKDIR }}
+        run: |
+          set -euo pipefail
+          # The CLI writes local-only keys; never print, upload or commit them.
+          eval "$(supabase status -o env)"
+          export LOCAL_SUPABASE_URL="$API_URL"
+          export LOCAL_SUPABASE_ANON_KEY="$ANON_KEY"
+          export LOCAL_SUPABASE_SERVICE_ROLE_KEY="$SERVICE_ROLE_KEY"
+          export LOCAL_SUPABASE_DB_URL="$DB_URL"
+          node "$GITHUB_WORKSPACE/scripts/qa-local-supabase-auth.mjs"
+      - name: Evidence boundary
+        if: always()
+        shell: bash
+        run: |
+          {
+            echo '### Local Supabase Auth regression'
+            echo '- Environment: disposable GitHub runner, Supabase CLI + GoTrue + PostgREST'
+            echo '- Data: synthetic and generated only, with modeled RLS policies'
+            echo '- No hosted project, OAuth, DNS, billing or production database touched'
+            echo '- Not a remote schema-migration parity check and not Commercial Ready'
+            echo '- Cleanup: runner destruction removes the local stack'
+          } >> "$GITHUB_STEP_SUMMARY"
