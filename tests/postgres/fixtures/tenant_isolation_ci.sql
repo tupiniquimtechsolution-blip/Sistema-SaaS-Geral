@@ -46,30 +46,33 @@ create table public.tenant_entitlements (
   id uuid primary key, tenant_id uuid not null references public.tenants(id), feature_key text not null
 );
 
--- SECURITY DEFINER here deliberately emulates the effective current remote
--- private.* functions; explicit auth.uid check, membership and permission
--- semantics reflect the read-only inspected definitions.
-create or replace function public.is_platform_admin() returns boolean
+-- Read-only canonical Supabase inspection on 2026-10-14 confirmed:
+-- public SQL STABLE SECURITY INVOKER wrappers -> private SECURITY DEFINER
+-- helpers; fail-closed auth.uid() checks and tenant role/permission joins.
+-- Only this subset is modeled; NOT a canonical migration or full policy parity.
+create schema if not exists private;
+
+create or replace function private.is_platform_admin() returns boolean
 language sql stable security definer set search_path=public,auth,pg_temp
 as $$
   select auth.uid() is not null
     and exists(select 1 from public.platform_admins pa where pa.user_id=auth.uid())
 $$;
-create or replace function public.is_tenant_member(p_tenant_id uuid) returns boolean
-language sql stable security definer set search_path=public,auth,pg_temp
+create or replace function private.is_tenant_member(p_tenant_id uuid) returns boolean
+language sql stable security definer set search_path=public,private,auth,pg_temp
 as $$
   select auth.uid() is not null and (
-    public.is_platform_admin() or exists(
+    private.is_platform_admin() or exists(
       select 1 from public.memberships m
       where m.tenant_id=p_tenant_id and m.user_id=auth.uid() and m.status='active'
     )
   )
 $$;
-create or replace function public.has_tenant_permission(p_tenant_id uuid,p_permission text)
-returns boolean language sql stable security definer set search_path=public,auth,pg_temp
+create or replace function private.has_tenant_permission(p_tenant_id uuid,p_permission text)
+returns boolean language sql stable security definer set search_path=public,private,auth,pg_temp
 as $$
   select auth.uid() is not null and (
-    public.is_platform_admin() or exists(
+    private.is_platform_admin() or exists(
       select 1 from public.memberships m
       join public.membership_roles mr on mr.membership_id=m.id
       join public.roles r on r.id=mr.role_id
@@ -82,14 +85,34 @@ as $$
   )
 $$;
 
+create or replace function public.is_platform_admin() returns boolean
+language sql stable set search_path=private,public,auth,pg_temp
+as $$ select private.is_platform_admin() $$;
+create or replace function public.is_tenant_member(p_tenant_id uuid) returns boolean
+language sql stable set search_path=private,public,auth,pg_temp
+as $$ select private.is_tenant_member(p_tenant_id) $$;
+create or replace function public.has_tenant_permission(p_tenant_id uuid,p_permission text)
+returns boolean language sql stable set search_path=private,public,auth,pg_temp
+as $$ select private.has_tenant_permission(p_tenant_id,p_permission) $$;
+
+-- Remote ACL inspection: public wrappers callable by anon and authenticated;
+-- private platform/membership checks callable by both; private permission
+-- resolver only callable by authenticated. Predicate guards remain fail-closed.
+revoke all on function private.is_platform_admin() from public;
+revoke all on function private.is_tenant_member(uuid) from public;
+revoke all on function private.has_tenant_permission(uuid,text) from public;
+grant usage on schema private to authenticated,anon;
+grant execute on function private.is_platform_admin() to authenticated,anon;
+grant execute on function private.is_tenant_member(uuid) to authenticated,anon;
+grant execute on function private.has_tenant_permission(uuid,text) to authenticated;
 revoke all on function public.is_platform_admin() from public;
 revoke all on function public.is_tenant_member(uuid) from public;
 revoke all on function public.has_tenant_permission(uuid,text) from public;
-grant execute on function public.is_platform_admin() to authenticated;
-grant execute on function public.is_tenant_member(uuid) to authenticated;
-grant execute on function public.has_tenant_permission(uuid,text) to authenticated;
-grant usage on schema auth to authenticated;
-grant execute on function auth.uid() to authenticated;
+grant execute on function public.is_platform_admin() to authenticated,anon;
+grant execute on function public.is_tenant_member(uuid) to authenticated,anon;
+grant execute on function public.has_tenant_permission(uuid,text) to authenticated,anon;
+grant usage on schema auth to authenticated,anon;
+grant execute on function auth.uid() to authenticated,anon;
 
 alter table public.tenants enable row level security;
 alter table public.memberships enable row level security;
