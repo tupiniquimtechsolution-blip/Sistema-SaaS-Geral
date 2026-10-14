@@ -3,6 +3,33 @@
 -- Supabase Auth, remote policy parity, deployed UI or storage evidence.
 \set ON_ERROR_STOP on
 
+-- Structural checks verify effective remote helper schema/role boundaries modeled
+-- by the synthetic fixture; no claim of full remote schema parity.
+do $boundary$
+declare
+  public_definer_count integer;
+  private_definer_count integer;
+begin
+  select count(*) into public_definer_count from pg_proc p
+  where p.pronamespace='public'::regnamespace
+    and p.proname in ('is_platform_admin','is_tenant_member','has_tenant_permission')
+    and p.prosecdef;
+  select count(*) into private_definer_count from pg_proc p
+  where p.pronamespace='private'::regnamespace
+    and p.proname in ('is_platform_admin','is_tenant_member','has_tenant_permission')
+    and p.prosecdef;
+  if public_definer_count<>0 or private_definer_count<>3 then
+    raise exception 'Security definer boundary differs from canonical model';
+  end if;
+  if has_function_privilege('anon','private.has_tenant_permission(uuid,text)','EXECUTE') then
+    raise exception 'Anon may execute private tenant permission helper';
+  end if;
+  if not has_function_privilege('authenticated','private.has_tenant_permission(uuid,text)','EXECUTE') then
+    raise exception 'Authenticated may not execute private permission helper';
+  end if;
+  raise notice 'AUTH_HELPER_BOUNDARY=PASS (public invokers, private definers, role grants)';
+end $boundary$;
+
 -- Fixture actor A: tenant A owner (CRM and member permissions, NOT Platform Master).
 begin;
 set local role authenticated;
