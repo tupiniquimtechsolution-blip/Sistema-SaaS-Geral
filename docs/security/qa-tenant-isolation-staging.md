@@ -40,3 +40,20 @@ TESTES/GATES: fail-closed guard unit tests; real staging matrix pending
 SEGURANÇA: prevent Platform Master, demand two distinct identities, approved branch ref and write confirmation
 BLOQUEIOS: owner cost/organization approval; Supabase branch creation; QA Auth and isolated tenant creation; GitHub isolated environment secrets
 PRÓXIMA AÇÃO EXATA: approve US$ 0.01344/hour and org zpusjqgknrdhhpozrwgh; then create the isolated branch and provision QA identities
+
+## Free-only execution decision — 2026-10-14
+
+The owner **declined** creation of the billable Supabase development branch (USD 0.01344/hour). Do not create that branch, invoke `confirm_cost`, provision Auth users on the canonical project, or run QA writes on hosted production. The earlier paid-branch procedure above is **inactive unless a new explicit authorization is given**.
+
+Implemented instead in this QA-only PR:
+
+- [`.github/workflows/qa-tenant-isolation-postgres.yml`](../../.github/workflows/qa-tenant-isolation-postgres.yml) — disposable PostgreSQL 17 on a GitHub Actions runner; no remote Supabase credentials, project or data.
+- [`tests/postgres/fixtures/tenant_isolation_ci.sql`](../../tests/postgres/fixtures/tenant_isolation_ci.sql) — independently defined, synthetic tenant A/B owners/viewer, permissions and selected RLS predicates based on the audited canonical policy shapes. **This is a modeled-policy fixture, not production schema parity**.
+- [`tests/postgres/tenant_isolation_contract.real.sql`](../../tests/postgres/tenant_isolation_contract.real.sql) — SQL-level assertions for role-activated RLS, own/cross-tenant reads, inserts, updates, deletes, membership changes, admin self-escalation, subscription/entitlement writes, missing JWT identity, and intentional Platform Master exception. All test writes are in transactions rolled back by the disposable instance.
+- The workflow is designed to fail on a violated assertion; it does not claim PASS merely because fixture setup succeeded.
+
+**Validation checkpoint:** [CI run 38548696389](https://github.com/tupiniquimtechsolution-blip/Sistema-SaaS-Geral/actions/runs/38548696389) passed for initial contracts on SHA `b40a184192fde0db9b43c9bf373a30e4bf696b75`. After any subsequent test modification, require a **new passing CI run on the new SHA** before updating this claim.
+
+**Unverified and NOT RUN:** real low-privilege sessions against hosted Supabase Auth, exact current remote policy parity, cross-tenant Builder UI, storage, AI tool path, backup/restore, and commercial launch. CI runner execution may count against the repository's existing GitHub Actions allowance; no new Supabase billing resource was provisioned.
+
+**Decision:** local modeled PostgreSQL contracts are an incremental safety gate; Commercial Ready remains NO-GO.
