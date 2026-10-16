@@ -7,6 +7,7 @@ on:
     paths:
       - 'tests/postgres/fixtures/tenant_isolation_ci.sql'
       - 'tests/postgres/tenant_isolation_contract.real.sql'
+      - 'tests/postgres/privileged_rpc_boundaries.real.sql'
       - '.github/workflows/qa-tenant-isolation-postgres.yml'
   workflow_dispatch:
 
@@ -50,6 +51,16 @@ jobs:
           grep -Fq 'ACTOR_B=PASS' /tmp/qa-tenant-rls-contract.log
           grep -Fq 'NO_IDENTITY=PASS' /tmp/qa-tenant-rls-contract.log
           grep -Fq 'PLATFORM_MASTER=PASS' /tmp/qa-tenant-rls-contract.log
+      - name: Validate modeled AI-credit and audit RPC authorization boundaries
+        shell: bash
+        run: |
+          set -euo pipefail
+          psql -v ON_ERROR_STOP=1 -f tests/postgres/privileged_rpc_boundaries.real.sql 2>&1 | tee /tmp/qa-privileged-rpc-contract.log
+          grep -Fq 'PRIVILEGED_RPC_BOUNDARIES=PASS' /tmp/qa-privileged-rpc-contract.log
+          grep -Fq 'QA_RPC_A=PASS' /tmp/qa-privileged-rpc-contract.log
+          grep -Fq 'QA_RPC_B=PASS' /tmp/qa-privileged-rpc-contract.log
+          grep -Fq 'QA_RPC_NO_IDENTITY=PASS' /tmp/qa-privileged-rpc-contract.log
+          grep -Fq 'QA_RPC_ACL=PASS' /tmp/qa-privileged-rpc-contract.log
       - name: Back up synthetic QA database and restore into a fresh database
         shell: bash
         run: |
@@ -74,7 +85,7 @@ jobs:
             echo
             echo "- Fixture: synthetic identities and modeled authorization helpers/policies"
             echo "- No hosted Supabase project, credentials, migrations or customer data accessed"
-            echo "- Coverage: A owner / B viewer, SELECT, INSERT, UPDATE, membership, billing, entitlements, privilege escalation"
-            echo "- Scope: SQL-contract result only; does NOT prove hosted Supabase Auth, live RLS policy parity, deployed Builder, backups or production safety"
+            echo "- Coverage: A/B reads/writes, role escalation, no-JWT, modeled privileged AI-credit/audit RPC boundaries"
+            echo "- Scope: modeled SQL only; does NOT establish provider metering/audit-event authenticity, hosted RLS parity, backups or deployment safety"
             echo "- Staging matrix remains NOT RUN unless separately authorized"
           } >> "$GITHUB_STEP_SUMMARY"
