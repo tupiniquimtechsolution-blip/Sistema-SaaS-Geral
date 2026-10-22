@@ -14,12 +14,12 @@ async function examine(label, email, password, expectedSlug) {
   if (adminError || isAdmin !== false) throw new Error(`${label}: account is Platform Master or platform admin status is unverified`);
   const { data: memberships, error: membershipError } = await client.from('memberships')
     .select('user_id,tenant_id,status,tenant:tenants!inner(id,slug)')
-    .eq('status', 'active');
+    .eq('user_id', userId);
   if (membershipError || !Array.isArray(memberships) || memberships.length !== 1) {
-    throw new Error(`${label}: expected exactly one visible active membership (least privilege)`);
+    throw new Error(`${label}: expected exactly one own membership (least privilege)`);
   }
   const m = memberships[0];
-  if (m.user_id !== userId || m.tenant?.slug !== expectedSlug || !m.tenant_id) {
+  if (m.user_id !== userId || m.status !== 'active' || m.tenant?.slug !== expectedSlug || !m.tenant_id) {
     throw new Error(`${label}: membership is not bound to the expected isolated tenant`);
   }
   console.log(`${label}: authenticated QA identity PASS; platform admin false; one isolated tenant membership`);
