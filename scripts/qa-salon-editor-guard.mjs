@@ -92,11 +92,25 @@ export async function checkQaSalonEditorSession(client) {
   ) {
     throw new Error("QA editor must have exactly one active Tenant A membership");
   }
+  const { data: roles, error: rolesError } = await client
+    .from("membership_roles")
+    .select("role_id")
+    .eq("membership_id", memberships[0].id);
+  if (rolesError || !Array.isArray(roles) || roles.length !== 1 || roles[0].role_id !== QA_ROLE) {
+    throw new Error("QA editor must have exactly the scoped CMS editor role");
+  }
   return memberships[0].id;
 }
 
-export async function runQaSalonEditorPreflight(env = process.env) {
-  assertQaSalonEditorPreflightEnv(env);
+export async function runQaSalonEditorPreflight(
+  env = process.env,
+  requireExplicitWriteApproval = false,
+) {
+  if (requireExplicitWriteApproval) {
+    assertQaSalonEditorEnv(env);
+  } else {
+    assertQaSalonEditorPreflightEnv(env);
+  }
   const client = createClient(
     env.QA_SUPABASE_URL,
     env.QA_SUPABASE_PUBLISHABLE_KEY,
@@ -124,7 +138,7 @@ export async function runQaSalonEditorPreflight(env = process.env) {
 
 const isDirect = process.argv[1]?.split(/[\\/]/).at(-1) === "qa-salon-editor-guard.mjs";
 if (isDirect) {
-  runQaSalonEditorPreflight().catch((error) => {
+  runQaSalonEditorPreflight(process.env, process.env.QA_TEST_MODE === "editorial-write").catch((error) => {
     console.error(error instanceof Error ? error.message : "QA editor guard failed");
     process.exitCode = 1;
   });
