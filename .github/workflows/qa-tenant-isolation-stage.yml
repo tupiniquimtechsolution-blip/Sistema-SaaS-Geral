@@ -7,11 +7,16 @@ on:
     paths:
       - 'scripts/qa-stage-guard.mjs'
       - 'tests/qa-stage-guard.test.mjs'
+      - 'scripts/qa-rls-assertions.mjs'
+      - 'tests/qa-rls-assertions.test.mjs'
+      - 'tests/qa-cross-tenant-smoke.test.mjs'
+      - 'scripts/cross-tenant-smoke.ts'
+      - 'scripts/rls-gate.ts'
       - '.github/workflows/qa-tenant-isolation-stage.yml'
   workflow_dispatch:
     inputs:
       qa_project_ref:
-        description: 'Supabase DEVELOPMENT BRANCH project ref (never production)'
+        description: 'Approved isolated Supabase QA project ref (never production)'
         required: true
         type: string
       matrix_mode:
@@ -41,6 +46,12 @@ jobs:
           node-version: '22'
       - name: Verify isolated QA guard's fail-closed cases
         run: node --test tests/qa-stage-guard.test.mjs
+      - name: Assert negative-access classifiers and hosted read-only harness with synthetic mocks
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --test tests/qa-rls-assertions.test.mjs
+          node --experimental-strip-types --test tests/qa-cross-tenant-smoke.test.mjs
 
   staged-matrix:
     if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
@@ -73,7 +84,7 @@ jobs:
         run: npm ci
       - name: Verify non-Platform-Master identities and isolated tenant memberships
         run: node scripts/qa-stage-identity-check.mjs
-      - name: Read-only A/B isolation regression (development branch only)
+      - name: Read-only A/B isolation regression (approved QA project only)
         if: env.QA_TEST_MODE == 'readonly'
         shell: bash
         env:
@@ -89,7 +100,7 @@ jobs:
           set -euo pipefail
           node --experimental-strip-types scripts/cross-tenant-smoke.ts | tee /tmp/qa-isolation-readonly.log
           grep -Fq '[cross-tenant-smoke] status: PASS' /tmp/qa-isolation-readonly.log || { echo '::error::A/B read matrix not PASS'; exit 1; }
-      - name: A/B read-write RLS regression (development branch only)
+      - name: A/B negative-write RLS regression (manual approval only; QA project)
         if: github.event_name == 'workflow_dispatch' && inputs.matrix_mode == 'write' && inputs.approve_write_test == 'AUTHORIZE_ISOLATED_QA_WRITES'
         shell: bash
         env:
