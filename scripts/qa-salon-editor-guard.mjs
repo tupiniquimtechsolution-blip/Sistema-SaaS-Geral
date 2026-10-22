@@ -7,17 +7,16 @@ export const QA_EDITOR = "f161ba2f-e465-4915-8df9-c38dc622966d";
 export const QA_ROLE = "a1cfc9e4-ed77-4891-a91e-568b17be40de";
 export const APPROVAL = "AUTHORIZE_QA_SALON_EDITORIAL_WRITES";
 
-export function assertQaSalonEditorEnv(env, requireCredentials = true) {
+function assertQaScope(env, mode, requireCredentials) {
   const projectUrl = `https://${QA_PROJECT}.supabase.co`;
   if (
     env.QA_PROJECT_REF !== QA_PROJECT ||
     env.QA_APPROVED_PROJECT_REF !== QA_PROJECT ||
     env.QA_SUPABASE_URL !== projectUrl ||
-    env.QA_TEST_MODE !== "editorial-write" ||
-    env.QA_EDITORIAL_WRITES_CONFIRM !== APPROVAL ||
+    env.QA_TEST_MODE !== mode ||
     (env.GITHUB_REF && env.GITHUB_REF !== "refs/heads/qa/tenant-isolation-staging-20261010")
   ) {
-    throw new Error("Refusing non-QA or unapproved editorial-write execution");
+    throw new Error("Refusing non-QA or unapproved editorial execution");
   }
   if (requireCredentials && (
     !env.QA_SUPABASE_PUBLISHABLE_KEY ||
@@ -25,6 +24,22 @@ export function assertQaSalonEditorEnv(env, requireCredentials = true) {
     !env.QA_EDITOR_PASSWORD
   )) {
     throw new Error("Protected QA editor credentials are missing");
+  }
+}
+
+/** CMS mutations require a distinct explicit manual authorization. */
+export function assertQaSalonEditorEnv(env, requireCredentials = true) {
+  assertQaScope(env, "editorial-write", requireCredentials);
+  if (env.QA_EDITORIAL_WRITES_CONFIRM !== APPROVAL) {
+    throw new Error("Refusing editorial writes without exact manual authorization");
+  }
+}
+
+/** Read-only Auth/permission verification on push; never invokes CMS DML. */
+export function assertQaSalonEditorPreflightEnv(env) {
+  assertQaScope(env, "editorial-preflight", true);
+  if (env.QA_EDITORIAL_WRITES_CONFIRM) {
+    throw new Error("Preflight must not carry write authorization");
   }
 }
 
@@ -65,12 +80,13 @@ export async function checkQaSalonEditorSession(client) {
   const { data: memberships, error: membershipError } = await client
     .from("memberships")
     .select("id,tenant_id,user_id,status")
-    .eq("user_id", QA_EDITOR)
-    .eq("status", "active");
+    .eq("user_id", QA_EDITOR);
   if (
     membershipError ||
     !Array.isArray(memberships) ||
     memberships.length !== 1 ||
+    memberships[0].id !== "7a485aea-02f1-4d93-adc0-c8d78e7a5910" ||
+    memberships[0].status !== "active" ||
     memberships[0].tenant_id !== QA_A ||
     memberships[0].user_id !== QA_EDITOR
   ) {
@@ -80,7 +96,7 @@ export async function checkQaSalonEditorSession(client) {
 }
 
 export async function runQaSalonEditorPreflight(env = process.env) {
-  assertQaSalonEditorEnv(env);
+  assertQaSalonEditorPreflightEnv(env);
   const client = createClient(
     env.QA_SUPABASE_URL,
     env.QA_SUPABASE_PUBLISHABLE_KEY,
@@ -102,7 +118,8 @@ export async function runQaSalonEditorPreflight(env = process.env) {
     throw new Error("Refusing editorial writes: homepage already exists or its absence cannot be proven");
   }
   console.log("QA_SALON_EDITOR_PREFLIGHT=PASS: identity, narrow CMS permission and empty homepage verified");
-  await client.auth.signOut();
+  const { error: signOutError } = await client.auth.signOut();
+  if (signOutError) throw new Error("QA editor session could not be signed out");
 }
 
 const isDirect = process.argv[1]?.split(/[\\/]/).at(-1) === "qa-salon-editor-guard.mjs";
