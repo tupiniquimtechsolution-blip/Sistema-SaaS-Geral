@@ -43,13 +43,13 @@ jobs:
         run: node --test tests/qa-stage-guard.test.mjs
 
   staged-matrix:
-    if: github.event_name == 'workflow_dispatch'
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
     needs: qa-guard-unit
     runs-on: ubuntu-latest
     timeout-minutes: 20
     environment: qa-isolation
     env:
-      QA_PROJECT_REF: ${{ inputs.qa_project_ref }}
+      QA_PROJECT_REF: ${{ github.event_name == 'push' && vars.QA_APPROVED_PROJECT_REF || inputs.qa_project_ref }}
       QA_APPROVED_PROJECT_REF: ${{ vars.QA_APPROVED_PROJECT_REF }}
       QA_SUPABASE_URL: ${{ secrets.QA_SUPABASE_URL }}
       QA_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.QA_SUPABASE_PUBLISHABLE_KEY }}
@@ -57,10 +57,10 @@ jobs:
       QA_TEST_A_PASSWORD: ${{ secrets.QA_TEST_A_PASSWORD }}
       QA_TEST_B_EMAIL: ${{ secrets.QA_TEST_B_EMAIL }}
       QA_TEST_B_PASSWORD: ${{ secrets.QA_TEST_B_PASSWORD }}
-      QA_TENANT_A_SLUG: qa-isolation-a
-      QA_TENANT_B_SLUG: qa-isolation-b
-      QA_TEST_MODE: ${{ inputs.matrix_mode }}
-      QA_WRITES_CONFIRM: ${{ inputs.approve_write_test }}
+      QA_TENANT_A_SLUG: qa-isolation-tenant-a
+      QA_TENANT_B_SLUG: qa-isolation-tenant-b
+      QA_TEST_MODE: ${{ github.event_name == 'push' && 'readonly' || inputs.matrix_mode }}
+      QA_WRITES_CONFIRM: ${{ github.event_name == 'workflow_dispatch' && inputs.approve_write_test || '' }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -74,7 +74,7 @@ jobs:
       - name: Verify non-Platform-Master identities and isolated tenant memberships
         run: node scripts/qa-stage-identity-check.mjs
       - name: Read-only A/B isolation regression (development branch only)
-        if: inputs.matrix_mode == 'readonly'
+        if: env.QA_TEST_MODE == 'readonly'
         shell: bash
         env:
           SUPABASE_URL: ${{ secrets.QA_SUPABASE_URL }}
@@ -83,14 +83,14 @@ jobs:
           TEST_A_PASSWORD: ${{ secrets.QA_TEST_A_PASSWORD }}
           TEST_B_EMAIL: ${{ secrets.QA_TEST_B_EMAIL }}
           TEST_B_PASSWORD: ${{ secrets.QA_TEST_B_PASSWORD }}
-          TEST_A_TENANT_SLUG: qa-isolation-a
-          TEST_B_TENANT_SLUG: qa-isolation-b
+          TEST_A_TENANT_SLUG: qa-isolation-tenant-a
+          TEST_B_TENANT_SLUG: qa-isolation-tenant-b
         run: |
           set -euo pipefail
           node --experimental-strip-types scripts/cross-tenant-smoke.ts | tee /tmp/qa-isolation-readonly.log
           grep -Fq '[cross-tenant-smoke] status: PASS' /tmp/qa-isolation-readonly.log || { echo '::error::A/B read matrix not PASS'; exit 1; }
       - name: A/B read-write RLS regression (development branch only)
-        if: inputs.matrix_mode == 'write'
+        if: github.event_name == 'workflow_dispatch' && inputs.matrix_mode == 'write' && inputs.approve_write_test == 'AUTHORIZE_ISOLATED_QA_WRITES'
         shell: bash
         env:
           SUPABASE_URL: ${{ secrets.QA_SUPABASE_URL }}
