@@ -23,15 +23,28 @@ BEGIN
   END IF;
 
   -- Both original users must remain exactly Viewer on their own tenant.
+  -- Each original identity must have one active membership and just Viewer.
   IF (
-    SELECT count(*) FROM public.membership_roles mr
-    JOIN public.memberships m ON m.id=mr.membership_id
+    SELECT count(*) FROM public.memberships m
+    JOIN public.membership_roles mr ON mr.membership_id=m.id
     JOIN public.roles r ON r.id=mr.role_id
     WHERE (m.user_id='90be8f98-2002-493d-8bb4-bf0b35b7f48e' AND m.tenant_id=a
        OR m.user_id='7560c592-331f-4992-a925-f095c76858f4' AND m.tenant_id=b)
       AND m.status='active' AND r.key='viewer'
-  ) <> 2 THEN
-    RAISE EXCEPTION 'Original QA-A and QA-B Viewer roles not confirmed';
+  ) <> 2 OR
+  EXISTS (
+    SELECT 1 FROM public.memberships m
+    LEFT JOIN public.membership_roles mr ON mr.membership_id=m.id
+    LEFT JOIN public.roles r ON r.id=mr.role_id
+    WHERE m.user_id IN (
+      '90be8f98-2002-493d-8bb4-bf0b35b7f48e',
+      '7560c592-331f-4992-a925-f095c76858f4'
+    )
+    GROUP BY m.user_id
+    HAVING count(DISTINCT m.id) <> 1 OR count(mr.role_id) <> 1
+      OR count(*) FILTER (WHERE r.key='viewer') <> 1
+  ) THEN
+    RAISE EXCEPTION 'Original QA accounts must be exclusively Viewer';
   END IF;
 
   SELECT count(*), min(id::text)::uuid
