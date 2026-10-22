@@ -34,7 +34,7 @@ BEGIN
     RAISE EXCEPTION 'Original QA-A and QA-B Viewer roles not confirmed';
   END IF;
 
-  SELECT count(*), min(id)
+  SELECT count(*), min(id::text)::uuid
   INTO existing_count, role_id
   FROM public.roles
   WHERE tenant_id=a AND key='qa_salon_cms_editor';
