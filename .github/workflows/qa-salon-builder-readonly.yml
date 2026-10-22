@@ -7,6 +7,7 @@ on:
     paths:
       - 'apps/builder/**'
       - 'apps/salon/**'
+      - 'tests/salon-public-cms.test.mjs'
       - '.github/workflows/qa-salon-builder-readonly.yml'
   workflow_dispatch:
 
@@ -49,6 +50,9 @@ jobs:
 
       - name: Refuse production and non-approved Supabase projects
         run: node scripts/qa-stage-guard.mjs
+
+      - name: Verify published-only Salon CMS projection without remote writes
+        run: node --experimental-strip-types --test tests/salon-public-cms.test.mjs
 
       - name: Install locked dependencies
         run: npm ci
