@@ -257,7 +257,9 @@ export async function runCrossTenantSmoke(
 }
 
 const isDirectRun =
-  typeof process !== "undefined" && Array.isArray(process.argv) && process.argv[1]?.includes("cross-tenant-smoke");
+  typeof process !== "undefined" &&
+  Array.isArray(process.argv) &&
+  process.argv[1]?.split(/[\\/]/).at(-1) === "cross-tenant-smoke.ts";
 if (isDirectRun) {
   runCrossTenantSmoke(
     // lazy import keeps the module loadable without credentials
