@@ -99,8 +99,8 @@ jobs:
           TEST_A_PASSWORD: ${{ secrets.QA_TEST_A_PASSWORD }}
           TEST_B_EMAIL: ${{ secrets.QA_TEST_B_EMAIL }}
           TEST_B_PASSWORD: ${{ secrets.QA_TEST_B_PASSWORD }}
-          TEST_A_TENANT_SLUG: qa-isolation-a
-          TEST_B_TENANT_SLUG: qa-isolation-b
+          TEST_A_TENANT_SLUG: qa-isolation-tenant-a
+          TEST_B_TENANT_SLUG: qa-isolation-tenant-b
         run: |
           set -euo pipefail
           node --experimental-strip-types scripts/rls-gate.ts | tee /tmp/qa-isolation-write.log
