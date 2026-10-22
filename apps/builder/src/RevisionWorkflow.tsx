@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { canTransitionBuilderRevision, type BuilderRevisionStatus } from "tupiniquim-saas-core";
+import { isRevisionSnapshotDirty } from "./revision-dirty";
 import {
   appendPageRevisionSection,
   assertPageRevisionSnapshot,
@@ -265,7 +266,7 @@ function DraftRevisionEditor({ revision, busy, onSave, onDirtyChange }: {
     },
     sections: sectionSnapshot.sections,
   };
-  const dirty = JSON.stringify(workingSnapshot) !== JSON.stringify(revision.snapshot);
+  const dirty = isRevisionSnapshotDirty(workingSnapshot, revision.snapshot);
 
   useEffect(() => {
     onDirtyChange(dirty);
