@@ -16,6 +16,7 @@ const schemaError = { code: 'PGRST204', message: 'column missing' };
 test('foreign rows: [] and 42501 pass; leaked rows and malformed data fail', () => {
   assert.equal(foreignRowsDenied({ data: [], error: null }), true);
   assert.equal(foreignRowsDenied({ data: null, error: denied }), true);
+  assert.equal(foreignRowsDenied({ data: [{ id: 'foreign' }], error: denied }), false);
   assert.equal(foreignRowsDenied({ data: [{ id: 'foreign' }], error: null }), false);
   assert.equal(foreignRowsDenied({ data: null, error: null }), false);
   assert.equal(foreignRowsDenied({ data: undefined, error: null }), false);
@@ -30,6 +31,7 @@ test('foreign rows: JWT, network, schema, and generic permission errors fail', (
 test('count-based cross-tenant reads recognize only empty or SQLSTATE 42501', () => {
   assert.equal(foreignCountDenied({ n: 0 }), true);
   assert.equal(foreignCountDenied({ n: -1, err: denied.message, code: '42501' }), true);
+  assert.equal(foreignCountDenied({ n: 1, err: denied.message, code: '42501' }), false);
   assert.equal(foreignCountDenied({ n: 1 }), false);
   assert.equal(foreignCountDenied({ n: -1, err: authError.message, code: '401' }), false);
   assert.equal(foreignCountDenied({ n: -1, err: networkError.message, code: 'NETWORK_ERROR' }), false);
