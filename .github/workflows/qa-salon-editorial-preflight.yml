@@ -140,3 +140,6 @@ jobs:
 # One-time QA editorial lifecycle invocation; original user authorization 22 Oct 2026.
 
 # Second explicitly authorized QA-only E2E retry after JSONB revision dirty-state fix.
+
+
+# Revalidacao automatica QA somente leitura
