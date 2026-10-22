@@ -14,6 +14,8 @@ on:
       - 'scripts/cross-tenant-smoke.ts'
       - 'scripts/rls-gate.ts'
       - '.github/workflows/qa-tenant-isolation-stage.yml'
+      - '.github/workflows/qa-salon-builder-readonly.yml'
+      - '.github/workflows/qa-salon-editorial-preflight.yml'
   workflow_dispatch:
     inputs:
       qa_project_ref:
