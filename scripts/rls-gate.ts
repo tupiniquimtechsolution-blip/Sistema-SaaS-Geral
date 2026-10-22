@@ -63,24 +63,39 @@ const READ_TABLES = [
 
 const CONDITIONAL_TABLES = ["contacts", "products", "bookings"] as const;
 
-const REF = "mmykyzzkcugxunmekwew";
+const QA_PROJECT_REF = "ynqbnimlpxlokrxlucdm";
+const QA_URL = `https://${QA_PROJECT_REF}.supabase.co`;
 
 function readEnv(): { url: string; key: string; a: Identity; b: Identity } | null {
   const env = typeof process !== "undefined" ? process.env : {};
-  const url = env["SUPABASE_URL"] || `https://${REF}.supabase.co`;
+  const url = (env["SUPABASE_URL"] ?? "").trim();
+
+if (url !== QA_URL) {
+  throw new Error(
+    "RLS gate bloqueado: o projeto Supabase não é o QA autorizado"
+  );
+}
   const key = env["SUPABASE_PUBLISHABLE_KEY"] ?? "";
   const a: Identity = {
     email: env["TEST_A_EMAIL"] ?? "",
     password: env["TEST_A_PASSWORD"] ?? "",
-    slug: env["TEST_A_TENANT_SLUG"] || "qa-tenant-a",
+    slug: env["TEST_A_TENANT_SLUG"] || "qa-isolation-tenant-a",
   };
   const b: Identity = {
     email: env["TEST_B_EMAIL"] ?? "",
     password: env["TEST_B_PASSWORD"] ?? "",
-    slug: env["TEST_B_TENANT_SLUG"] || "qa-tenant-b",
+    slug: env["TEST_B_TENANT_SLUG"] || "qa-isolation-tenant-b",
   };
   if (!key || !a.email || !a.password || !b.email || !b.password) return null;
   if (/^<.*>$/.test(a.email) || /^<.*>$/.test(b.email)) return null;
+  if (
+  a.slug !== "qa-isolation-tenant-a" ||
+  b.slug !== "qa-isolation-tenant-b"
+) {
+  throw new Error(
+    "RLS gate bloqueado: identificadores QA dos tenants inválidos"
+  );
+}
   return { url, key, a, b };
 }
 
@@ -340,6 +355,15 @@ if (isDirectRun) {
     (...args: unknown[]) =>
       import("@supabase/supabase-js").then((m) => m.createClient(...(args as Parameters<typeof m.createClient>))) as never,
   ).then((r) => {
-    if (r.status === "FAIL") process.exitCode = 1;
+    if (r.status !== "PASS") {
+      process.exitCode = 1;
+    }
+  }).catch((error) => {
+    console.error(
+      `[gate] Execução bloqueada: ${
+        error instanceof Error ? error.message : String(error)
+      }`
+    );
+    process.exitCode = 1;
   });
 }
