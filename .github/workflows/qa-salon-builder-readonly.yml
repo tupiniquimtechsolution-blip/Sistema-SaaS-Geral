@@ -1,0 +1,101 @@
+name: QA Salon + Builder Readonly Browser Gate
+
+on:
+  push:
+    branches:
+      - 'qa/tenant-isolation-staging-20261010'
+    paths:
+      - 'apps/builder/**'
+      - 'apps/salon/**'
+      - '.github/workflows/qa-salon-builder-readonly.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: qa-salon-builder-readonly-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  salon-builder-readonly:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    environment: qa-isolation
+    env:
+      QA_PROJECT_REF: ${{ vars.QA_APPROVED_PROJECT_REF }}
+      QA_APPROVED_PROJECT_REF: ${{ vars.QA_APPROVED_PROJECT_REF }}
+      QA_SUPABASE_URL: ${{ secrets.QA_SUPABASE_URL }}
+      QA_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.QA_SUPABASE_PUBLISHABLE_KEY }}
+      QA_TEST_A_EMAIL: ${{ secrets.QA_TEST_A_EMAIL }}
+      QA_TEST_A_PASSWORD: ${{ secrets.QA_TEST_A_PASSWORD }}
+      QA_TEST_B_EMAIL: ${{ secrets.QA_TEST_B_EMAIL }}
+      QA_TEST_B_PASSWORD: ${{ secrets.QA_TEST_B_PASSWORD }}
+      QA_TENANT_A_SLUG: qa-isolation-tenant-a
+      QA_TENANT_B_SLUG: qa-isolation-tenant-b
+      QA_TEST_MODE: readonly
+      VITE_SUPABASE_URL: ${{ secrets.QA_SUPABASE_URL }}
+      VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.QA_SUPABASE_PUBLISHABLE_KEY }}
+      VITE_DEMO_MODE: 'false'
+      VITE_TENANT_SLUG: qa-isolation-tenant-a
+      BUILDER_BASE_URL: http://127.0.0.1:4173
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Refuse production and non-approved Supabase projects
+        run: node scripts/qa-stage-guard.mjs
+
+      - name: Install locked dependencies
+        run: npm ci
+
+      - name: Verify isolated QA Viewer memberships before browser tests
+        run: node scripts/qa-stage-identity-check.mjs
+
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Build QA Builder and live QA Salon bundles
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm run build:builder
+          npm run build:salon
+
+      - name: Start both QA static preview servers
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm run preview --workspace=tupiniquim-builder -- --host 127.0.0.1 --port 4173 --strictPort > /tmp/builder-salon-qa.log 2>&1 &
+          npx vite preview apps/salon --host 127.0.0.1 --port 4174 --strictPort > /tmp/salon-qa.log 2>&1 &
+          for port in 4173 4174; do
+            ready=0
+            for attempt in {1..30}; do
+              if curl --fail --silent "http://127.0.0.1:${port}/" >/dev/null; then ready=1; break; fi
+              sleep 1
+            done
+            if [ "$ready" != "1" ]; then
+              echo "::error::QA static preview failed on port ${port}"
+              cat /tmp/builder-salon-qa.log /tmp/salon-qa.log
+              exit 1
+            fi
+          done
+
+      - name: Real QA JWT browser sign-in and public Salon bootstrap (READ-ONLY)
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd apps/builder
+          npx playwright test e2e/salon-builder.qa.spec.ts --reporter=line
+
+      - name: Report limited QA evidence only
+        if: success()
+        run: |
+          echo "### Salon + Builder isolated QA" >> "$GITHUB_STEP_SUMMARY"
+          echo "- SHA: ${GITHUB_SHA}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Mode: read-only browser sign-in + public Salon" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Status: browser test PASS; no write, deploy, DNS, or production promotion" >> "$GITHUB_STEP_SUMMARY"
