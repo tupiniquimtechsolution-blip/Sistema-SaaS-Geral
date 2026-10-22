@@ -5,6 +5,7 @@ on:
     branches:
       - 'qa/tenant-isolation-*'
     paths:
+      - 'scripts/qa-stage-identity-check.mjs'
       - 'scripts/qa-stage-guard.mjs'
       - 'tests/qa-stage-guard.test.mjs'
       - 'scripts/qa-rls-assertions.mjs'
