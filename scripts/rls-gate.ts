@@ -1,3 +1,5 @@
+import { foreignRowsDenied, foreignCountDenied, updateDenied, insertDenied, viewerOnly } from "./qa-rls-assertions.mjs";
+
 // Minimal ambient Node globals — keeps the harness dependency-free.
 declare const process: {
   env: Record<string, string | undefined>;
@@ -245,15 +247,11 @@ export async function runRlsGate(
 
       } else {
         // Foreign tenant: only empty result or RLS denial.
-        const deniedByRls =
-          err !== undefined && code === "42501";
-
-        const emptyWithoutError =
-          err === undefined && n === 0;
+        const deniedByRls = foreignCountDenied({ n, err, code });
 
         add(
           `read:${table}:${label}`,
-          deniedByRls || emptyWithoutError,
+          deniedByRls,
           err
             ? `Erro ${code ?? "desconhecido"}: ${err}`
             : `${n} rows (must be 0)`,
@@ -285,15 +283,11 @@ export async function runRlsGate(
           foreign.tenantId!
         );
 
-      const deniedByRls =
-        err !== undefined && code === "42501";
-
-      const emptyWithoutError =
-        err === undefined && n === 0;
+      const deniedByRls = foreignCountDenied({ n, err, code });
 
       add(
         `read:${table}:${label}`,
-        deniedByRls || emptyWithoutError,
+        deniedByRls,
         err
           ? `Erro ${code ?? "desconhecido"}: ${err}`
           : `${n} rows (must be 0)`,
@@ -326,10 +320,7 @@ export async function runRlsGate(
     
     add(
       "entitlement:A→B",
-      aOnB.error
-        ? aOnB.error.code === "42501"
-        : Array.isArray(aOnB.data) &&
-          aOnB.data.length === 0,
+      foreignRowsDenied({ data: aOnB.data, error: aOnB.error }),
       aOnB.error
         ? `Erro ${aOnB.error.code}: ${aOnB.error.message}`
         : `${aOnB.data?.length ?? "desconhecido"} rows (must be 0)`,
@@ -337,10 +328,7 @@ export async function runRlsGate(
 
     add(
       "entitlement:B→A",
-      bOnA.error
-        ? bOnA.error.code === "42501"
-        : Array.isArray(bOnA.data) &&
-          bOnA.data.length === 0,
+      foreignRowsDenied({ data: bOnA.data, error: bOnA.error }),
       bOnA.error
         ? `Erro ${bOnA.error.code}: ${bOnA.error.message}`
         : `${bOnA.data?.length ?? "desconhecido"} rows (must be 0)`,
@@ -486,9 +474,7 @@ export async function runRlsGate(
         .eq("membership_id", actor.membershipId);
 
     if (
-      rolesError ||
-      roles?.length !== 1 ||
-      roles[0]?.role_id !== viewerRoleId
+      !viewerOnly({ data: roles, error: rolesError }, viewerRoleId)
     ) {
       throw new Error(
         `${actor.label}: usuario nao e exclusivamente Viewer`
@@ -511,12 +497,7 @@ export async function runRlsGate(
 
     checkBlocked(
       `write:${actor.label}:update-own`,
-      ownUpdate.error?.code === "42501" ||
-        (
-          !ownUpdate.error &&
-          Array.isArray(ownUpdate.data) &&
-          ownUpdate.data.length === 0
-        ),
+      updateDenied({ data: ownUpdate.data, error: ownUpdate.error }),
       ownUpdate.error?.code ?? "0 linhas esperadas",
     );
 
@@ -529,12 +510,7 @@ export async function runRlsGate(
 
     checkBlocked(
       `write:${actor.label}:update-foreign`,
-      foreignUpdate.error?.code === "42501" ||
-        (
-          !foreignUpdate.error &&
-          Array.isArray(foreignUpdate.data) &&
-          foreignUpdate.data.length === 0
-        ),
+      updateDenied({ data: foreignUpdate.data, error: foreignUpdate.error }),
       foreignUpdate.error?.code ?? "0 linhas esperadas",
     );
 
@@ -550,7 +526,7 @@ export async function runRlsGate(
 
     checkBlocked(
       `write:${actor.label}:cross-membership`,
-      crossMembership.error?.code === "42501",
+      insertDenied({ error: crossMembership.error }),
       crossMembership.error?.code ??
         "INSERCAO INESPERADA",
     );
@@ -566,7 +542,7 @@ export async function runRlsGate(
 
     checkBlocked(
       `write:${actor.label}:owner-escalation`,
-      ownerAttempt.error?.code === "42501",
+      insertDenied({ error: ownerAttempt.error }),
       ownerAttempt.error?.code ??
         "INSERCAO INESPERADA",
     );
@@ -580,9 +556,7 @@ export async function runRlsGate(
 
     checkBlocked(
       `write:${actor.label}:viewer-preserved`,
-      !finalError &&
-        finalRoles?.length === 1 &&
-        finalRoles[0]?.role_id === viewerRoleId,
+      viewerOnly({ data: finalRoles, error: finalError }, viewerRoleId),
       finalError?.code ??
         "Verificacao final do papel Viewer",
     );
