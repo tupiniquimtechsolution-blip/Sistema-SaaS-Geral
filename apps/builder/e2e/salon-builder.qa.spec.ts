@@ -91,7 +91,7 @@ test("Salon loads public tenant A from the same QA database, not demo defaults",
   await expect(page.locator("main#conteudo")).toBeVisible();
   await expect(page.getByRole("heading", { name: "Não foi possível carregar este espaço." })).toHaveCount(0);
   await expect(page.getByText("Live tenant", { exact: false })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "QA Isolation Tenant A" }).first()).toBeVisible();
+  await expect(page.getByRole("heading", { name: "qa-isolation-tenant-a" }).first()).toBeVisible();
   await expect(page.getByText("Preview controlado.", { exact: false })).toHaveCount(0);
   await expect(page.getByText("Mídia identificável: publicação pública aguardando autorização específica.")).toBeVisible();
 });
