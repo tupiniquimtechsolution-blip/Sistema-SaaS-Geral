@@ -10,6 +10,8 @@ on:
       - 'apps/salon/**'
       - 'tests/salon-public-cms.test.mjs'
       - '.github/workflows/qa-salon-builder-readonly.yml'
+      - '.github/workflows/qa-tenant-isolation-stage.yml'
+      - '.github/workflows/qa-salon-editorial-preflight.yml'
   workflow_dispatch:
 
 permissions:
