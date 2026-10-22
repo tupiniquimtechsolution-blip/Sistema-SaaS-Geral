@@ -43,6 +43,8 @@ test("QA editor creates, approves, publishes and restores a Salon page", async (
   await page.getByRole("button", { name: /Adicionar texto/ }).click();
   await page.getByRole("textbox", { name: "text", exact: true }).fill(marker);
   await page.getByRole("button", { name: "Salvar snapshot" }).click();
+  // Wait for the persisted revision acknowledgement before next transition.
+  await expect(page.getByText(/Draft v\d+ salvo sem alterar a versão publicada/)).toBeVisible();
   await expect(page.getByRole("button", { name: "Enviar para revisão" })).toBeEnabled();
 
   await page.getByRole("button", { name: "Enviar para revisão" }).click();
