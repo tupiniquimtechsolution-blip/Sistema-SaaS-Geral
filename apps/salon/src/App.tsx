@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import { loadPublicSalonConfig, type SalonRuntimeConfig } from "./business/saas-adapter";
+import { loadPublicSalonPage, type PublicSalonPage } from "./business/public-cms";
+import { createSupabaseBrowserClient } from "tupiniquim-database";
 import { mapsSearchUrl, whatsappUrl } from "./config/template";
 
 function ExternalLink({ href, children, className = "" }: { href: string; children: React.ReactNode; className?: string }) {
@@ -23,12 +25,34 @@ function RuntimeError({ code }: { code?: string }) {
 
 export default function App() {
   const [runtime, setRuntime] = useState<SalonRuntimeConfig | null>(null);
+  const [published, setPublished] = useState<PublicSalonPage | null>(null);
+  const [cmsUnavailable, setCmsUnavailable] = useState(false);
 
   useEffect(() => {
     let active = true;
-    void loadPublicSalonConfig().then((result) => {
-      if (active) setRuntime(result);
-    });
+    void (async () => {
+      try {
+        const result = await loadPublicSalonConfig();
+        if (!active) return;
+        setRuntime(result);
+        if (result.source !== "live") return;
+
+        // Tenant ID comes only from the resolved public bootstrap, never URL params.
+        const url = import.meta.env.VITE_SUPABASE_URL?.trim();
+        const publishableKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY?.trim();
+        if (!url || !publishableKey) throw new Error("Missing public Salon config");
+
+        const publicClient = createSupabaseBrowserClient({
+          url,
+          publishableKey,
+          authStorageKey: `tupiniquim-salon-public-cms-${result.config.slug}`,
+        });
+        const page = await loadPublicSalonPage(publicClient, result.config.tenantId);
+        if (active) setPublished(page);
+      } catch {
+        if (active) setCmsUnavailable(true);
+      }
+    })();
     return () => {
       active = false;
     };
@@ -122,6 +146,26 @@ export default function App() {
             ))}
           </div>
         </section>
+
+        {published?.status === "published" && (
+          <section className="section" aria-label="Conteúdo publicado pelo Builder">
+            <div className="section-heading compact">
+              <p className="eyebrow">CONTEÚDO PUBLICADO</p>
+              <h2>{published.title}</h2>
+            </div>
+            {published.sections.map((section) => (
+              <article className="service-card" key={section.id}>
+                {section.title && <h3>{section.title}</h3>}
+                {section.text && <p>{section.text}</p>}
+              </article>
+            ))}
+          </section>
+        )}
+        {cmsUnavailable && (
+          <p className="preview-note" role="status">
+            Conteúdo editorial adicional temporariamente indisponível.
+          </p>
+        )}
 
         <section className="section visual-section" id="galeria">
           <div className="section-heading compact">
