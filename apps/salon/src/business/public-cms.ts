@@ -37,6 +37,7 @@ export function projectPublicSalonSections(
       row.is_enabled !== true ||
       typeof row.id !== "string" ||
       typeof row.section_type !== "string" ||
+      typeof row.position !== "number" ||
       !Number.isInteger(row.position) ||
       !isRecord(row.content)
     ) {
@@ -59,7 +60,7 @@ export async function loadPublicSalonPage(
   client: SupabaseClient,
   tenantId: string,
 ): Promise<PublicSalonPage> {
-  if (!/^[0-9a-f-]{36}$/i.test(tenantId)) {
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(tenantId)) {
     throw new Error("Invalid resolved Salon tenant");
   }
 
