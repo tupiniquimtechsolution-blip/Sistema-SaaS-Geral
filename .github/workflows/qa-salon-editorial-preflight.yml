@@ -1,0 +1,52 @@
+name: QA Salon Editorial Auth Preflight
+
+on:
+  push:
+    branches:
+      - 'qa/tenant-isolation-staging-20261010'
+    paths:
+      - 'scripts/qa-salon-editor-guard.mjs'
+      - 'tests/qa-salon-editor-guard.test.mjs'
+      - '.github/workflows/qa-salon-editorial-preflight.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: qa-salon-editorial-preflight-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  editorial-auth-readonly:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    environment: qa-isolation
+    env:
+      QA_PROJECT_REF: ${{ vars.QA_APPROVED_PROJECT_REF }}
+      QA_APPROVED_PROJECT_REF: ${{ vars.QA_APPROVED_PROJECT_REF }}
+      QA_SUPABASE_URL: ${{ secrets.QA_SUPABASE_URL }}
+      QA_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.QA_SUPABASE_PUBLISHABLE_KEY }}
+      QA_EDITOR_EMAIL: ${{ secrets.QA_EDITOR_EMAIL }}
+      QA_EDITOR_PASSWORD: ${{ secrets.QA_EDITOR_PASSWORD }}
+      QA_TEST_MODE: editorial-preflight
+      GITHUB_REF: ${{ github.ref }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install locked dependencies
+        run: npm ci
+      - name: Prove editorial and readonly authorization guards offline
+        run: node --test tests/qa-salon-editor-guard.test.mjs
+      - name: Verify real Supabase QA editor login, Tenant-A-only rights and empty CMS baseline
+        run: node scripts/qa-salon-editor-guard.mjs
+      - name: Summarize read-only evidence
+        if: success()
+        run: |
+          echo '### QA Salon Editorial Auth Preflight' >> "$GITHUB_STEP_SUMMARY"
+          echo "- SHA: ${GITHUB_SHA}" >> "$GITHUB_STEP_SUMMARY"
+          echo '- Only QA Supabase Auth sign-in and SQL SELECT / RPC permission checks performed' >> "$GITHUB_STEP_SUMMARY"
+          echo '- No CMS INSERT, UPDATE, DELETE or publication' >> "$GITHUB_STEP_SUMMARY"
