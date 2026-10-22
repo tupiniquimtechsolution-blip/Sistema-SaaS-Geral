@@ -12,13 +12,15 @@ export function isRlsPermissionDenial(error) {
 
 /** A foreign-tenant SELECT is denied only on [] or explicit SQLSTATE 42501. */
 export function foreignRowsDenied({ data, error }) {
+  // A contradictory response with visible rows is never a denial.
+  if (Array.isArray(data) && data.length > 0) return false;
   if (error != null) return isRlsPermissionDenial(error);
   return Array.isArray(data) && data.length === 0;
 }
 
 /** The countRows helper returns {n,err?,code?} instead of PostgREST rows. */
 export function foreignCountDenied({ n, err, code }) {
-  if (err !== undefined) return typeof err === "string" && code === "42501";
+  if (err !== undefined) return n === -1 && typeof err === "string" && code === "42501";
   return n === 0;
 }
 
