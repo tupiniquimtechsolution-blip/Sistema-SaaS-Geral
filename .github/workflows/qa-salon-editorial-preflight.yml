@@ -136,3 +136,5 @@ jobs:
           echo '- Project: ynqbnimlpxlokrxlucdm (independent QA)' >> "$GITHUB_STEP_SUMMARY"
           echo '- No production deployment, Stripe, DNS, or branch merge' >> "$GITHUB_STEP_SUMMARY"
           echo '- Any created pages and revisions require exact-ID QA fixture verification and cleanup' >> "$GITHUB_STEP_SUMMARY"
+
+# One-time QA editorial lifecycle invocation; original user authorization 22 Oct 2026.
