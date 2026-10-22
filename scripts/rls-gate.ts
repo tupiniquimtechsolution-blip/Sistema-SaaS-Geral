@@ -130,15 +130,43 @@ function tenantColumn(table: string): string {
   return table === "tenants" ? "id" : "tenant_id";
 }
 
-async function countRows(client: import("@supabase/supabase-js").SupabaseClient, table: string, tenantId: string): Promise<{ n: number; err?: string }> {
+
+async function countRows(
+  client: import("@supabase/supabase-js").SupabaseClient,
+  table: string,
+  tenantId: string,
+): Promise<{
+  n: number;
+  err?: string;
+  code?: string;
+}> {
   const { data, error } = await client
     .from(table)
     .select("*", { count: "exact", head: false })
     .eq(tenantColumn(table), tenantId)
     .limit(50);
-  if (error) return { n: -1, err: error.message };
-  return { n: (data ?? []).length };
+
+  if (error) {
+    return {
+      n: -1,
+      err: error.message,
+      code: error.code,
+    };
+  }
+
+  if (!Array.isArray(data)) {
+    return {
+      n: -1,
+      err: "Resposta inesperada: dados ausentes",
+      code: "UNEXPECTED_RESPONSE",
+    };
+  }
+
+  return {
+    n: data.length,
+  };
 }
+
 
 export async function runRlsGate(
   createClientFn: CreateClientFn,
@@ -197,14 +225,41 @@ export async function runRlsGate(
       { label: "B→A", client: clientB, target: env.a, cross: true },
     ];
     for (const { label, client, target, cross } of cases) {
-      const { n, err } = await countRows(client, table, target.tenantId!);
+      
+      const { n, err, code } =
+        await countRows(
+          client,
+          table,
+          target.tenantId!
+        );
+
       if (!cross) {
-        // reading own tenant: must succeed (>=1 row; entitlement tables may be 0)
-        add(`read:${table}:${label}`, !err && n >= 0, err ?? `${n} rows`);
+        // Own tenant: query must succeed.
+        add(
+          `read:${table}:${label}`,
+          err === undefined && n >= 0,
+          err
+            ? `Erro ${code ?? "desconhecido"}: ${err}`
+            : `${n} rows`,
+        );
+
       } else {
-        // cross: must deny (empty result or RLS error); unexpected exception = FAIL
-        add(`read:${table}:${label}`, !err ? n === 0 : true, err ? "denied via RLS error" : `${n} rows (must be 0)`);
+        // Foreign tenant: only empty result or RLS denial.
+        const deniedByRls =
+          err !== undefined && code === "42501";
+
+        const emptyWithoutError =
+          err === undefined && n === 0;
+
+        add(
+          `read:${table}:${label}`,
+          deniedByRls || emptyWithoutError,
+          err
+            ? `Erro ${code ?? "desconhecido"}: ${err}`
+            : `${n} rows (must be 0)`,
+        );
       }
+
     }
   }
 
@@ -222,8 +277,28 @@ export async function runRlsGate(
       ["A→B", clientA, env.b],
       ["B→A", clientB, env.a],
     ] as const) {
-      const { n, err } = await countRows(client, table, foreign.tenantId!);
-      add(`read:${table}:${label}`, err !== undefined || n === 0, err ? "denied via RLS error" : `${n} rows (must be 0)`);
+     
+      const { n, err, code } =
+        await countRows(
+          client,
+          table,
+          foreign.tenantId!
+        );
+
+      const deniedByRls =
+        err !== undefined && code === "42501";
+
+      const emptyWithoutError =
+        err === undefined && n === 0;
+
+      add(
+        `read:${table}:${label}`,
+        deniedByRls || emptyWithoutError,
+        err
+          ? `Erro ${code ?? "desconhecido"}: ${err}`
+          : `${n} rows (must be 0)`,
+      );
+
     }
   }
 
@@ -248,16 +323,29 @@ export async function runRlsGate(
     // Explicit tenant filter from the OTHER tenant must yield empty (or RLS error).
     const aOnB = await clientA.from("tenant_entitlements").select("*").eq("tenant_id", env.b.tenantId!);
     const bOnA = await clientB.from("tenant_entitlements").select("*").eq("tenant_id", env.a.tenantId!);
+    
     add(
       "entitlement:A→B",
-      aOnB.error ? true : (aOnB.data ?? []).length === 0,
-      aOnB.error ? "denied via RLS error" : `${(aOnB.data ?? []).length} rows (must be 0)`,
+      aOnB.error
+        ? aOnB.error.code === "42501"
+        : Array.isArray(aOnB.data) &&
+          aOnB.data.length === 0,
+      aOnB.error
+        ? `Erro ${aOnB.error.code}: ${aOnB.error.message}`
+        : `${aOnB.data?.length ?? "desconhecido"} rows (must be 0)`,
     );
+
     add(
       "entitlement:B→A",
-      bOnA.error ? true : (bOnA.data ?? []).length === 0,
-      bOnA.error ? "denied via RLS error" : `${(bOnA.data ?? []).length} rows (must be 0)`,
+      bOnA.error
+        ? bOnA.error.code === "42501"
+        : Array.isArray(bOnA.data) &&
+          bOnA.data.length === 0,
+      bOnA.error
+        ? `Erro ${bOnA.error.code}: ${bOnA.error.message}`
+        : `${bOnA.data?.length ?? "desconhecido"} rows (must be 0)`,
     );
+
   }
 
   
