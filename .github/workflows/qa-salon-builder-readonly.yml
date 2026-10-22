@@ -5,6 +5,7 @@ on:
     branches:
       - 'qa/tenant-isolation-staging-20261010'
     paths:
+      - 'scripts/qa-stage-identity-check.mjs'
       - 'apps/builder/**'
       - 'apps/salon/**'
       - 'tests/salon-public-cms.test.mjs'
