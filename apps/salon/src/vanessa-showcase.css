@@ -1,0 +1,75 @@
+.vanessa-showcase {
+  --vs-ink:#1a1a1a;--vs-paper:#faf8f5;--vs-gold:#b08d6a;--vs-line:#e5e0db;
+  color:var(--vs-ink);background:var(--vs-paper);font-family:Inter,"DM Sans",system-ui,sans-serif;
+}
+.vanessa-showcase h1,.vanessa-showcase h2,.vanessa-showcase strong,.vanessa-logo {font-family:"Playfair Display",Georgia,serif;font-weight:400}
+.vanessa-showcase * {box-sizing:border-box}
+.vanessa-showcase a {color:inherit}
+.vanessa-skip {position:absolute;left:-9999px;top:8px;z-index:150;background:white;padding:12px}
+.vanessa-skip:focus {left:8px}
+.vanessa-header {position:sticky;top:0;z-index:35;height:78px;padding:0 clamp(18px,5vw,76px);display:flex;align-items:center;justify-content:space-between;background:#fff;border-bottom:1px solid var(--vs-line);gap:24px}
+.vanessa-logo {font-size:1.7rem;white-space:nowrap;text-decoration:none}
+.vanessa-header nav {display:flex;gap:clamp(14px,2vw,32px)}
+.vanessa-header nav a {font-size:.84rem;text-decoration:none;color:#69625c}
+.vanessa-header nav a:hover {color:#000;text-decoration:underline;text-underline-offset:7px}
+.vanessa-nav-cta {background:var(--vs-ink);color:white!important;padding:11px 22px;text-decoration:none;font-size:.85rem;white-space:nowrap}
+.vanessa-hero {height:clamp(580px,90vh,970px);position:relative;display:flex;align-items:end;isolation:isolate;background:#4d403d}
+.vanessa-hero-img,.vanessa-ambient>img {width:100%;height:100%;position:absolute;inset:0;object-fit:cover;z-index:-2}
+.vanessa-shade {position:absolute;inset:0;z-index:-1;background:linear-gradient(to top,rgba(0,0,0,.75),rgba(0,0,0,.16) 68%,rgba(0,0,0,.07))}
+.vanessa-hero-copy {width:min(100%,1260px);margin:0 auto;padding:80px clamp(22px,5vw,88px) 108px;color:#fff}
+.vanessa-eyebrow {font-size:.74rem;font-weight:600;letter-spacing:.23em;text-transform:uppercase;color:var(--vs-gold);margin:0 0 24px}
+.vanessa-hero .vanessa-eyebrow {color:#eee5db}
+.vanessa-hero h1 {font-size:clamp(4rem,8vw,8.5rem);line-height:1.03;margin:0 0 20px;letter-spacing:-.04em}
+.vanessa-hero-copy>p:not(.vanessa-eyebrow) {max-width:570px;font-size:1.07rem;line-height:1.75;color:#eee9e4}
+.vanessa-actions {display:flex;gap:14px;flex-wrap:wrap;margin-top:30px}
+.vanessa-cta-light,.vanessa-cta-outline {display:inline-flex;align-items:center;justify-content:center;gap:20px;min-height:52px;padding:12px 25px;text-decoration:none;font-size:.9rem;font-weight:600}
+.vanessa-cta-light {background:#fff;color:#181818!important}
+.vanessa-cta-outline {border:1px solid #dad5d0;color:white!important}
+.vanessa-explore {position:absolute;bottom:30px;left:50%;transform:translateX(-50%);color:#e3ded9;font-size:.7rem;letter-spacing:.15em}
+.vanessa-editorial {padding:clamp(70px,9vw,128px) clamp(22px,7vw,100px);max-width:1500px;margin:0 auto}
+.vanessa-editorial h2,.vanessa-book h2,.vanessa-ambient h2 {font-size:clamp(2.7rem,5vw,5rem);line-height:1.14;letter-spacing:-.035em;margin:0 0 28px}
+.vanessa-essence {display:grid;grid-template-columns:5fr 6fr;align-items:center;gap:clamp(32px,9vw,130px)}
+.vanessa-essence>img {width:100%;height:clamp(360px,52vw,650px);object-fit:cover}
+.vanessa-essence>div>p:not(.vanessa-eyebrow),.vanessa-services>p:not(.vanessa-eyebrow),.vanessa-gallery-note {color:#716a65;line-height:1.85;max-width:700px}
+.vanessa-inline-link {display:inline-block;margin-top:22px;text-underline-offset:5px;font-size:.9rem}
+.vanessa-services {background:white;max-width:none}
+.vanessa-info-list {display:grid;grid-template-columns:repeat(3,1fr);border-top:1px solid var(--vs-line);margin-top:55px}
+.vanessa-info-list>div {padding:32px 25px 20px 0;border-right:1px solid var(--vs-line)}
+.vanessa-info-list>div+div {padding-left:25px}
+.vanessa-info-list>div:last-child {border:0}
+.vanessa-info-list span {display:block;color:var(--vs-gold);font-size:.78rem;margin-bottom:20px}
+.vanessa-info-list strong {display:block;font-size:1.7rem}
+.vanessa-info-list p {color:#716a65;line-height:1.7}
+.vanessa-gallery {text-align:center}
+.vanessa-gallery-note {margin:0 auto 45px}
+.vanessa-grid {display:grid;grid-template-columns:repeat(4,1fr);grid-auto-rows:230px;gap:10px}
+.vanessa-grid>button {border:0;padding:0;overflow:hidden;cursor:pointer;background:#e6e0d9}
+.vanessa-grid>button:focus-visible {outline:4px solid var(--vs-gold);outline-offset:2px}
+.vanessa-grid>button img {width:100%;height:100%;object-fit:cover;transition:transform .5s}
+.vanessa-grid>button:hover img {transform:scale(1.03)}
+.vanessa-grid>.vanessa-gallery-main {grid-column:span 2;grid-row:span 2}
+.vanessa-ambient {height:clamp(450px,70vh,720px);position:relative;isolation:isolate;display:flex;align-items:center;justify-content:center;text-align:center;background:#302a29;color:#fff}
+.vanessa-ambient:after {content:"";position:absolute;inset:0;background:rgba(0,0,0,.52);z-index:-1}
+.vanessa-ambient>div {padding:20px;max-width:690px}
+.vanessa-ambient .vanessa-eyebrow {color:#eadad0}
+.vanessa-ambient p:not(.vanessa-eyebrow) {color:#e1dedb;line-height:1.7}
+.vanessa-book {display:grid;grid-template-columns:1fr .6fr;align-items:center;gap:70px;background:var(--vs-ink);color:white;padding:clamp(70px,9vw,120px) clamp(22px,7vw,100px)}
+.vanessa-book .vanessa-eyebrow {color:#d6b9a5}
+.vanessa-book>div>p:not(.vanessa-eyebrow) {color:#c4bfb9;line-height:1.8;max-width:660px}
+.vanessa-contact-card {padding:40px;display:flex;flex-direction:column;align-items:start;gap:22px;border:1px solid #605955}
+.vanessa-contact-card span,.vanessa-contact-card small {font-size:.75rem;color:#c6c0bc;letter-spacing:.1em}
+.vanessa-contact-card strong {font-size:2rem}
+.vanessa-contact-columns {display:grid;grid-template-columns:repeat(4,1fr);border-top:1px solid var(--vs-line);padding-top:24px;gap:25px}
+.vanessa-contact-columns>div {display:flex;flex-direction:column;gap:16px}
+.vanessa-contact-columns small {font-size:.7rem;letter-spacing:.1em;color:#817971}
+.vanessa-contact-columns a,.vanessa-contact-columns span {overflow-wrap:anywhere}
+.vanessa-footer {background:var(--vs-ink);color:white;padding:45px clamp(20px,7vw,100px)}
+.vanessa-footer strong {font-size:1.8rem}
+.vanessa-footer p,.vanessa-footer small {color:#b9b2ab}
+.vanessa-floating {position:fixed;bottom:22px;right:24px;z-index:40;padding:16px 25px;background:#1a1a1a;color:white!important;text-decoration:none;box-shadow:0 10px 28px #0005}
+.vanessa-lightbox {position:fixed;inset:0;z-index:150;background:rgba(0,0,0,.95);display:grid;place-items:center;padding:60px 18px 24px}
+.vanessa-lightbox img {max-width:100%;max-height:80vh;object-fit:contain}
+.vanessa-lightbox button {position:absolute;top:18px;right:24px;background:transparent;color:white;border:1px solid #aaa;padding:8px 20px;cursor:pointer}
+@media(max-width:820px){.vanessa-header nav {display:none}.vanessa-header{height:68px}.vanessa-nav-cta{padding:10px 14px}.vanessa-essence,.vanessa-book{grid-template-columns:1fr}.vanessa-info-list{grid-template-columns:1fr}.vanessa-info-list>div,.vanessa-info-list>div+div{border-right:0;border-bottom:1px solid var(--vs-line);padding:24px 0}.vanessa-grid{grid-template-columns:repeat(2,1fr);grid-auto-rows:170px}.vanessa-grid>.vanessa-gallery-main{grid-column:span 2;grid-row:span 2}.vanessa-contact-columns{grid-template-columns:repeat(2,1fr)}.vanessa-hero-copy{padding-bottom:110px}.vanessa-book{gap:30px}}
+@media(max-width:430px){.vanessa-header{padding-inline:14px}.vanessa-logo{font-size:1.35rem}.vanessa-header nav {display:none}.vanessa-hero h1{font-size:3.4rem}.vanessa-grid{grid-auto-rows:135px}.vanessa-contact-columns{grid-template-columns:1fr}}
+@media(prefers-reduced-motion:reduce){.vanessa-showcase *{transition:none!important;animation:none!important}}
