@@ -3,7 +3,16 @@ name: QA Vanessa Original Visual Preview (photos + editorial)
 on:
   push:
     branches: [qa/tenant-isolation-staging-20261010]
-    paths: [.github/workflows/qa-vanessa-visual-preview.yml]
+    paths:
+      - .github/workflows/qa-vanessa-visual-preview.yml
+      - apps/salon/src/SalonBooking.tsx
+      - apps/salon/src/booking/whatsapp-request.ts
+      - apps/salon/src/salon-booking.css
+      - apps/salon/src/VanessaShowcase.tsx
+      - apps/salon/src/App.tsx
+      - apps/salon/src/config/template.ts
+      - apps/salon/e2e/whatsapp-booking.qa.spec.ts
+      - tests/salon-whatsapp-booking.test.mjs
   workflow_dispatch:
 
 permissions:
@@ -79,6 +88,7 @@ jobs:
           set -euo pipefail
           npm ci
           npm run typecheck:salon
+          node --experimental-strip-types --test tests/salon-whatsapp-booking.test.mjs
           npm run build:salon
       - name: Create non-production QA visual preview without deploying to durable Worker
         shell: bash
@@ -108,13 +118,13 @@ jobs:
           done
           test -s qa-vanessa-visual/home.html
           echo "Vanessa visual QA preview: $link" >> "$GITHUB_STEP_SUMMARY"
-      - name: Chromium E2E - real original photos and no fake booking
+      - name: Chromium E2E - original photographs and WhatsApp appointment request
         shell: bash
         run: |
           set -euo pipefail
           npx playwright install --with-deps chromium
           export VANESSA_VISUAL_URL="$(cat qa-vanessa-visual/immutable-url.txt)"
-          npx playwright test apps/salon/e2e/vanessa-visual.qa.spec.ts --reporter=line
+          npx playwright test apps/salon/e2e/vanessa-visual.qa.spec.ts apps/salon/e2e/whatsapp-booking.qa.spec.ts --reporter=line
           echo "Original Vanessa photo QA preview: PASS, not a tenant live integration or production approval" >> "$GITHUB_STEP_SUMMARY"
       - name: Preserve immutable visual preview address
         if: always()
