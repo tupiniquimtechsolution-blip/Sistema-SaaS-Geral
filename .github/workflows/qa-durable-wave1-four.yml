@@ -1,0 +1,244 @@
+name: QA Wave 1 Durable Staging - Four Workers
+
+on:
+  push:
+    branches: [qa/tenant-isolation-staging-20261010]
+    paths: [.github/workflows/qa-durable-wave1-four.yml]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: qa-durable-wave1-four
+  cancel-in-progress: false
+
+jobs:
+  qa-safety:
+    name: QA scope, hosted read-only isolation and four builds
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    environment: qa-isolation
+    env:
+      QA_PROJECT_REF: ${{ vars.QA_APPROVED_PROJECT_REF }}
+      QA_APPROVED_PROJECT_REF: ${{ vars.QA_APPROVED_PROJECT_REF }}
+      QA_SUPABASE_URL: ${{ secrets.QA_SUPABASE_URL }}
+      QA_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.QA_SUPABASE_PUBLISHABLE_KEY }}
+      QA_TEST_A_EMAIL: ${{ secrets.QA_TEST_A_EMAIL }}
+      QA_TEST_A_PASSWORD: ${{ secrets.QA_TEST_A_PASSWORD }}
+      QA_TEST_B_EMAIL: ${{ secrets.QA_TEST_B_EMAIL }}
+      QA_TEST_B_PASSWORD: ${{ secrets.QA_TEST_B_PASSWORD }}
+      QA_TENANT_A_SLUG: qa-isolation-tenant-a
+      QA_TENANT_B_SLUG: qa-isolation-tenant-b
+      QA_TEST_MODE: readonly
+      VITE_SUPABASE_URL: ${{ secrets.QA_SUPABASE_URL }}
+      VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.QA_SUPABASE_PUBLISHABLE_KEY }}
+      VITE_DEMO_MODE: 'false'
+      VITE_TENANT_SLUG: qa-isolation-tenant-a
+      BUILDER_BASE_URL: http://127.0.0.1:4173
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '22', cache: npm }
+      - name: Reject any non-QA project or branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REF" = 'refs/heads/qa/tenant-isolation-staging-20261010'
+          test "$QA_PROJECT_REF" = 'ynqbnimlpxlokrxlucdm'
+          test "$QA_SUPABASE_URL" = 'https://ynqbnimlpxlokrxlucdm.supabase.co'
+          node scripts/qa-stage-guard.mjs
+      - name: Locked install and hosting policy
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm ci
+          npm run hosting:policy
+          node --experimental-strip-types --test tests/salon-public-cms.test.mjs
+          node scripts/qa-stage-identity-check.mjs
+      - name: Signed JWT cross-tenant read-only regression
+        shell: bash
+        env:
+          SUPABASE_URL: ${{ secrets.QA_SUPABASE_URL }}
+          SUPABASE_PUBLISHABLE_KEY: ${{ secrets.QA_SUPABASE_PUBLISHABLE_KEY }}
+          TEST_A_EMAIL: ${{ secrets.QA_TEST_A_EMAIL }}
+          TEST_A_PASSWORD: ${{ secrets.QA_TEST_A_PASSWORD }}
+          TEST_B_EMAIL: ${{ secrets.QA_TEST_B_EMAIL }}
+          TEST_B_PASSWORD: ${{ secrets.QA_TEST_B_PASSWORD }}
+          TEST_A_TENANT_SLUG: qa-isolation-tenant-a
+          TEST_B_TENANT_SLUG: qa-isolation-tenant-b
+        run: |
+          set -euo pipefail
+          node --experimental-strip-types scripts/cross-tenant-smoke.ts | tee /tmp/qa-durable-ab.log
+          grep -Fq '[cross-tenant-smoke] status: PASS' /tmp/qa-durable-ab.log
+      - name: Build all four product bundles against QA
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm run build:platform
+          npm run build:builder
+          npm run build:salon
+          npm run build:metalart
+      - name: Real QA Builder and Salon browser contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx playwright install --with-deps chromium
+          npm run preview --workspace=tupiniquim-builder -- --host 127.0.0.1 --port 4173 --strictPort > /tmp/qa-stable-builder.log 2>&1 &
+          npx vite preview apps/salon --host 127.0.0.1 --port 4174 --strictPort > /tmp/qa-stable-salon.log 2>&1 &
+          for port in 4173 4174; do
+            ready=0
+            for attempt in $(seq 1 30); do
+              if curl -fsS "http://127.0.0.1:$port/" >/dev/null; then ready=1; break; fi
+              sleep 1
+            done
+            test "$ready" = '1'
+          done
+          (cd apps/builder && npx playwright test e2e/salon-builder.qa.spec.ts --reporter=line)
+
+  qa-codeql:
+    name: CodeQL for exact staging commit
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: github/codeql-action/init@v4
+        with: { languages: javascript-typescript }
+      - uses: github/codeql-action/analyze@v4
+
+  qa-durable-workers:
+    name: Durable QA Worker - ${{ matrix.vertical }}
+    needs: [qa-safety, qa-codeql]
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    environment: qa-isolation
+    strategy:
+      fail-fast: false
+      max-parallel: 2
+      matrix:
+        include:
+          - { vertical: platform, name: tupiniquim-saas-qa, build: 'build:platform', title: 'Tupiniquim SaaS' }
+          - { vertical: builder, name: tupiniquim-site-builder-qa, build: 'build:builder', title: 'Tupiniquim Site Builder' }
+          - { vertical: salon, name: tupiniquim-salon-qa, build: 'build:salon', title: 'Salão / Beleza' }
+          - { vertical: metalart, name: tupiniquim-metalart-qa, build: 'build:metalart', title: 'Metal & Art' }
+    env:
+      GH_TOKEN: ${{ github.token }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      QA_PROJECT_REF: ${{ vars.QA_APPROVED_PROJECT_REF }}
+      QA_APPROVED_PROJECT_REF: ${{ vars.QA_APPROVED_PROJECT_REF }}
+      QA_SUPABASE_URL: ${{ secrets.QA_SUPABASE_URL }}
+      QA_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.QA_SUPABASE_PUBLISHABLE_KEY }}
+      QA_TEST_A_EMAIL: ${{ secrets.QA_TEST_A_EMAIL }}
+      QA_TEST_A_PASSWORD: ${{ secrets.QA_TEST_A_PASSWORD }}
+      QA_TEST_B_EMAIL: ${{ secrets.QA_TEST_B_EMAIL }}
+      QA_TEST_B_PASSWORD: ${{ secrets.QA_TEST_B_PASSWORD }}
+      QA_TENANT_A_SLUG: qa-isolation-tenant-a
+      QA_TENANT_B_SLUG: qa-isolation-tenant-b
+      QA_TEST_MODE: readonly
+      VITE_SUPABASE_URL: ${{ secrets.QA_SUPABASE_URL }}
+      VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.QA_SUPABASE_PUBLISHABLE_KEY }}
+      VITE_DEMO_MODE: 'false'
+      VITE_TENANT_SLUG: qa-isolation-tenant-a
+      QA_VERTICAL: ${{ matrix.vertical }}
+      QA_WORKER_NAME: ${{ matrix.name }}
+      QA_BUILD_CMD: ${{ matrix.build }}
+      QA_EXPECTED_TITLE: ${{ matrix.title }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '22', cache: npm }
+      - name: Enforce QA-only Worker allowlist and no custom routes
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REF" = 'refs/heads/qa/tenant-isolation-staging-20261010'
+          test "$QA_PROJECT_REF" = 'ynqbnimlpxlokrxlucdm'
+          test "$QA_SUPABASE_URL" = 'https://ynqbnimlpxlokrxlucdm.supabase.co'
+          node scripts/qa-stage-guard.mjs
+          test -n "$CLOUDFLARE_API_TOKEN" && test -n "$CLOUDFLARE_ACCOUNT_ID"
+          node <<'NODE'
+          const fs=require('node:fs');
+          const allowed={platform:'tupiniquim-saas-qa',builder:'tupiniquim-site-builder-qa',salon:'tupiniquim-salon-qa',metalart:'tupiniquim-metalart-qa'};
+          const v=process.env.QA_VERTICAL, name=process.env.QA_WORKER_NAME;
+          if(!Object.hasOwn(allowed,v)||allowed[v]!==name) throw Error('Unsafe non-QA Worker name');
+          const cfg=JSON.parse(fs.readFileSync('apps/'+v+'/wrangler.qa.jsonc','utf8'));
+          const keys=['$schema','name','compatibility_date','workers_dev','assets','previews'];
+          if(Object.keys(cfg).some(k=>!keys.includes(k))||cfg.name!==name||cfg.workers_dev!==true||
+            cfg.assets?.directory!=='./dist'||cfg.assets?.not_found_handling!=='single-page-application'||
+            Object.keys(cfg.assets||{}).some(k=>!['directory','not_found_handling'].includes(k))||
+            Object.keys(cfg.previews||{}).length!==0) throw Error('Forbidden Worker routes/bindings/configuration');
+          console.log('QA-only Worker validated: '+name);
+          NODE
+      - name: Wait for same-commit Quality Gates PASS
+        shell: bash
+        run: |
+          set -euo pipefail
+          for attempt in $(seq 1 100); do
+            data="$(gh api "/repos/$GITHUB_REPOSITORY/actions/runs?head_sha=$GITHUB_SHA&event=push&per_page=100")"
+            state="$(jq -r '[.workflow_runs[]|select(.name=="Monorepo Quality Gates")]|sort_by(.created_at)|last|if .==null then "missing" else (.status+"/"+(.conclusion//"-")) end' <<<"$data")"
+            echo "same-SHA quality=$state"
+            if [ "$state" = "completed/success" ]; then exit 0; fi
+            if [[ "$state" == completed/* ]]; then echo "::error::Quality failed"; exit 1; fi
+            sleep 10
+          done
+          exit 1
+      - name: Record existing deployment baseline (read-only)
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p qa-durable-evidence
+          npx wrangler deployments list --name "$QA_WORKER_NAME" --json > qa-durable-evidence/before.json 2> qa-durable-evidence/inventory-errors.txt || {
+            echo "No existing active deployment found, or inventory access unavailable" >> "$GITHUB_STEP_SUMMARY"
+            echo "[]" > qa-durable-evidence/before.json
+          }
+          echo "Existing QA deployment inventory saved for any later authorized rollback" >> "$GITHUB_STEP_SUMMARY"
+      - name: Locked build and durable deploy to explicit QA-only Worker
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm ci
+          npm run "$QA_BUILD_CMD"
+          npx wrangler deploy \
+            --config "apps/$QA_VERTICAL/wrangler.qa.jsonc" \
+            --name "$QA_WORKER_NAME" \
+            --keep-vars \
+            --message "QA-only Wave 1 durable $QA_VERTICAL SHA $GITHUB_SHA" \
+            2>&1 | tee qa-durable-evidence/deploy.log
+      - name: Verify durable QA HTTPS, assets, SPA and console
+        shell: bash
+        run: |
+          set -euo pipefail
+          export DURABLE_SMOKE_URL="https://$QA_WORKER_NAME.tupiniquim-techsolution.workers.dev"
+          export DURABLE_SMOKE_TITLE="$QA_EXPECTED_TITLE"
+          mkdir -p qa-durable-evidence
+          printf '%s\n' "$DURABLE_SMOKE_URL" > qa-durable-evidence/stable-url.txt
+          ready=0
+          for attempt in $(seq 1 30); do
+            if curl -fsSL --max-time 30 "$DURABLE_SMOKE_URL" > qa-durable-evidence/home.html; then ready=1; break; fi
+            sleep 3
+          done
+          test "$ready" = '1'
+          test -s qa-durable-evidence/home.html
+          npx playwright install --with-deps chromium
+          npx playwright test tests/e2e/durable-deploy-smoke.spec.ts --reporter=line
+          npx wrangler deployments list --name "$QA_WORKER_NAME" --json > qa-durable-evidence/after.json
+          echo "### Durable QA $QA_VERTICAL" >> "$GITHUB_STEP_SUMMARY"
+          echo "SHA: $GITHUB_SHA" >> "$GITHUB_STEP_SUMMARY"
+          echo "URL: $DURABLE_SMOKE_URL" >> "$GITHUB_STEP_SUMMARY"
+          echo "QA-only Worker smoke: PASS. Production, DNS, and other workers untouched." >> "$GITHUB_STEP_SUMMARY"
+      - name: Save non-secret QA release and rollback baseline
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: qa-durable-wave1-${{ matrix.vertical }}-${{ github.sha }}
+          if-no-files-found: ignore
+          retention-days: 14
+          path: |
+            qa-durable-evidence/stable-url.txt
+            qa-durable-evidence/before.json
+            qa-durable-evidence/after.json
