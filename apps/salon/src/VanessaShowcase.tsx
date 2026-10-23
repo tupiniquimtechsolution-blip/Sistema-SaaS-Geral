@@ -4,6 +4,7 @@ import { mapsSearchUrl, whatsappUrl } from "./config/template";
 import "./vanessa-showcase.css";
 import type { PublicSalonPhoto } from "./business/public-media";
 import type { PublicSalonPage } from "./business/public-cms";
+import SalonBooking, { FloatingWhatsApp } from "./SalonBooking";
 
 /**
  * Faithful QA visual preview of the upstream Vanessa-Braz editorial landing.
@@ -82,8 +83,8 @@ export default function VanessaShowcase({ config, photos, published }: { config:
           <p>O catálogo está aguardando confirmação de serviços, preços e horários. Nenhum procedimento ou valor foi inventado para este preview.</p>
           <div className="vanessa-info-list">
             <div><span>01</span><strong>Informações confirmadas</strong><p>Serviços e valores serão exibidos após aprovação no SaaS Core.</p></div>
-            <div><span>02</span><strong>Equipe e horários</strong><p>A agenda online permanece bloqueada até existir disponibilidade validada.</p></div>
-            <div><span>03</span><strong>Contato</strong><p>Solicite orientações pelo canal de atendimento confirmado.</p></div>
+            <div><span>02</span><strong>Escolha de data</strong><p>Escolha o dia e horário de preferência e solicite a confirmação pelo WhatsApp.</p></div>
+            <div><span>03</span><strong>Mensagem personalizada</strong><p>Informe o serviço e acrescente observações antes de abrir o WhatsApp.</p></div>
           </div>
         </section>
 
@@ -119,11 +120,8 @@ export default function VanessaShowcase({ config, photos, published }: { config:
         </section>
 
         <section className="vanessa-book" id="agendar">
-          <div><p className="vanessa-eyebrow">AGENDAMENTO</p><h2>Solicite seu horário pelo canal confirmado.</h2><p>A agenda online permanece bloqueada até serviços, preços e horários serem validados.</p></div>
-          <div className="vanessa-contact-card"><span>WHATSAPP</span><strong>{config.phoneDisplay || config.whatsapp}</strong>
-            {config.whatsapp && <a className="vanessa-cta-light" href={whatsapp} target="_blank" rel="noopener noreferrer">Solicitar agendamento ↗</a>}
-            <small>Horários: a confirmar</small>
-          </div>
+          <div><p className="vanessa-eyebrow">AGENDAMENTO</p><h2>Escolha seu dia, horário e serviço.</h2><p>Personalize sua solicitação e envie pelo WhatsApp. A equipe confirma os horários e os detalhes do atendimento diretamente na conversa.</p></div>
+          <SalonBooking config={config} />
         </section>
 
         <section className="vanessa-editorial vanessa-contact" id="contato">
@@ -138,7 +136,7 @@ export default function VanessaShowcase({ config, photos, published }: { config:
       </main>
 
       <footer className="vanessa-footer"><strong>{config.brandName}</strong><p>{visualReview ? "Preview controlado" : "Live tenant"} · {config.tagline} · Serviços, preços e horários sujeitos a confirmação.</p><small>Vertical Salon / Integração SaaS — {visualReview ? "Preview" : "Conteúdo público autorizado"}</small></footer>
-      {config.whatsapp && <a className="vanessa-floating" href={whatsapp} target="_blank" rel="noopener noreferrer" aria-label="WhatsApp">WhatsApp</a>}
+      <FloatingWhatsApp config={config} />
 
       {galleryOpen !== null && (
         <div className="vanessa-lightbox" role="dialog" aria-modal="true" aria-label="Fotografia ampliada">
