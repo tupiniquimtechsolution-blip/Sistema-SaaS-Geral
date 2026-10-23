@@ -126,3 +126,4 @@ jobs:
           path: |
             qa-vanessa-visual/urls.txt
             qa-vanessa-visual/immutable-url.txt
+# Re-run QA visual evidence after fixing TS2367 live-only branch narrowing.
