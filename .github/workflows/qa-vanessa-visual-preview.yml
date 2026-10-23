@@ -1,4 +1,4 @@
-name: QA Vanessa Original Visual Preview (photos + editorial)
+name: QA Salon Vanessa - Photos + WhatsApp Booking
 
 on:
   push:
@@ -25,7 +25,7 @@ concurrency:
 
 jobs:
   vanessa-visual-only:
-    name: Vanessa photographic preview - no tenant writes
+    name: Vanessa photos and WhatsApp appointment flow
     runs-on: ubuntu-latest
     timeout-minutes: 35
     environment: qa-isolation
@@ -125,7 +125,7 @@ jobs:
           npx playwright install --with-deps chromium
           export VANESSA_VISUAL_URL="$(cat qa-vanessa-visual/immutable-url.txt)"
           npx playwright test apps/salon/e2e/vanessa-visual.qa.spec.ts apps/salon/e2e/whatsapp-booking.qa.spec.ts --reporter=line
-          echo "Original Vanessa photo QA preview: PASS, not a tenant live integration or production approval" >> "$GITHUB_STEP_SUMMARY"
+          echo "Vanessa photo and WhatsApp booking request E2E: PASS; WhatsApp request is not a confirmed calendar reservation or production release" >> "$GITHUB_STEP_SUMMARY"
       - name: Preserve immutable visual preview address
         if: always()
         uses: actions/upload-artifact@v4
