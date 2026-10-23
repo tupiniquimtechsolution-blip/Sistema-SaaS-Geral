@@ -3,7 +3,11 @@ name: QA Salon Vanessa Media + Builder Readiness (read-only)
 on:
   push:
     branches: [qa/tenant-isolation-staging-20261010]
-    paths: [.github/workflows/qa-salon-media-builder-readiness.yml]
+    paths:
+      - .github/workflows/qa-salon-media-builder-readiness.yml
+      - scripts/qa-salon-launch-readiness.mjs
+      - tests/salon-public-media.test.mjs
+      - tests/salon-public-cms.test.mjs
   workflow_dispatch:
 
 permissions:
