@@ -4,6 +4,7 @@ import { loadPublicSalonPage, type PublicSalonPage } from "./business/public-cms
 import { createSupabaseBrowserClient } from "tupiniquim-database";
 import { mapsSearchUrl, whatsappUrl } from "./config/template";
 import VanessaShowcase from "./VanessaShowcase";
+import SalonBooking, { FloatingWhatsApp } from "./SalonBooking";
 import { loadPublicSalonMedia, type PublicSalonPhoto } from "./business/public-media";
 
 function ExternalLink({ href, children, className = "" }: { href: string; children: React.ReactNode; className?: string }) {
@@ -149,7 +150,7 @@ export default function App() {
           <div className="service-grid">
             {[
               ["01", "Catálogo do tenant", "Serviços e valores não confirmados não são inventados no site."],
-              ["02", "Profissionais e agenda", "Disponibilidade online permanece desativada até existirem dados reais aprovados."],
+              ["02", "Escolha sua preferência", "Selecione data, horário e o tipo de atendimento para solicitar uma confirmação."],
               ["03", "Contato confirmado", "O WhatsApp oficial permanece disponível para solicitar atendimento."],
             ].map(([number, title, body]) => (
               <article className="service-card" key={number}>
@@ -202,23 +203,12 @@ export default function App() {
         <section className="booking-section" id="agendar">
           <div>
             <p className="eyebrow">AGENDAMENTO</p>
-            <h2>{config.bookingEnabled ? "Agende pelo fluxo online." : "Solicite seu horário pelo canal confirmado."}</h2>
+            <h2>Selecione o serviço, dia e horário desejados.</h2>
             <p>
-              {config.bookingEnabled
-                ? "A agenda online está habilitada para este tenant."
-                : "A agenda online permanece bloqueada até serviços, profissionais e disponibilidade reais serem aprovados. O WhatsApp oficial segue disponível sem prometer horários inexistentes."}
+              Envie uma mensagem personalizada pelo WhatsApp. A equipe confirmará a disponibilidade e os detalhes antes de reservar seu horário.
             </p>
           </div>
-          <div className="booking-card">
-            <span className="booking-label">WhatsApp</span>
-            <strong>{config.phoneDisplay || config.whatsapp}</strong>
-            {config.whatsapp ? (
-              <a className="button" href={contactUrl} target="_blank" rel="noopener noreferrer">Solicitar agendamento</a>
-            ) : (
-              <span className="button" aria-disabled="true">Contato indisponível</span>
-            )}
-            <small>{config.schedule ? `Horários: ${config.schedule}` : "Horários: a confirmar."}</small>
-          </div>
+          <SalonBooking config={config} />
         </section>
 
         <section className="section contact-section" id="contato">
@@ -255,9 +245,7 @@ export default function App() {
         <p>Vertical Salon · Tupiniquim Vertical SaaS · {isPreview ? "Preview" : "Live tenant"}</p>
       </footer>
 
-      {config.whatsapp && (
-        <ExternalLink href={contactUrl} className="floating-whatsapp">WhatsApp</ExternalLink>
-      )}
+      <FloatingWhatsApp config={config} />
     </div>
   );
 }
