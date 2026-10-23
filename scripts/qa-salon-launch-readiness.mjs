@@ -14,8 +14,13 @@ const row=Array.isArray(payload)?payload[0]:payload;
 const exists=row&&row.tenant_slug==="vanessa-braz"&&row.vertical_id==="salon"&&
   typeof row.tenant_id==="string";
 let mediaPermission=false,published=0,approvedPhotos=0;
+let brandConfirmed=false, demoMode=false, bookingDisabled=false;
 if(exists){
   const publicSettings=row.settings?.public_settings??{};
+  brandConfirmed=row.brand?.display_name==="Vanessa Braz";
+  demoMode=row.tenant_status==="demo";
+  bookingDisabled=publicSettings.bookingEnabled===false;
+  if(!bookingDisabled)throw new Error("QA Vanessa booking must remain disabled before owner approval");
   mediaPermission=publicSettings.mediaPublicationAuthorized===true;
   const pages=await c.from("pages").select("id").eq("tenant_id",row.tenant_id)
     .eq("slug","inicio").eq("status","published").limit(1);
@@ -30,6 +35,9 @@ if(exists){
 }
 const checks=[
   ["Tenant Vanessa no Supabase QA",Boolean(exists)],
+  ["Marca Vanessa Braz configurada",brandConfirmed],
+  ["Modo QA demonstracao",demoMode],
+  ["Agendamento nao ativado sem aceite",bookingDisabled],
   ["Autorização pública de mídia",mediaPermission],
   ["Mídia pública vinculada ao tenant",approvedPhotos>0],
   ["Página inicio publicada pelo Builder",published>0]
