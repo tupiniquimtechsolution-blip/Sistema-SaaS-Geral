@@ -11,7 +11,9 @@ test("Vanessa visual QA preview displays original editorial photography and no i
   await expect(page.locator(".vanessa-hero-img")).toBeVisible();
   await expect(page.locator(".vanessa-grid img")).toHaveCount(6);
   await expect(page.locator("footer")).toContainText("Preview");
-  await expect(page.getByText(/agenda online permanece bloqueada/i).first()).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Escolha sua preferência" })).toBeVisible();
+  await expect(page.getByText(/Nenhum horário é reservado automaticamente/i)).toBeVisible();
+  await expect(page.getByRole("link", { name: /Conversar pelo WhatsApp com o salão/i })).toBeVisible();
   await expect(page.locator("body")).not.toContainText(/R\$\s*\d/);
 
   const images = page.locator(".vanessa-showcase img");
