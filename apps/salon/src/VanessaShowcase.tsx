@@ -2,6 +2,8 @@ import { useState } from "react";
 import type { SalonPublicConfig } from "./config/template";
 import { mapsSearchUrl, whatsappUrl } from "./config/template";
 import "./vanessa-showcase.css";
+import type { PublicSalonPhoto } from "./business/public-media";
+import type { PublicSalonPage } from "./business/public-cms";
 
 /**
  * Faithful QA visual preview of the upstream Vanessa-Braz editorial landing.
@@ -24,9 +26,13 @@ const images = [
 ];
 const imageUrl = (filename: string) => source + filename;
 
-export default function VanessaShowcase({ config }: { config: SalonPublicConfig }) {
+export default function VanessaShowcase({ config, photos, published }: { config: SalonPublicConfig; photos?: PublicSalonPhoto[]; published?: PublicSalonPage | null }) {
   const [galleryOpen, setGalleryOpen] = useState<number | null>(null);
   const whatsapp = whatsappUrl(config);
+  // Live uses only the approved tenant-scoped Storage projection; the original GitHub
+  // photo library is confined to the explicit QA visual review branch.
+  const gallery = photos?.length ? photos.map((p) => ({ src: p.src, alt: p.alt })) : images.map((p) => ({ src: imageUrl(p.file), alt: p.alt }));
+  const visualReview = !photos?.length;
 
   return (
     <div className="vanessa-showcase">
@@ -45,7 +51,7 @@ export default function VanessaShowcase({ config }: { config: SalonPublicConfig 
 
       <main id="conteudo">
         <section className="vanessa-hero" id="inicio">
-          <img className="vanessa-hero-img" src={imageUrl(images[0].file)} alt={images[0].alt} fetchPriority="high" />
+          <img className="vanessa-hero-img" src={gallery[0].src} alt={gallery[0].alt} fetchPriority="high" />
           <div className="vanessa-shade" />
           <div className="vanessa-hero-copy">
             <p className="vanessa-eyebrow">BELEZA &amp; AUTOESTIMA</p>
@@ -60,7 +66,7 @@ export default function VanessaShowcase({ config }: { config: SalonPublicConfig 
         </section>
 
         <section className="vanessa-editorial vanessa-essence">
-          <img src={imageUrl(images[2].file)} alt={images[2].alt} loading="lazy" />
+          <img src={gallery[Math.min(2, gallery.length - 1)].src} alt={gallery[Math.min(2, gallery.length - 1)].alt} loading="lazy" />
           <div>
             <p className="vanessa-eyebrow">NOSSA ESSÊNCIA</p>
             <h2>Beleza e autocuidado, no seu tempo.</h2>
@@ -81,21 +87,34 @@ export default function VanessaShowcase({ config }: { config: SalonPublicConfig 
           </div>
         </section>
 
+        {published?.status === "published" && (
+          <section className="vanessa-editorial" aria-label="Conteúdo publicado pelo Builder">
+            <p className="vanessa-eyebrow">CONTEÚDO PUBLICADO</p>
+            <h2>{published.title}</h2>
+            {published.sections.map((section) => (
+              <article key={section.id}>
+                {section.title && <h3>{section.title}</h3>}
+                {section.text && <p>{section.text}</p>}
+              </article>
+            ))}
+          </section>
+        )}
+
         <section className="vanessa-editorial vanessa-gallery" id="galeria">
           <p className="vanessa-eyebrow">GALERIA</p>
           <h2>Imagens do acervo</h2>
-          <p className="vanessa-gallery-note">Acervo visual original da Vanessa, exibido apenas neste preview de revisão. Publicação definitiva requer autorização de mídia e vínculo ao tenant.</p>
+          <p className="vanessa-gallery-note">{visualReview ? "Acervo visual original da Vanessa, exibido apenas neste preview de revisão. Publicação definitiva requer autorização de mídia e vínculo ao tenant." : "Acervo público aprovado no SaaS para este espaço."}</p>
           <div className="vanessa-grid">
-            {images.slice(1).map((asset, index) => (
-              <button className={index === 0 ? "vanessa-gallery-main" : ""} key={asset.file} type="button" onClick={() => setGalleryOpen(index + 1)} aria-label={"Ver fotografia do acervo " + (index + 1)}>
-                <img src={imageUrl(asset.file)} alt={asset.alt} loading="lazy" />
+            {gallery.slice(1, 7).map((asset, index) => (
+              <button className={index === 0 ? "vanessa-gallery-main" : ""} key={asset.src} type="button" onClick={() => setGalleryOpen(index + 1)} aria-label={"Ver fotografia do acervo " + (index + 1)}>
+                <img src={asset.src} alt={asset.alt} loading="lazy" />
               </button>
             ))}
           </div>
         </section>
 
         <section className="vanessa-ambient">
-          <img src={imageUrl(images[1].file)} alt={images[1].alt} loading="lazy" />
+          <img src={gallery[Math.min(1, gallery.length - 1)].src} alt={gallery[Math.min(1, gallery.length - 1)].alt} loading="lazy" />
           <div><p className="vanessa-eyebrow">ACERVO</p><h2>Um olhar sobre o acervo</h2><p>Uma experiência visual a ser preservada na integração com o SaaS.</p></div>
         </section>
 
@@ -118,13 +137,13 @@ export default function VanessaShowcase({ config }: { config: SalonPublicConfig 
         </section>
       </main>
 
-      <footer className="vanessa-footer"><strong>{config.brandName}</strong><p>Preview controlado · {config.tagline} · Serviços, preços e horários sujeitos a confirmação.</p><small>Vertical Salon / Integração SaaS — Preview</small></footer>
+      <footer className="vanessa-footer"><strong>{config.brandName}</strong><p>{visualReview ? "Preview controlado" : "Live tenant"} · {config.tagline} · Serviços, preços e horários sujeitos a confirmação.</p><small>Vertical Salon / Integração SaaS — {visualReview ? "Preview" : "Conteúdo público autorizado"}</small></footer>
       {config.whatsapp && <a className="vanessa-floating" href={whatsapp} target="_blank" rel="noopener noreferrer" aria-label="WhatsApp">WhatsApp</a>}
 
       {galleryOpen !== null && (
         <div className="vanessa-lightbox" role="dialog" aria-modal="true" aria-label="Fotografia ampliada">
           <button type="button" onClick={() => setGalleryOpen(null)} aria-label="Fechar galeria">Fechar ×</button>
-          <img src={imageUrl(images[galleryOpen].file)} alt={images[galleryOpen].alt} />
+          <img src={gallery[galleryOpen].src} alt={gallery[galleryOpen].alt} />
         </div>
       )}
     </div>
