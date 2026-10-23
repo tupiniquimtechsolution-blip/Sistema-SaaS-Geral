@@ -4,6 +4,7 @@ import { loadPublicSalonPage, type PublicSalonPage } from "./business/public-cms
 import { createSupabaseBrowserClient } from "tupiniquim-database";
 import { mapsSearchUrl, whatsappUrl } from "./config/template";
 import VanessaShowcase from "./VanessaShowcase";
+import { loadPublicSalonMedia, type PublicSalonPhoto } from "./business/public-media";
 
 function ExternalLink({ href, children, className = "" }: { href: string; children: React.ReactNode; className?: string }) {
   return (
@@ -27,6 +28,7 @@ function RuntimeError({ code }: { code?: string }) {
 export default function App() {
   const [runtime, setRuntime] = useState<SalonRuntimeConfig | null>(null);
   const [published, setPublished] = useState<PublicSalonPage | null>(null);
+  const [publicPhotos, setPublicPhotos] = useState<PublicSalonPhoto[]>([]);
   const [cmsUnavailable, setCmsUnavailable] = useState(false);
 
   useEffect(() => {
@@ -50,6 +52,9 @@ export default function App() {
         });
         const page = await loadPublicSalonPage(publicClient, result.config.tenantId);
         if (active) setPublished(page);
+        // Public photos need both canonical media consent and tenant-scoped records.
+        const photos = await loadPublicSalonMedia(publicClient, result.config.tenantId, result.config.mediaPublicationAuthorized);
+        if (active) setPublicPhotos(photos);
       } catch {
         if (active) setCmsUnavailable(true);
       }
@@ -75,6 +80,9 @@ export default function App() {
   if (runtime.source === "preview") return <VanessaShowcase config={runtime.config} />;
 
   const config = runtime.config;
+  if (config.mediaPublicationAuthorized && publicPhotos.length > 0) {
+    return <VanessaShowcase config={config} photos={publicPhotos} published={published} />;
+  }
   const contactUrl = whatsappUrl(config);
   // Preview routes render VanessaShowcase above; this branch is exclusively live.
   const isPreview = false;
