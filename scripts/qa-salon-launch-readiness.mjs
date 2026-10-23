@@ -15,7 +15,7 @@ const exists=row&&row.tenant_slug==="vanessa-braz"&&row.vertical_id==="salon"&&
   typeof row.tenant_id==="string";
 let mediaPermission=false,published=0,approvedPhotos=0;
 let draftHiddenFromAnonymous=false,privateSettingsHiddenFromAnonymous=false;
-let brandConfirmed=false, demoMode=false, bookingDisabled=false;
+let brandConfirmed=false, demoMode=false, whatsappRequestReady=false;
 if(exists){
   // Anonymous storefront must never expose private editorial data or draft Builder pages.
   privateSettingsHiddenFromAnonymous=!Object.hasOwn(row.settings??{}, "private_settings") &&
@@ -30,8 +30,14 @@ if(exists){
   const publicSettings=row.settings?.public_settings??{};
   brandConfirmed=row.brand?.display_name==="Vanessa Braz";
   demoMode=row.tenant_status==="demo";
-  bookingDisabled=publicSettings.bookingEnabled===false;
-  if(!bookingDisabled)throw new Error("QA Vanessa booking must remain disabled before owner approval");
+  // WhatsApp request is not a server reservation or proof of availability.
+  // This mode can be enabled without granting backend scheduling rights.
+  whatsappRequestReady=publicSettings.bookingEnabled===true &&
+    publicSettings.bookingMode==="whatsapp_request" &&
+    publicSettings.whatsapp==="5511988149152";
+  if(!whatsappRequestReady) throw new Error("QA Vanessa must use verified WhatsApp request-only booking");
+  if(publicSettings.onlineBookingEnabled===true || publicSettings.autoConfirmBooking===true)
+    throw new Error("Automatic reservations must remain disabled");
   mediaPermission=publicSettings.mediaPublicationAuthorized===true;
   const pages=await c.from("pages").select("id").eq("tenant_id",row.tenant_id)
     .eq("slug","inicio").eq("status","published").limit(1);
@@ -48,7 +54,7 @@ const checks=[
   ["Tenant Vanessa no Supabase QA",Boolean(exists)],
   ["Marca Vanessa Braz configurada",brandConfirmed],
   ["Modo QA demonstracao",demoMode],
-  ["Agendamento nao ativado sem aceite",bookingDisabled],
+  ["Solicitação WhatsApp habilitada, sem reserva automática",whatsappRequestReady],
   ["Rascunho Builder oculto para anon",draftHiddenFromAnonymous],
   ["Configuracoes editoriais privadas ocultas para anon",privateSettingsHiddenFromAnonymous],
   ["Autorização pública de mídia",mediaPermission],
