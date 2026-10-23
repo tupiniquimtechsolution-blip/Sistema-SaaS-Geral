@@ -11,7 +11,7 @@ test("Vanessa visual QA preview displays original editorial photography and no i
   await expect(page.locator(".vanessa-hero-img")).toBeVisible();
   await expect(page.locator(".vanessa-grid img")).toHaveCount(6);
   await expect(page.locator("footer")).toContainText("Preview");
-  await expect(page.getByText(/agenda online permanece bloqueada/i)).toBeVisible();
+  await expect(page.getByText(/agenda online permanece bloqueada/i).first()).toBeVisible();
   await expect(page.locator("body")).not.toContainText(/R\$\s*\d/);
 
   const images = page.locator(".vanessa-showcase img");
