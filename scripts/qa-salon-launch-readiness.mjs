@@ -14,8 +14,19 @@ const row=Array.isArray(payload)?payload[0]:payload;
 const exists=row&&row.tenant_slug==="vanessa-braz"&&row.vertical_id==="salon"&&
   typeof row.tenant_id==="string";
 let mediaPermission=false,published=0,approvedPhotos=0;
+let draftHiddenFromAnonymous=false,privateSettingsHiddenFromAnonymous=false;
 let brandConfirmed=false, demoMode=false, bookingDisabled=false;
 if(exists){
+  // Anonymous storefront must never expose private editorial data or draft Builder pages.
+  privateSettingsHiddenFromAnonymous=!Object.hasOwn(row.settings??{}, "private_settings") &&
+    !JSON.stringify(row).includes("qa_editorial_roster");
+  if (!privateSettingsHiddenFromAnonymous) throw new Error("Private editor data leaked through public bootstrap");
+  const draftCheck=await c.from("pages").select("id")
+    .eq("tenant_id",row.tenant_id).eq("slug","inicio")
+    .eq("status","draft").limit(1);
+  if(draftCheck.error) throw new Error("Could not verify public draft isolation");
+  draftHiddenFromAnonymous=(draftCheck.data?.length??0)===0;
+  if(!draftHiddenFromAnonymous) throw new Error("Unpublished Vanessa page visible to anonymous callers");
   const publicSettings=row.settings?.public_settings??{};
   brandConfirmed=row.brand?.display_name==="Vanessa Braz";
   demoMode=row.tenant_status==="demo";
@@ -38,6 +49,8 @@ const checks=[
   ["Marca Vanessa Braz configurada",brandConfirmed],
   ["Modo QA demonstracao",demoMode],
   ["Agendamento nao ativado sem aceite",bookingDisabled],
+  ["Rascunho Builder oculto para anon",draftHiddenFromAnonymous],
+  ["Configuracoes editoriais privadas ocultas para anon",privateSettingsHiddenFromAnonymous],
   ["Autorização pública de mídia",mediaPermission],
   ["Mídia pública vinculada ao tenant",approvedPhotos>0],
   ["Página inicio publicada pelo Builder",published>0]
