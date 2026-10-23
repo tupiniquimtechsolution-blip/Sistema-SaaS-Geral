@@ -4,8 +4,6 @@ test("Vanessa booking calendar creates custom WhatsApp request without reserving
   const base = process.env.VANESSA_VISUAL_URL;
   if (!base) throw new Error("VANESSA_VISUAL_URL is required");
   await page.goto(base, { waitUntil: "domcontentloaded" });
-  const booking = page.getByRole("region", { name: "Solicitação de agendamento pelo WhatsApp" });
-  // A div with aria-label is not automatically a region; use the class to target the widget.
   const widget = page.locator(".salon-booking-widget");
   await expect(widget).toBeVisible();
   await widget.locator("#salon-service").selectOption("cabelo");
