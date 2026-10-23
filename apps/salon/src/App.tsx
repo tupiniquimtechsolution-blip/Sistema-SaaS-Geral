@@ -3,6 +3,7 @@ import { loadPublicSalonConfig, type SalonRuntimeConfig } from "./business/saas-
 import { loadPublicSalonPage, type PublicSalonPage } from "./business/public-cms";
 import { createSupabaseBrowserClient } from "tupiniquim-database";
 import { mapsSearchUrl, whatsappUrl } from "./config/template";
+import VanessaShowcase from "./VanessaShowcase";
 
 function ExternalLink({ href, children, className = "" }: { href: string; children: React.ReactNode; className?: string }) {
   return (
@@ -68,6 +69,10 @@ export default function App() {
   }
 
   if (runtime.source === "error") return <RuntimeError code={runtime.errorCode} />;
+
+  // The original Vanessa editorial look is for explicit visual preview only.
+  // Live QA and production remain tenant-scoped, default-deny SaaS Core runtimes.
+  if (runtime.source === "preview") return <VanessaShowcase config={runtime.config} />;
 
   const config = runtime.config;
   const contactUrl = whatsappUrl(config);
