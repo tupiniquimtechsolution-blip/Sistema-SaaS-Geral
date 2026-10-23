@@ -1,4 +1,4 @@
-name: QA Wave 1 Durable Staging - Four Workers
+name: QA Durable Bootstrap - Builder and MetalArt
 
 on:
   push:
@@ -121,9 +121,7 @@ jobs:
       max-parallel: 2
       matrix:
         include:
-          - { vertical: platform, name: tupiniquim-saas-qa, build: 'build:platform', title: 'Tupiniquim SaaS' }
           - { vertical: builder, name: tupiniquim-site-builder-qa, build: 'build:builder', title: 'Tupiniquim Site Builder' }
-          - { vertical: salon, name: tupiniquim-salon-qa, build: 'build:salon', title: 'Salão / Beleza' }
           - { vertical: metalart, name: tupiniquim-metalart-qa, build: 'build:metalart', title: 'Metal & Art' }
     env:
       GH_TOKEN: ${{ github.token }}
@@ -163,7 +161,7 @@ jobs:
           test -n "$CLOUDFLARE_API_TOKEN" && test -n "$CLOUDFLARE_ACCOUNT_ID"
           node <<'NODE'
           const fs=require('node:fs');
-          const allowed={platform:'tupiniquim-saas-qa',builder:'tupiniquim-site-builder-qa',salon:'tupiniquim-salon-qa',metalart:'tupiniquim-metalart-qa'};
+          const allowed={builder:'tupiniquim-site-builder-qa',metalart:'tupiniquim-metalart-qa'};
           const v=process.env.QA_VERTICAL, name=process.env.QA_WORKER_NAME;
           if(!Object.hasOwn(allowed,v)||allowed[v]!==name) throw Error('Unsafe non-QA Worker name');
           const cfg=JSON.parse(fs.readFileSync('apps/'+v+'/wrangler.qa.jsonc','utf8'));
@@ -203,10 +201,11 @@ jobs:
           set -euo pipefail
           npm ci
           npm run "$QA_BUILD_CMD"
+          # Workers created only by Preview API have no initial version (Cloudflare 10222).
+          # Bootstrap a QA-only Worker without --keep-vars; the static config has no secrets/bindings.
           npx wrangler deploy \
             --config "apps/$QA_VERTICAL/wrangler.qa.jsonc" \
             --name "$QA_WORKER_NAME" \
-            --keep-vars \
             --message "QA-only Wave 1 durable $QA_VERTICAL SHA $GITHUB_SHA" \
             2>&1 | tee qa-durable-evidence/deploy.log
       - name: Verify durable QA HTTPS, assets, SPA and console
