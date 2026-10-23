@@ -76,7 +76,8 @@ export default function App() {
 
   const config = runtime.config;
   const contactUrl = whatsappUrl(config);
-  const isPreview = runtime.source === "preview";
+  // Preview routes render VanessaShowcase above; this branch is exclusively live.
+  const isPreview = false;
 
   return (
     <div className="site-shell">
