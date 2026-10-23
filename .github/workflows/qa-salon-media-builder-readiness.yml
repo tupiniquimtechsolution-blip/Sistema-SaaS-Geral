@@ -46,3 +46,5 @@ jobs:
             echo "QA only: no writes, no secrets in frontend, no photos migrated or approved."
             echo "Media authorization must precede any upload into tenant-public."
           } >> "$GITHUB_STEP_SUMMARY"
+
+# Revalidate the newly provisioned Vanessa QA tenant against public-API privacy gates.
