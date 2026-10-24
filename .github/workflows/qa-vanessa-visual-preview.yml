@@ -10,6 +10,7 @@ on:
       - apps/salon/src/vanessa-official-archive.css
       - apps/salon/src/vanessa-showcase.css
       - tests/salon-official-media.test.mjs
+      - apps/salon/e2e/vanessa-official-archive.qa.spec.ts
       - apps/salon/src/SalonBooking.tsx
       - apps/salon/src/booking/whatsapp-request.ts
       - apps/salon/src/salon-booking.css
@@ -136,7 +137,7 @@ jobs:
           set -euo pipefail
           npx playwright install --with-deps chromium
           export VANESSA_VISUAL_URL="$(cat qa-vanessa-visual/immutable-url.txt)"
-          npx playwright test apps/salon/e2e/vanessa-visual.qa.spec.ts apps/salon/e2e/whatsapp-booking.qa.spec.ts --reporter=line
+          npx playwright test apps/salon/e2e/vanessa-visual.qa.spec.ts apps/salon/e2e/whatsapp-booking.qa.spec.ts apps/salon/e2e/vanessa-official-archive.qa.spec.ts --reporter=line
           echo "Vanessa photo and WhatsApp booking request E2E: PASS; WhatsApp request is not a confirmed calendar reservation or production release" >> "$GITHUB_STEP_SUMMARY"
       - name: Preserve immutable visual preview address
         if: always()
