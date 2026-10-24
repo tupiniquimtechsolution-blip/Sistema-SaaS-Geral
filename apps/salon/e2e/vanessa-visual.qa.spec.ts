@@ -48,7 +48,7 @@ test("Vanessa visual QA preview displays original editorial photography and no i
   }
 });
 
-test("Salon first visit displays Bem Vindo with brand logo for 2.5 seconds without a button", async ({ page }) => {
+test("Salon first visit displays a translucent photo welcome with full salon identity for 2.5 seconds", async ({ page }) => {
   const base = process.env.VANESSA_VISUAL_URL;
   if (!base) throw new Error("VANESSA_VISUAL_URL is required");
   await page.goto(base, { waitUntil: "domcontentloaded" });
@@ -63,7 +63,7 @@ test("Salon first visit displays Bem Vindo with brand logo for 2.5 seconds witho
   await expect(intro).toHaveCount(0, { timeout: 5000 });
   await page.reload();
   await expect(page.getByTestId("salon-welcome")).toHaveCount(0);
-  await expect(page.getByRole("heading", { level: 1, name: "Vanessa Braz" })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1, name: "Vanessa Braz — Beleza & Autoestima" })).toBeVisible();
 });
 
 test("Salon offers accessible light/dark switch, preserves preference and keeps text contrast", async ({ page }) => {
