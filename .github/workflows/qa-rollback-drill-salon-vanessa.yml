@@ -1,4 +1,4 @@
-name: QA Salon Vanessa - Rollback and Stable Release
+name: QA Salon Vanessa - Official Archive Stable Release
 
 on:
   push:
@@ -131,7 +131,7 @@ jobs:
           mkdir -p qa-rollback
           npm ci
           npm run "$QA_BUILD_CMD"
-          node --experimental-strip-types --test tests/salon-whatsapp-booking.test.mjs
+          node --experimental-strip-types --test tests/salon-whatsapp-booking.test.mjs tests/salon-official-media.test.mjs
           # Build is against the QA Supabase URL, never a production origin.
           rollback_needed=0
           restore_on_failure() {
@@ -166,7 +166,7 @@ jobs:
           export DURABLE_SMOKE_URL="$url"
           export DURABLE_SMOKE_TITLE="$QA_EXPECTED_TITLE"
           export VANESSA_VISUAL_URL="$url"
-          npx playwright test tests/e2e/durable-deploy-smoke.spec.ts apps/salon/e2e/vanessa-visual.qa.spec.ts apps/salon/e2e/whatsapp-booking.qa.spec.ts --reporter=line
+          npx playwright test tests/e2e/durable-deploy-smoke.spec.ts apps/salon/e2e/vanessa-visual.qa.spec.ts apps/salon/e2e/whatsapp-booking.qa.spec.ts apps/salon/e2e/vanessa-official-archive.qa.spec.ts --reporter=line
           npx wrangler rollback "$QA_BASELINE_VERSION" \
             --name "$QA_WORKER_NAME" \
             --message "QA rollback drill restore verified baseline $GITHUB_SHA" \
@@ -212,7 +212,7 @@ jobs:
                grep -q 'assets/' qa-rollback/final.html; then break; fi
             sleep 2
           done
-          npx playwright test tests/e2e/durable-deploy-smoke.spec.ts apps/salon/e2e/vanessa-visual.qa.spec.ts apps/salon/e2e/whatsapp-booking.qa.spec.ts --reporter=line
+          npx playwright test tests/e2e/durable-deploy-smoke.spec.ts apps/salon/e2e/vanessa-visual.qa.spec.ts apps/salon/e2e/whatsapp-booking.qa.spec.ts apps/salon/e2e/vanessa-official-archive.qa.spec.ts --reporter=line
           curl -fsS -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
             "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/workers/scripts/$QA_WORKER_NAME/deployments" > qa-rollback/final-response.json
           node <<'NODE'
