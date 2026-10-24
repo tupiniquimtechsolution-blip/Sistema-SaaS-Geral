@@ -1,8 +1,47 @@
-/* Short splash screen before the salon home page; no video, tracking or third-party calls. */
-.salon-welcome{position:fixed;inset:0;z-index:120;display:grid;place-items:center;background:#faf8f5;color:#302925;pointer-events:none;animation:salon-welcome-appear .25s ease-out both}
-.salon-welcome-content{text-align:center;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:18px;padding:22px}
-.salon-welcome-logo{display:block;width:min(144px,35vw);height:min(144px,35vw);object-fit:contain;border-radius:50%;box-shadow:0 8px 28px #2c1e171c}
-.salon-welcome-fallback{font:400 clamp(1.4rem,4vw,2.3rem) Georgia,serif}
-.salon-welcome p{margin:0;font:400 clamp(2rem,6vw,4rem) "Playfair Display",Georgia,serif;letter-spacing:.025em}
+/* 2.5-second welcome, no skip control or video; the overhead photo is softened with a white scrim. */
+.salon-welcome {
+  position:fixed;inset:0;z-index:120;isolation:isolate;
+  display:grid;place-items:center;overflow:hidden;
+  background:#faf8f5;color:#29231f;pointer-events:none;
+  animation:salon-welcome-appear .25s ease-out both
+}
+.salon-welcome::before {
+  content:"";position:absolute;inset:-2%;z-index:-2;
+  background-image:url("/media/espaco-vanessa-vista-superior.webp");
+  background-size:cover;background-position:center 48%;
+  filter:saturate(.68) brightness(1.11);
+}
+.salon-welcome::after {
+  content:"";position:absolute;inset:0;z-index:-1;
+  background:rgba(255,252,248,.81)
+}
+.salon-welcome-content {
+  text-align:center;display:flex;align-items:center;justify-content:center;
+  flex-direction:column;gap:9px;padding:clamp(25px,6vw,70px);
+  max-width:min(92vw,630px);background:rgba(255,253,250,.86);
+  box-shadow:0 18px 70px rgba(42,32,25,.11);
+  border:1px solid rgba(111,81,63,.19);border-radius:5px 65px 5px 5px
+}
+.salon-welcome-logo {
+  display:block;width:min(136px,33vw);height:min(136px,33vw);
+  object-fit:contain;border-radius:50%;
+  box-shadow:0 8px 28px rgba(44,30,23,.18);margin-bottom:16px
+}
+.salon-welcome-fallback{font:400 clamp(1.3rem,4vw,2rem) Georgia,serif}
+.salon-welcome .salon-welcome-greeting {
+  margin:0;color:#3c2821;letter-spacing:-.045em;
+  font:400 clamp(2.9rem,8vw,5rem)/1.12 "Playfair Display",Georgia,serif
+}
+.salon-welcome .salon-welcome-subtitle{
+  margin:0;color:#6f4938;font:500 clamp(1.1rem,3.4vw,1.5rem)/1.35 Inter,system-ui,sans-serif
+}
+.salon-welcome .salon-welcome-brand {
+  margin:10px 0 0;color:#31261f;
+  font:650 clamp(.87rem,2.1vw,1.1rem)/1.5 Inter,system-ui,sans-serif
+}
 @keyframes salon-welcome-appear{from{opacity:0}to{opacity:1}}
+@media(max-width:520px){
+  .salon-welcome-content{padding:36px 27px;width:calc(100vw - 36px);gap:7px}
+  .salon-welcome-logo{margin-bottom:12px}
+}
 @media(prefers-reduced-motion:reduce){.salon-welcome{animation:none}}
