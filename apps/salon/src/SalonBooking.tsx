@@ -34,9 +34,26 @@ const interests = [
   ["unhas", "Unhas"],
   ["sobrancelhas", "Sobrancelhas"],
   ["maquiagem", "Maquiagem"],
-  ["estetica", "Estética e autocuidado"],
+  ["estetica", "Estética"],
+  ["autocuidado", "Autocuidado"],
   ["outro", "Outro serviço"],
 ] as const;
+
+type InterestId = typeof interests[number][0];
+function ServiceIllustration({ id }: { id: InterestId }) {
+  // Distinct purpose-drawn SVG line illustrations: no synthetic client photos.
+  const art: Record<InterestId, React.ReactNode> = {
+    cabelo: <><path d="M17 46c-9-9-10-24 0-33 8-7 23-6 30 3 6 8 3 22-7 29"/><path d="M23 42c-6-13-3-26 8-29m-1 29c0-9 5-17 14-20M15 34c8 2 12 8 11 15m15-10c5 3 8 7 9 13"/></>,
+    unhas: <><path d="M18 44V27a4 4 0 0 1 8 0v6-16a4 4 0 0 1 8 0v16-13a4 4 0 0 1 8 0v14-9a4 4 0 0 1 8 0v18c0 12-10 17-19 15-8-1-15-7-17-15l-3-9a4 4 0 0 1 8-3l5 9"/><path d="M30 14v8m8-4v7m8-1v6"/></>,
+    sobrancelhas: <><path d="M6 27c7-10 17-11 25-6M35 21c8-5 17-4 23 6M9 32c6-6 15-6 22 0-7 6-16 6-22 0Zm25 0c8-6 17-6 22 0-7 6-16 6-22 0Z"/><circle cx="20" cy="32" r="3"/><circle cx="44" cy="32" r="3"/><path d="M24 47c5 4 11 4 16 0"/></>,
+    maquiagem: <><path d="m20 13 8 8-7 8-8-8zM15 27l7 7-8 18a4 4 0 0 1-6 1l-1-1a4 4 0 0 1 0-5zM35 48l16-16 6 6-16 16-8 2zM40 42l6 6M46 12v10m-5-5h10"/></>,
+    estetica: <><path d="M31 8c-15 0-22 13-22 25 0 12 9 22 22 22 14 0 24-9 24-23C55 19 47 8 31 8Z"/><path d="M17 30c4-3 9-3 13 0m5 0c4-3 9-3 13 0M24 42c5 4 12 4 17 0M32 23v16"/><path d="m8 9 2 5 5 2-5 2-2 5-2-5-5-2 5-2z"/></>,
+    autocuidado: <><path d="M32 56c-11-9-23-16-23-28 0-7 5-12 12-12 5 0 9 3 11 7 2-4 6-7 11-7 7 0 12 5 12 12 0 12-12 19-23 28Z"/><path d="m32 13 2-5 2 5 5 2-5 2-2 5-2-5-5-2z"/></>,
+    outro: <><circle cx="32" cy="32" r="21"/><path d="M32 20v24M20 32h24"/><path d="m13 13 3-4 3 4M47 51l3 4 3-4"/></>,
+  };
+  return <svg className="salon-service-art" viewBox="0 0 64 64" fill="none" stroke="currentColor" strokeWidth="1.65"
+      strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{art[id]}</svg>;
+}
 
 const preferredTimes = Array.from({ length: 25 }, (_, n) => {
   const minutes = 8 * 60 + n * 30;
@@ -83,11 +100,16 @@ export default function SalonBooking({ config }: { config: SalonPublicConfig }) 
       <h3>Escolha sua preferência</h3>
       <p className="salon-booking-intro">Escolha o atendimento, o dia e o horário que deseja. A equipe confirmará a disponibilidade diretamente pelo WhatsApp.</p>
 
-      <label className="salon-booking-label" htmlFor="salon-service">Tipo de serviço</label>
-      <select id="salon-service" className="salon-booking-control" value={interest} onChange={(e) => setInterest(e.target.value)}>
-        <option value="">Selecione a área de interesse</option>
-        {interests.map(([id, label]) => <option value={id} key={id}>{label}</option>)}
-      </select>
+      <div className="salon-booking-label" id="salon-service-label">Tipo de serviço</div>
+      <div className="salon-service-options" role="group" aria-labelledby="salon-service-label">
+        {interests.map(([id, label]) => (
+          <button type="button" key={id} className={interest === id ? "salon-service-option is-selected" : "salon-service-option"}
+            aria-pressed={interest === id} onClick={() => setInterest(id)}>
+            <ServiceIllustration id={id} />
+            <span>{label}</span>
+          </button>
+        ))}
+      </div>
       {interest === "outro" && (
         <>
           <label className="salon-booking-label" htmlFor="salon-custom-service">Qual serviço deseja?</label>
