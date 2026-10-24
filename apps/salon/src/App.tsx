@@ -1,6 +1,11 @@
 import { useEffect, useState } from "react";
 import { loadPublicSalonConfig, type SalonRuntimeConfig } from "./business/saas-adapter";
+import { loadPublicSalonPage, type PublicSalonPage } from "./business/public-cms";
+import { createSupabaseBrowserClient } from "tupiniquim-database";
 import { mapsSearchUrl, whatsappUrl } from "./config/template";
+import VanessaShowcase from "./VanessaShowcase";
+import SalonBooking, { FloatingWhatsApp } from "./SalonBooking";
+import { loadPublicSalonMedia, type PublicSalonPhoto } from "./business/public-media";
 
 function ExternalLink({ href, children, className = "" }: { href: string; children: React.ReactNode; className?: string }) {
   return (
@@ -23,16 +28,51 @@ function RuntimeError({ code }: { code?: string }) {
 
 export default function App() {
   const [runtime, setRuntime] = useState<SalonRuntimeConfig | null>(null);
+  const [published, setPublished] = useState<PublicSalonPage | null>(null);
+  const [publicPhotos, setPublicPhotos] = useState<PublicSalonPhoto[]>([]);
+  const [cmsUnavailable, setCmsUnavailable] = useState(false);
 
   useEffect(() => {
     let active = true;
-    void loadPublicSalonConfig().then((result) => {
-      if (active) setRuntime(result);
-    });
+    void (async () => {
+      try {
+        const result = await loadPublicSalonConfig();
+        if (!active) return;
+        setRuntime(result);
+        if (result.source !== "live") return;
+
+        // Tenant ID comes only from the resolved public bootstrap, never URL params.
+        const url = import.meta.env.VITE_SUPABASE_URL?.trim();
+        const publishableKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY?.trim();
+        if (!url || !publishableKey) throw new Error("Missing public Salon config");
+
+        const publicClient = createSupabaseBrowserClient({
+          url,
+          publishableKey,
+          authStorageKey: `tupiniquim-salon-public-cms-${result.config.slug}`,
+        });
+        const page = await loadPublicSalonPage(publicClient, result.config.tenantId);
+        if (active) setPublished(page);
+        // Public photos need both canonical media consent and tenant-scoped records.
+        const photos = await loadPublicSalonMedia(publicClient, result.config.tenantId, result.config.mediaPublicationAuthorized);
+        if (active) setPublicPhotos(photos);
+      } catch {
+        if (active) setCmsUnavailable(true);
+      }
+    })();
     return () => {
       active = false;
     };
   }, []);
+
+  // White-label browser title must reflect the resolved tenant, not the static
+  // generic HTML shell. Also covers refreshes and deep-link SPA navigation.
+  useEffect(() => {
+    if (!runtime || runtime.source === "error") return;
+    const previousTitle = document.title;
+    document.title = runtime.config.brandName + " | Agendamento";
+    return () => { document.title = previousTitle; };
+  }, [runtime]);
 
   if (!runtime) {
     return (
@@ -45,9 +85,32 @@ export default function App() {
 
   if (runtime.source === "error") return <RuntimeError code={runtime.errorCode} />;
 
+  // The original Vanessa editorial look is for explicit visual preview only.
+  // Live QA and production remain tenant-scoped, default-deny SaaS Core runtimes.
+  if (runtime.source === "preview") return <VanessaShowcase config={runtime.config} />;
+
   const config = runtime.config;
+  // QA-only visual overlay: read real Vanessa brand/WhatsApp from the canonical
+  // public bootstrap, while reviewing the already-public, pinned original photos.
+  // No such overlay is allowed for other tenants or any production Supabase URL.
+  const vanessaQaOverlay =
+    import.meta.env.VITE_VANESSA_QA_VISUAL_OVERLAY === "true" &&
+    import.meta.env.VITE_DEMO_MODE === "false" &&
+    import.meta.env.VITE_TENANT_SLUG === "vanessa-braz" &&
+    import.meta.env.VITE_SUPABASE_URL === "https://ynqbnimlpxlokrxlucdm.supabase.co" &&
+    config.slug === "vanessa-braz" &&
+    config.tenantId === "d7c34143-c044-4ad6-ac44-75e54118a857";
+  if (vanessaQaOverlay) {
+    // Public QA-only photographs have not been migrated to tenant Storage and
+    // must never imply mediaPublicationAuthorized or production clearance.
+    return <VanessaShowcase config={config} photos={publicPhotos} published={published} />;
+  }
+  if (config.mediaPublicationAuthorized && publicPhotos.length > 0) {
+    return <VanessaShowcase config={config} photos={publicPhotos} published={published} />;
+  }
   const contactUrl = whatsappUrl(config);
-  const isPreview = runtime.source === "preview";
+  // Preview routes render VanessaShowcase above; this branch is exclusively live.
+  const isPreview = false;
 
   return (
     <div className="site-shell">
@@ -111,7 +174,7 @@ export default function App() {
           <div className="service-grid">
             {[
               ["01", "Catálogo do tenant", "Serviços e valores não confirmados não são inventados no site."],
-              ["02", "Profissionais e agenda", "Disponibilidade online permanece desativada até existirem dados reais aprovados."],
+              ["02", "Escolha sua preferência", "Selecione data, horário e o tipo de atendimento para solicitar uma confirmação."],
               ["03", "Contato confirmado", "O WhatsApp oficial permanece disponível para solicitar atendimento."],
             ].map(([number, title, body]) => (
               <article className="service-card" key={number}>
@@ -122,6 +185,26 @@ export default function App() {
             ))}
           </div>
         </section>
+
+        {published?.status === "published" && (
+          <section className="section" aria-label="Conteúdo publicado pelo Builder">
+            <div className="section-heading compact">
+              <p className="eyebrow">CONTEÚDO PUBLICADO</p>
+              <h2>{published.title}</h2>
+            </div>
+            {published.sections.map((section) => (
+              <article className="service-card" key={section.id}>
+                {section.title && <h3>{section.title}</h3>}
+                {section.text && <p>{section.text}</p>}
+              </article>
+            ))}
+          </section>
+        )}
+        {cmsUnavailable && (
+          <p className="preview-note" role="status">
+            Conteúdo editorial adicional temporariamente indisponível.
+          </p>
+        )}
 
         <section className="section visual-section" id="galeria">
           <div className="section-heading compact">
@@ -144,23 +227,12 @@ export default function App() {
         <section className="booking-section" id="agendar">
           <div>
             <p className="eyebrow">AGENDAMENTO</p>
-            <h2>{config.bookingEnabled ? "Agende pelo fluxo online." : "Solicite seu horário pelo canal confirmado."}</h2>
+            <h2>Selecione o serviço, dia e horário desejados.</h2>
             <p>
-              {config.bookingEnabled
-                ? "A agenda online está habilitada para este tenant."
-                : "A agenda online permanece bloqueada até serviços, profissionais e disponibilidade reais serem aprovados. O WhatsApp oficial segue disponível sem prometer horários inexistentes."}
+              Envie uma mensagem personalizada pelo WhatsApp. A equipe confirmará a disponibilidade e os detalhes antes de reservar seu horário.
             </p>
           </div>
-          <div className="booking-card">
-            <span className="booking-label">WhatsApp</span>
-            <strong>{config.phoneDisplay || config.whatsapp}</strong>
-            {config.whatsapp ? (
-              <a className="button" href={contactUrl} target="_blank" rel="noopener noreferrer">Solicitar agendamento</a>
-            ) : (
-              <span className="button" aria-disabled="true">Contato indisponível</span>
-            )}
-            <small>{config.schedule ? `Horários: ${config.schedule}` : "Horários: a confirmar."}</small>
-          </div>
+          <SalonBooking config={config} />
         </section>
 
         <section className="section contact-section" id="contato">
@@ -197,9 +269,7 @@ export default function App() {
         <p>Vertical Salon · Tupiniquim Vertical SaaS · {isPreview ? "Preview" : "Live tenant"}</p>
       </footer>
 
-      {config.whatsapp && (
-        <ExternalLink href={contactUrl} className="floating-whatsapp">WhatsApp</ExternalLink>
-      )}
+      <FloatingWhatsApp config={config} />
     </div>
   );
 }

@@ -106,7 +106,9 @@ function mapStorefrontBootstrap(row: StorefrontBootstrapRow): SalonRuntimeConfig
       ...salonTemplateDefaults,
       tenantId: row.tenant_id,
       slug: row.tenant_slug,
-      brandName: stringFrom(brand, "display_name") ?? salonTemplateDefaults.brandName,
+      // A live tenant without configured branding must never inherit another brand.
+      // Use the resolved canonical tenant slug until the owner sets display_name.
+      brandName: stringFrom(brand, "display_name") ?? row.tenant_slug,
       tagline: stringFrom(brand, "tagline") ?? salonTemplateDefaults.tagline,
       instagramHandle: stringFrom(social, "instagram") ?? stringFrom(publicSettings, "instagram") ?? "",
       instagramUrl:

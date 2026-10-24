@@ -1,0 +1,54 @@
+name: QA Salon Vanessa Media + Builder Readiness (read-only)
+
+on:
+  push:
+    branches: [qa/tenant-isolation-staging-20261010]
+    paths:
+      - .github/workflows/qa-salon-media-builder-readiness.yml
+      - scripts/qa-salon-launch-readiness.mjs
+      - tests/salon-public-media.test.mjs
+      - tests/salon-public-cms.test.mjs
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  qa-content-contract:
+    name: Tenant-approved Salon media, published Builder content, readiness
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment: qa-isolation
+    env:
+      QA_APPROVED_PROJECT_REF: ${{ vars.QA_APPROVED_PROJECT_REF }}
+      QA_SUPABASE_URL: ${{ secrets.QA_SUPABASE_URL }}
+      QA_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.QA_SUPABASE_PUBLISHABLE_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '22', cache: npm }
+      - name: Reject production or other projects
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REF" = refs/heads/qa/tenant-isolation-staging-20261010
+          test "$QA_APPROVED_PROJECT_REF" = ynqbnimlpxlokrxlucdm
+          test "$QA_SUPABASE_URL" = https://ynqbnimlpxlokrxlucdm.supabase.co
+          test -n "$QA_SUPABASE_PUBLISHABLE_KEY"
+      - name: Locked dependencies and public media/Builder safety contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm ci
+          node --experimental-strip-types --test tests/salon-public-media.test.mjs tests/salon-public-cms.test.mjs
+      - name: Query public Vanessa tenant and CMS/media readiness only
+        run: node scripts/qa-salon-launch-readiness.mjs
+      - name: Record non-commercial evidence scope
+        shell: bash
+        run: |
+          {
+            echo "QA only: no writes, no secrets in frontend, no photos migrated or approved."
+            echo "Media authorization must precede any upload into tenant-public."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+# Revalidate the newly provisioned Vanessa QA tenant against public-API privacy gates.

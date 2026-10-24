@@ -1,0 +1,154 @@
+name: QA Salon Vanessa - Photos + WhatsApp Booking
+
+on:
+  push:
+    branches: [qa/tenant-isolation-staging-20261010]
+    paths:
+      - .github/workflows/qa-vanessa-visual-preview.yml
+      - apps/salon/src/official-vanessa-media.ts
+      - apps/salon/src/VanessaOfficialArchive.tsx
+      - apps/salon/src/vanessa-official-archive.css
+      - apps/salon/src/vanessa-showcase.css
+      - tests/salon-official-media.test.mjs
+      - apps/salon/e2e/vanessa-official-archive.qa.spec.ts
+      - apps/salon/src/SalonBooking.tsx
+      - apps/salon/src/booking/whatsapp-request.ts
+      - apps/salon/src/salon-booking.css
+      - apps/salon/src/VanessaShowcase.tsx
+      - apps/salon/src/App.tsx
+      - apps/salon/src/config/template.ts
+      - apps/salon/e2e/whatsapp-booking.qa.spec.ts
+      - tests/salon-whatsapp-booking.test.mjs
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: qa-vanessa-original-visual-preview-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  vanessa-visual-only:
+    name: Vanessa photos and WhatsApp appointment flow
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    environment: qa-isolation
+    env:
+      GH_TOKEN: ${{ github.token }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      VITE_DEMO_MODE: 'true'
+      VITE_TENANT_SLUG: vanessa-braz
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '22', cache: npm }
+      - name: Confirm QA branch, safe Worker and published source provenance
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REF" = 'refs/heads/qa/tenant-isolation-staging-20261010'
+          test "$VITE_DEMO_MODE" = 'true'
+          test "$VITE_TENANT_SLUG" = 'vanessa-braz'
+          test -n "$CLOUDFLARE_API_TOKEN" && test -n "$CLOUDFLARE_ACCOUNT_ID"
+          node <<'NODE'
+          const fs=require('node:fs');
+          const c=JSON.parse(fs.readFileSync('apps/salon/wrangler.qa.jsonc','utf8'));
+          const allowed=['$schema','name','compatibility_date','workers_dev','assets','previews'];
+          if(c.name!=='tupiniquim-salon-qa'||c.workers_dev!==true||
+             Object.keys(c).some(k=>!allowed.includes(k))||
+             c.assets?.directory!=='./dist'||c.assets?.not_found_handling!=='single-page-application'||
+             Object.keys(c.assets||{}).some(k=>!['directory','not_found_handling'].includes(k))||
+             Object.keys(c.previews||{}).length!==0) throw Error('Unsafe QA preview Worker');
+          const app=fs.readFileSync('apps/salon/src/VanessaShowcase.tsx','utf8');
+          if(!app.includes('74dd4b81964b92dd8e5730f55c04bbbc0d2314ea')||
+             !app.includes('raw.githubusercontent.com/tupiniquimtechsolution-blip/Vanessa-Braz/'))
+             throw Error('Vanessa photography provenance not pinned to reviewed source');
+          NODE
+      - name: Wait for quality checks on exact visual commit
+        shell: bash
+        run: |
+          set -euo pipefail
+          for attempt in $(seq 1 100); do
+            payload="$(gh api "/repos/$GITHUB_REPOSITORY/actions/runs?head_sha=$GITHUB_SHA&event=push&per_page=100")"
+            gate="$(jq -r '[.workflow_runs[]|select(.name=="Monorepo Quality Gates")]|sort_by(.created_at)|last|if .==null then "missing" else (.status+"/"+(.conclusion//"-")) end' <<<"$payload")"
+            echo "same-SHA quality=$gate"
+            if [ "$gate" = "completed/success" ]; then exit 0; fi
+            if [[ "$gate" == completed/* ]]; then echo "::error::Quality gate failed"; exit 1; fi
+            sleep 10
+          done
+          exit 1
+      - name: Check official Vanessa Braz photo and video originals
+        shell: bash
+        run: |
+          set -euo pipefail
+          official='https://raw.githubusercontent.com/tupiniquimtechsolution-blip/VanessaBraz-Beleza-e-Autoestima/8e4c3048367ebc3bbcae99d5a1f011fae2908a5d/apps/web/public/media/source'
+          curl -fsSL --retry 3 --max-time 40 "$official/images/WhatsApp%20Image%202026-09-12%20at%2010.23.51.jpeg" --output /dev/null
+          curl -fsSL --retry 3 --max-time 40 "$official/videos/WhatsApp%20Video%202026-09-12%20at%2010.24.25.mp4" --output /dev/null
+      - name: Confirm original public Vanessa photos are available
+        shell: bash
+        run: |
+          set -euo pipefail
+          base='https://raw.githubusercontent.com/tupiniquimtechsolution-blip/Vanessa-Braz/74dd4b81964b92dd8e5730f55c04bbbc0d2314ea/apps/web/public/media/optimized/web'
+          for media in 'WhatsApp-Image-2026-09-12-at-10.23.51-121a8bba.webp' 'WhatsApp-Image-2026-09-12-at-10.26.30-606cc281.webp'; do
+            curl --fail --silent --show-error --location --retry 2 --max-time 40 "$base/$media" --output /dev/null
+          done
+      - name: Locked install and typecheck/build Vanessa presentation
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm ci
+          npm run typecheck:salon
+          node --experimental-strip-types --test tests/salon-whatsapp-booking.test.mjs tests/salon-official-media.test.mjs
+          npm run build:salon
+      - name: Create non-production QA visual preview without deploying to durable Worker
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p qa-vanessa-visual
+          short="$(echo "$GITHUB_SHA" | cut -c1-10)"
+          npx wrangler preview \
+            --config apps/salon/wrangler.qa.jsonc \
+            --worker-name tupiniquim-salon-qa \
+            --name "vanessa-visual-$short" \
+            --tag "vanessa-$short" \
+            --message "Vanessa original photo visual QA review SHA $GITHUB_SHA" \
+            --ignore-base-config \
+            --json 2>&1 | tee qa-vanessa-visual/preview.log
+          grep -Eo 'https://[A-Za-z0-9.-]+\.workers\.dev' qa-vanessa-visual/preview.log | awk '!seen[$0]++' > qa-vanessa-visual/urls.txt
+          link="$(sed -n '2p' qa-vanessa-visual/urls.txt)"
+          test -n "$link"
+          case "$link" in
+            https://*tupiniquim-salon-qa.*.workers.dev) ;;
+            *) echo "::error::Not an isolated Salon QA preview"; exit 1 ;;
+          esac
+          echo "$link" > qa-vanessa-visual/immutable-url.txt
+          for attempt in $(seq 1 25); do
+            if curl -fsSL --max-time 30 "$link" > qa-vanessa-visual/home.html; then break; fi
+            sleep 2
+          done
+          test -s qa-vanessa-visual/home.html
+          echo "Vanessa visual QA preview: $link" >> "$GITHUB_STEP_SUMMARY"
+      - name: Chromium E2E - original photographs and WhatsApp appointment request
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx playwright install --with-deps chromium
+          export VANESSA_VISUAL_URL="$(cat qa-vanessa-visual/immutable-url.txt)"
+          npx playwright test apps/salon/e2e/vanessa-visual.qa.spec.ts apps/salon/e2e/whatsapp-booking.qa.spec.ts apps/salon/e2e/vanessa-official-archive.qa.spec.ts --reporter=line
+          echo "Vanessa photo and WhatsApp booking request E2E: PASS; WhatsApp request is not a confirmed calendar reservation or production release" >> "$GITHUB_STEP_SUMMARY"
+      - name: Preserve immutable visual preview address
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: qa-vanessa-visual-${{ github.sha }}
+          if-no-files-found: ignore
+          retention-days: 14
+          path: |
+            qa-vanessa-visual/urls.txt
+            qa-vanessa-visual/immutable-url.txt
+# Re-run QA visual evidence after fixing TS2367 live-only branch narrowing.
+
+# Retry after fixing strict Playwright locator ambiguity; no site media or tenant writes changed.

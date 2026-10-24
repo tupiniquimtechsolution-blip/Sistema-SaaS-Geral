@@ -1,0 +1,249 @@
+name: QA Cloudflare Platform Preview (isolated)
+
+on:
+  push:
+    branches:
+      - qa/tenant-isolation-staging-20261010
+    paths:
+      - .github/workflows/qa-cloudflare-platform-preview.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: qa-cloudflare-platform-preview-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  qa-readonly-browser:
+    name: QA approved project + browser release checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: qa-isolation
+    env:
+      QA_PROJECT_REF: ${{ vars.QA_APPROVED_PROJECT_REF }}
+      QA_APPROVED_PROJECT_REF: ${{ vars.QA_APPROVED_PROJECT_REF }}
+      QA_SUPABASE_URL: ${{ secrets.QA_SUPABASE_URL }}
+      QA_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.QA_SUPABASE_PUBLISHABLE_KEY }}
+      QA_TEST_A_EMAIL: ${{ secrets.QA_TEST_A_EMAIL }}
+      QA_TEST_A_PASSWORD: ${{ secrets.QA_TEST_A_PASSWORD }}
+      QA_TEST_B_EMAIL: ${{ secrets.QA_TEST_B_EMAIL }}
+      QA_TEST_B_PASSWORD: ${{ secrets.QA_TEST_B_PASSWORD }}
+      QA_TENANT_A_SLUG: qa-isolation-tenant-a
+      QA_TENANT_B_SLUG: qa-isolation-tenant-b
+      QA_TEST_MODE: readonly
+      VITE_SUPABASE_URL: ${{ secrets.QA_SUPABASE_URL }}
+      VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.QA_SUPABASE_PUBLISHABLE_KEY }}
+      VITE_DEMO_MODE: 'false'
+      VITE_TENANT_SLUG: qa-isolation-tenant-a
+      BUILDER_BASE_URL: http://127.0.0.1:4173
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Reject any non-QA Supabase destination or role
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REF" = 'refs/heads/qa/tenant-isolation-staging-20261010'
+          test "$QA_PROJECT_REF" = 'ynqbnimlpxlokrxlucdm'
+          test "$QA_SUPABASE_URL" = 'https://ynqbnimlpxlokrxlucdm.supabase.co'
+          node scripts/qa-stage-guard.mjs
+      - name: Install locked dependencies
+        run: npm ci
+      - name: Enforce Cloudflare-only hosting
+        run: npm run hosting:policy
+      - name: Verify public CMS is published-only
+        run: node --experimental-strip-types --test tests/salon-public-cms.test.mjs
+      - name: Verify QA tenant memberships
+        run: node scripts/qa-stage-identity-check.mjs
+      - name: Verify hosted A/B isolation (SELECT only)
+        shell: bash
+        env:
+          SUPABASE_URL: ${{ secrets.QA_SUPABASE_URL }}
+          SUPABASE_PUBLISHABLE_KEY: ${{ secrets.QA_SUPABASE_PUBLISHABLE_KEY }}
+          TEST_A_EMAIL: ${{ secrets.QA_TEST_A_EMAIL }}
+          TEST_A_PASSWORD: ${{ secrets.QA_TEST_A_PASSWORD }}
+          TEST_B_EMAIL: ${{ secrets.QA_TEST_B_EMAIL }}
+          TEST_B_PASSWORD: ${{ secrets.QA_TEST_B_PASSWORD }}
+          TEST_A_TENANT_SLUG: qa-isolation-tenant-a
+          TEST_B_TENANT_SLUG: qa-isolation-tenant-b
+        run: |
+          set -euo pipefail
+          node --experimental-strip-types scripts/cross-tenant-smoke.ts | tee /tmp/qa-platform-isolation.log
+          grep -Fq '[cross-tenant-smoke] status: PASS' /tmp/qa-platform-isolation.log
+      - name: Build QA Platform, Builder, and Salon
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm run build:platform
+          npm run build:builder
+          npm run build:salon
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Start isolated local QA Builder and Salon previews
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm run preview --workspace=tupiniquim-builder -- --host 127.0.0.1 --port 4173 --strictPort > /tmp/qa-builder-preview.log 2>&1 &
+          npx vite preview apps/salon --host 127.0.0.1 --port 4174 --strictPort > /tmp/qa-salon-preview.log 2>&1 &
+          for port in 4173 4174; do
+            ready=0
+            for attempt in $(seq 1 30); do
+              if curl --fail --silent "http://127.0.0.1:$port/" >/dev/null; then ready=1; break; fi
+              sleep 1
+            done
+            test "$ready" -eq 1 || { echo "::error::QA preview is not ready on $port"; exit 1; }
+          done
+      - name: Real QA Browser login, tenant denial and Salon public check
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd apps/builder
+          npx playwright test e2e/salon-builder.qa.spec.ts --reporter=line
+      - name: QA gate evidence
+        shell: bash
+        run: |
+          {
+            echo "## QA release browser evidence"
+            echo "SHA: $GITHUB_SHA"
+            echo "Approved Supabase QA host, read-only A/B isolation, Platform/Builder/Salon builds and QA Browser: PASS"
+            echo "No data writes, billing, DNS, merge, or production routing."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  codeql-qa:
+    name: CodeQL QA commit
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: github/codeql-action/init@v4
+        with:
+          languages: javascript-typescript
+      - uses: github/codeql-action/analyze@v4
+
+  cloudflare-qa-platform:
+    name: Isolated QA Platform Preview + HTTPS/browser smoke
+    needs: [qa-readonly-browser, codeql-qa]
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    environment: qa-isolation
+    env:
+      GH_TOKEN: ${{ github.token }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      QA_PROJECT_REF: ${{ vars.QA_APPROVED_PROJECT_REF }}
+      QA_APPROVED_PROJECT_REF: ${{ vars.QA_APPROVED_PROJECT_REF }}
+      QA_SUPABASE_URL: ${{ secrets.QA_SUPABASE_URL }}
+      QA_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.QA_SUPABASE_PUBLISHABLE_KEY }}
+      QA_TEST_A_EMAIL: ${{ secrets.QA_TEST_A_EMAIL }}
+      QA_TEST_A_PASSWORD: ${{ secrets.QA_TEST_A_PASSWORD }}
+      QA_TEST_B_EMAIL: ${{ secrets.QA_TEST_B_EMAIL }}
+      QA_TEST_B_PASSWORD: ${{ secrets.QA_TEST_B_PASSWORD }}
+      QA_TENANT_A_SLUG: qa-isolation-tenant-a
+      QA_TENANT_B_SLUG: qa-isolation-tenant-b
+      QA_TEST_MODE: readonly
+      VITE_SUPABASE_URL: ${{ secrets.QA_SUPABASE_URL }}
+      VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.QA_SUPABASE_PUBLISHABLE_KEY }}
+      VITE_DEMO_MODE: 'false'
+      VITE_TENANT_SLUG: qa-isolation-tenant-a
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Fail closed on production or missing credentials
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REF" = 'refs/heads/qa/tenant-isolation-staging-20261010'
+          test "$QA_PROJECT_REF" = 'ynqbnimlpxlokrxlucdm'
+          test "$QA_SUPABASE_URL" = 'https://ynqbnimlpxlokrxlucdm.supabase.co'
+          node scripts/qa-stage-guard.mjs
+          test -n "$CLOUDFLARE_API_TOKEN" || { echo "::error::Cloudflare token is unavailable"; exit 1; }
+          test -n "$CLOUDFLARE_ACCOUNT_ID" || { echo "::error::Cloudflare account ID is unavailable"; exit 1; }
+          node <<'NODE'
+          const fs = require('node:fs');
+          const c = JSON.parse(fs.readFileSync('apps/platform/wrangler.qa.jsonc', 'utf8'));
+          if (c.name !== 'tupiniquim-saas-qa' || c.workers_dev !== true || c.routes || c.route ||
+              c.durable_objects || c.queues || c.triggers || c.services || c.vars || c.r2_buckets ||
+              c.d1_databases || c.kv_namespaces) {
+            throw new Error('QA Worker config violates the isolated static-preview allowlist');
+          }
+          console.log('QA Cloudflare target: tupiniquim-saas-qa (static; no prod routes or bindings)');
+          NODE
+      - name: Wait for Monorepo Quality Gates success on the exact SHA
+        shell: bash
+        run: |
+          set -euo pipefail
+          for attempt in $(seq 1 90); do
+            payload="$(gh api "/repos/$GITHUB_REPOSITORY/actions/runs?head_sha=$GITHUB_SHA&event=push&per_page=100")"
+            result="$(jq -r '[.workflow_runs[] | select(.name=="Monorepo Quality Gates")] | sort_by(.created_at) | last | if .==null then "missing" else (.status + "/" + (.conclusion // "-")) end' <<<"$payload")"
+            echo "Monorepo Quality Gates: $result"
+            if [ "$result" = "completed/success" ]; then exit 0; fi
+            if [[ "$result" == "completed/"* ]]; then echo "::error::Same-SHA Quality Gate failed"; exit 1; fi
+            sleep 10
+          done
+          echo "::error::Same-SHA Quality Gate did not finish"; exit 1
+      - name: Install locked dependencies and build QA Platform only
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm ci
+          npm run build:platform
+      - name: Create ONLY an isolated QA Platform Worker Preview
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p qa-cloudflare-evidence
+          short="$(printf '%s' "$GITHUB_SHA" | cut -c1-10)"
+          npx wrangler preview \
+            --config apps/platform/wrangler.qa.jsonc \
+            --worker-name tupiniquim-saas-qa \
+            --name "qa-$short" \
+            --tag "qa-$short" \
+            --message "isolated QA platform preview for SHA $GITHUB_SHA" \
+            --ignore-base-config \
+            --json 2>&1 | tee qa-cloudflare-evidence/preview.log
+          grep -Eo 'https://[A-Za-z0-9.-]+\.workers\.dev' qa-cloudflare-evidence/preview.log | awk '!seen[$0]++' > qa-cloudflare-evidence/urls.txt
+          preview_url="$(sed -n '1p' qa-cloudflare-evidence/urls.txt)"
+          immutable_url="$(sed -n '2p' qa-cloudflare-evidence/urls.txt)"
+          test -n "$preview_url" && test -n "$immutable_url" || { echo "::error::Missing unique Preview URL"; exit 1; }
+          case "$immutable_url" in
+            https://*tupiniquim-saas-qa.*.workers.dev) ;;
+            *) echo "::error::Preview URL is not under the QA Worker"; exit 1 ;;
+          esac
+          printf '%s\n' "$immutable_url" > qa-cloudflare-evidence/immutable-url.txt
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent --show-error --location --max-time 30 "$immutable_url" > qa-cloudflare-evidence/home.html; then break; fi
+            sleep 2
+          done
+          test -s qa-cloudflare-evidence/home.html
+          echo "QA immutable Preview URL: $immutable_url" >> "$GITHUB_STEP_SUMMARY"
+      - name: Browser HTTPS, assets, SPA and console smoke for exact QA deployment
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx playwright install --with-deps chromium
+          export DURABLE_SMOKE_URL="$(cat qa-cloudflare-evidence/immutable-url.txt)"
+          export DURABLE_SMOKE_TITLE="Tupiniquim SaaS"
+          npx playwright test tests/e2e/durable-deploy-smoke.spec.ts --reporter=line
+          echo "QA Preview smoke: PASS; no production deploy/route/DNS/Worker changes" >> "$GITHUB_STEP_SUMMARY"
+      - name: Upload redacted QA preview evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: qa-platform-preview-${{ github.sha }}
+          path: |
+            qa-cloudflare-evidence/urls.txt
+            qa-cloudflare-evidence/immutable-url.txt
+          if-no-files-found: ignore
+          retention-days: 14
