@@ -6,9 +6,13 @@ test("Vanessa visual QA preview displays original editorial photography and no i
   const base = process.env.VANESSA_VISUAL_URL;
   if (!base) throw new Error("VANESSA_VISUAL_URL is required");
   await page.goto(base, { waitUntil: "domcontentloaded", timeout: 30_000 });
-  await expect(page.getByRole("heading", { level: 1, name: "Vanessa Braz" })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1, name: "Vanessa Braz — Beleza & Autoestima" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Acervo de fotografias" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Bastidores em movimento" })).toBeVisible();
+  await expect(page.locator(".vanessa-hero-card h1")).toHaveText("Vanessa Braz — Beleza & Autoestima");
+  await expect(page.getByRole("link", { name: /EXPLORE O ESPAÇO/ })).toHaveAttribute("href", "#espaco");
+  await expect(page.getByRole("heading", { name: "Conheça nosso salão." })).toBeVisible();
+  await expect(page.locator(".vanessa-essence-photo img")).toHaveAttribute("src", /source\/images/);
   await expect(page.locator(".vanessa-hero-img")).toBeVisible();
   await expect.poll(async () => await page.locator(".vanessa-hero-img").getAttribute("src"), {
     timeout: 20_000,
@@ -44,17 +48,57 @@ test("Vanessa visual QA preview displays original editorial photography and no i
   }
 });
 
-test("Salon first visit displays Bem Vindo with brand logo for 2.5 seconds without a button", async ({ page }) => {
+test("Salon first visit displays a translucent photo welcome with full salon identity for 2.5 seconds", async ({ page }) => {
   const base = process.env.VANESSA_VISUAL_URL;
   if (!base) throw new Error("VANESSA_VISUAL_URL is required");
   await page.goto(base, { waitUntil: "domcontentloaded" });
   const intro = page.getByTestId("salon-welcome");
+  await expect(intro).toHaveCSS("background-color", "rgb(250, 248, 245)");
   await expect(intro).toBeVisible();
-  await expect(intro.getByText("Bem Vindo", { exact: true })).toBeVisible();
+  await expect(intro.getByText("Bem-vindo", { exact: true })).toBeVisible();
   await expect(intro.getByRole("img", { name: /Logo Vanessa Braz/ })).toBeVisible();
+  await expect(intro.getByText("ao salão", { exact: true })).toBeVisible();
+  await expect(intro.getByText("Vanessa Braz — Beleza & Autoestima", { exact: true })).toBeVisible();
   await expect(intro.getByRole("button")).toHaveCount(0);
   await expect(intro).toHaveCount(0, { timeout: 5000 });
   await page.reload();
   await expect(page.getByTestId("salon-welcome")).toHaveCount(0);
-  await expect(page.getByRole("heading", { level: 1, name: "Vanessa Braz" })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1, name: "Vanessa Braz — Beleza & Autoestima" })).toBeVisible();
+});
+
+test("Salon offers accessible light/dark switch, preserves preference and keeps text contrast", async ({ page }) => {
+  const base = process.env.VANESSA_VISUAL_URL;
+  if (!base) throw new Error("VANESSA_VISUAL_URL is required");
+  await page.goto(base, { waitUntil: "domcontentloaded" });
+  const salon = page.locator(".vanessa-showcase");
+  const toggle = page.getByRole("button", { name: /Ativar tema (claro|escuro)/ });
+  await expect(toggle).toBeVisible();
+
+  async function checkContrast() {
+    const styles = await salon.evaluate((element) => {
+      const s = getComputedStyle(element);
+      return { foreground: s.color, background: s.backgroundColor };
+    });
+    function luminance(value: string) {
+      const values = value.match(/[\d.]+/g);
+      if (!values || values.length < 3) throw new Error("Missing RGB: " + value);
+      const channels = values.slice(0, 3).map((v) => {
+        const srgb = Number(v) / 255;
+        return srgb <= .04045 ? srgb / 12.92 : ((srgb + .055) / 1.055) ** 2.4;
+      });
+      return channels[0] * .2126 + channels[1] * .7152 + channels[2] * .0722;
+    }
+    const a = luminance(styles.foreground), b = luminance(styles.background);
+    const ratio = (Math.max(a,b) + .05) / (Math.min(a,b) + .05);
+    expect(ratio).toBeGreaterThanOrEqual(4.5);
+  }
+  await checkContrast();
+  const first = await salon.getAttribute("data-theme");
+  await toggle.click();
+  await expect(salon).toHaveAttribute("data-theme", first === "dark" ? "light" : "dark");
+  await checkContrast();
+  const selected = await salon.getAttribute("data-theme");
+  await page.reload();
+  await expect(salon).toHaveAttribute("data-theme", selected!);
+  await checkContrast();
 });
