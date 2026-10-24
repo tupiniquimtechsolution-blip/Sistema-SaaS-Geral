@@ -65,6 +65,15 @@ export default function App() {
     };
   }, []);
 
+  // White-label browser title must reflect the resolved tenant, not the static
+  // generic HTML shell. Also covers refreshes and deep-link SPA navigation.
+  useEffect(() => {
+    if (!runtime || runtime.source === "error") return;
+    const previousTitle = document.title;
+    document.title = runtime.config.brandName + " | Agendamento";
+    return () => { document.title = previousTitle; };
+  }, [runtime]);
+
   if (!runtime) {
     return (
       <main className="runtime-state" aria-busy="true" aria-live="polite">
