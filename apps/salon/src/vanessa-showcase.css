@@ -100,3 +100,12 @@
 @media(min-width:821px) and (max-width:1080px){.vanessa-header nav{gap:10px}.vanessa-header nav a{font-size:.76rem}}
 @media(max-width:820px){.vanessa-location{grid-template-columns:1fr}.vanessa-location iframe{min-height:330px;height:350px}.vanessa-footer-main{grid-template-columns:1fr 1fr}}
 @media(max-width:550px){.vanessa-footer-main{grid-template-columns:1fr}.vanessa-location>div{padding:55px 23px}}
+
+/* Accessible small-screen section navigation. */
+.vanessa-mobile-menu{display:none;position:relative}
+.vanessa-mobile-menu summary{cursor:pointer;list-style:none;padding:12px;border:1px solid #ddd4cd;font-size:.83rem;white-space:nowrap}
+.vanessa-mobile-menu summary::-webkit-details-marker{display:none}
+.vanessa-mobile-menu>div{position:absolute;top:48px;right:0;width:min(82vw,280px);background:#fff;border:1px solid #e5ded9;box-shadow:0 14px 40px #0002;display:flex;flex-direction:column;padding:12px}
+.vanessa-mobile-menu>div a{padding:11px 10px;text-decoration:none;border-bottom:1px solid #f4efec}
+.vanessa-mobile-menu>div a:last-child{border-bottom:0}
+@media(max-width:820px){.vanessa-mobile-menu{display:block;margin-left:auto}.vanessa-header{gap:10px}.vanessa-header nav{display:none}}
