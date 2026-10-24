@@ -30,7 +30,9 @@ export default function SalonWelcome({
       {logoUrl
         ? <img className="salon-welcome-logo" src={logoUrl} alt={"Logo " + brandName} width="144" height="144" />
         : <span className="salon-welcome-fallback">{brandName}</span>}
-      <p>Bem Vindo</p>
+      <p className="salon-welcome-greeting">Bem-vindo</p>
+      <p className="salon-welcome-subtitle">ao salão</p>
+      <p className="salon-welcome-brand">{brandName}</p>
     </div>
   </div>;
 }
