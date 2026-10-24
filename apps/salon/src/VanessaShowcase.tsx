@@ -61,7 +61,7 @@ export default function VanessaShowcase({ config, photos, published }: { config:
   const logoUrl = officialReview ? officialVanessaPhotos[13]?.url : null;
   const heroAsset = officialReview ? gallery[77] ?? gallery[0] : gallery[0];
   const [droneImageAvailable, setDroneImageAvailable] = useState(false);
-  // QA-only: the user-approved generated overhead image becomes the hero when
+  // QA-only: the approved overhead image is a separate space-tour visual when
   // /public/media/espaco-vanessa-vista-superior.webp is committed to this branch.
   // Cloudflare SPA fallback may return index.html with 200 for missing files:
   // validate response MIME to avoid treating fallback HTML as a real image.
@@ -86,7 +86,7 @@ export default function VanessaShowcase({ config, photos, published }: { config:
 
   return (
     <div className="vanessa-showcase" data-theme={theme}>
-      <SalonWelcome enabled={officialReview} logoUrl={logoUrl} brandName={config.brandName} />
+      <SalonWelcome enabled={officialReview} logoUrl={logoUrl} brandName={salonDisplayName} />
       <a className="vanessa-skip" href="#conteudo">Ir para o conteúdo</a>
       <header className="vanessa-header">
         <a className="vanessa-logo" href="#inicio" aria-label={config.brandName + " — início"}>{logoUrl ? <img src={logoUrl} alt={"Logo " + config.brandName} width="64" height="64" /> : config.brandName}</a>
@@ -125,20 +125,34 @@ export default function VanessaShowcase({ config, photos, published }: { config:
 
       <main id="conteudo">
         <section className="vanessa-hero" id="inicio">
-          <img className="vanessa-hero-img" src={displayedHero.src} alt={displayedHero.alt} fetchPriority="high" onError={() => setDroneImageAvailable(false)} />
-          <div className="vanessa-shade" />
+          <div className="vanessa-hero-arch" aria-hidden="true" />
           <div className="vanessa-hero-copy">
             <div className="vanessa-hero-card">
-              <p className="vanessa-eyebrow">SEU ESPAÇO DE BELEZA &amp; AUTOESTIMA</p>
+              <p className="vanessa-eyebrow">UM CONVITE AO SEU BEM-ESTAR</p>
               <h1>{salonDisplayName}</h1>
-              <p>Conheça o salão, inspire-se no nosso acervo e solicite seu horário diretamente com a equipe.</p>
+              <p>Seu momento de beleza e autocuidado começa aqui. Conheça nosso espaço e converse com a equipe para escolher seu atendimento.</p>
               <div className="vanessa-actions">
                 <a className="vanessa-cta-light" href="#agendar">Solicitar horário <span aria-hidden="true">↗</span></a>
                 <a className="vanessa-cta-outline" href="#sobre">Conhecer o salão</a>
               </div>
             </div>
           </div>
-          <span className="vanessa-explore">EXPLORE · ↓</span>
+          <a href="#espaco" className="vanessa-explore">EXPLORE O ESPAÇO <span aria-hidden="true">↓</span></a>
+        </section>
+
+        <section className="vanessa-space-tour" id="espaco" aria-labelledby="vanessa-space-title">
+          <div className="vanessa-space-heading">
+            <div>
+              <p className="vanessa-eyebrow">NOSSO ESPAÇO</p>
+              <h2 id="vanessa-space-title">Conheça nosso salão.</h2>
+            </div>
+            <p>Um ambiente para você se sentir à vontade. Explore a vista do espaço e descubra mais na nossa galeria.</p>
+          </div>
+          <figure className="vanessa-space-figure">
+            <img className="vanessa-hero-img" src={displayedHero.src} alt={displayedHero.alt} fetchPriority="high" onError={() => setDroneImageAvailable(false)} />
+            {officialReview && droneImageAvailable && <figcaption>Vista ilustrativa do ambiente baseada em fotografia do salão.</figcaption>}
+          </figure>
+          <a className="vanessa-space-link" href="#galeria">Explorar a galeria <span aria-hidden="true">↗</span></a>
         </section>
 
         <section className="vanessa-editorial vanessa-essence" id="sobre">
