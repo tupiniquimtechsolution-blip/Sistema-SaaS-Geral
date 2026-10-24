@@ -23,7 +23,7 @@ test("official archive supports browsing 155 photos, 28 videos and downloading a
   ]);
   expect(download.suggestedFilename()).toBe("vanessa-braz-selecao-acervo.json");
 
-  await archive.getByRole("button", { name: "Ampliar fotografia 1" }).click();
+  await archive.getByRole("button", { name: "Ampliar fotografia 1", exact: true }).click();
   await expect(page.getByRole("dialog", { name: "Foto oficial ampliada" })).toBeVisible();
   await page.keyboard.press("Escape");
   await expect(page.getByRole("dialog", { name: "Foto oficial ampliada" })).toHaveCount(0);
