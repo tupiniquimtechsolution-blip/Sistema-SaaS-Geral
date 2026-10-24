@@ -10,10 +10,22 @@ test("Vanessa visual QA preview displays original editorial photography and no i
   await expect(page.getByRole("heading", { name: "Acervo de fotografias" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Bastidores em movimento" })).toBeVisible();
   await expect(page.locator(".vanessa-hero-img")).toBeVisible();
+  await expect.poll(async () => await page.locator(".vanessa-hero-img").getAttribute("src"), {
+    timeout: 20_000,
+    message: "O banner QA precisa exibir a imagem superior aprovada e versionada",
+  }).toBe("/media/espaco-vanessa-vista-superior.webp");
+  const overheadResponse = await page.request.get(new URL("/media/espaco-vanessa-vista-superior.webp", base).toString());
+  expect(overheadResponse.ok()).toBeTruthy();
+  expect(overheadResponse.headers()["content-type"]).toContain("image/webp");
+  await expect.poll(() => page.locator(".vanessa-hero-img").evaluate(
+    (image: HTMLImageElement) => image.complete && image.naturalWidth === 1448
+  ), { timeout: 20_000 }).toBe(true);
+
   await expect(page.locator(".vanessa-official-grid img")).toHaveCount(18);
   await expect(page.locator(".vanessa-videos-grid video")).toHaveCount(4);
   await expect(page.getByText(/155 fotografias distintas/)).toBeVisible();
-  await expect(page.locator("footer")).toContainText("revisão de QA");
+  await expect(page.locator("footer")).not.toContainText("revisão de QA");
+  await expect(page.locator(".vanessa-logo img")).toHaveAttribute("src", /source\/images/);
   await expect(page.getByRole("navigation", { name: "Mapa do site" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Escolha sua preferência" })).toBeVisible();
   await expect(page.getByText(/Nenhum horário é reservado automaticamente/i)).toBeVisible();
@@ -30,4 +42,19 @@ test("Vanessa visual QA preview displays original editorial photography and no i
       timeout: 30_000,
     }).toBe(true);
   }
+});
+
+test("Salon first visit displays Bem Vindo with brand logo for 2.5 seconds without a button", async ({ page }) => {
+  const base = process.env.VANESSA_VISUAL_URL;
+  if (!base) throw new Error("VANESSA_VISUAL_URL is required");
+  await page.goto(base, { waitUntil: "domcontentloaded" });
+  const intro = page.getByTestId("salon-welcome");
+  await expect(intro).toBeVisible();
+  await expect(intro.getByText("Bem Vindo", { exact: true })).toBeVisible();
+  await expect(intro.getByRole("img", { name: /Logo Vanessa Braz/ })).toBeVisible();
+  await expect(intro.getByRole("button")).toHaveCount(0);
+  await expect(intro).toHaveCount(0, { timeout: 5000 });
+  await page.reload();
+  await expect(page.getByTestId("salon-welcome")).toHaveCount(0);
+  await expect(page.getByRole("heading", { level: 1, name: "Vanessa Braz" })).toBeVisible();
 });

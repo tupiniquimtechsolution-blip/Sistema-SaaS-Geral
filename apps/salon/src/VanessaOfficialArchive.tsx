@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ChangeEvent } from "react";
 import { OFFICIAL_VANESSA_COMMIT, OFFICIAL_VANESSA_REPO, officialVanessaPhotos, officialVanessaVideos } from "./official-vanessa-media";
 import "./vanessa-official-archive.css";
 
@@ -10,10 +10,17 @@ const VIDEO_BATCH = 4;
  * Selection is local to this browser and exports a review manifest; it does
  * NOT publish a photo, mutate the tenant, or grant likeness/usage consent.
  */
-export default function VanessaOfficialArchive() {
+export default function VanessaOfficialArchive({ instagramUrl }: { instagramUrl?: string }) {
   const [photoLimit, setPhotoLimit] = useState(PHOTO_BATCH);
   const [videoLimit, setVideoLimit] = useState(VIDEO_BATCH);
-  const [picked, setPicked] = useState<Set<string>>(() => new Set());
+  const [picked, setPicked] = useState<Set<string>>(() => {
+    try {
+      const saved: unknown = JSON.parse(localStorage.getItem("vanessa-qa-selected-media-v1") || "[]");
+      const allowed = new Set([...officialVanessaPhotos, ...officialVanessaVideos].map((asset) => asset.sha256));
+      return new Set(Array.isArray(saved) ? saved.filter((v): v is string => typeof v === "string" && allowed.has(v)) : []);
+    } catch { return new Set(); }
+  });
+  const [importStatus, setImportStatus] = useState("");
   const [zoom, setZoom] = useState<number | null>(null);
   const [showCuration, setShowCuration] = useState(false);
 
@@ -27,6 +34,31 @@ export default function VanessaOfficialArchive() {
     document.addEventListener("keydown", close);
     return () => document.removeEventListener("keydown", close);
   }, [zoom]);
+
+  useEffect(() => {
+    try { localStorage.setItem("vanessa-qa-selected-media-v1", JSON.stringify([...picked])); } catch { /* local storage unavailable */ }
+  }, [picked]);
+
+  async function importReview(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.currentTarget.files?.[0];
+    if (!file) return;
+    try {
+      const parsed: unknown = JSON.parse(await file.text());
+      if (!parsed || typeof parsed !== "object") throw Error("Invalid manifest");
+      const manifest = parsed as { source_repository?: unknown; source_commit?: unknown; selections?: unknown };
+      if (manifest.source_repository !== OFFICIAL_VANESSA_REPO || manifest.source_commit !== OFFICIAL_VANESSA_COMMIT || !Array.isArray(manifest.selections)) {
+        throw Error("Wrong source");
+      }
+      const allowed = new Set([...officialVanessaPhotos, ...officialVanessaVideos].map((asset) => asset.sha256));
+      const hashes = manifest.selections.map((asset: unknown) => asset && typeof asset === "object" && "sha256" in asset ? (asset as {sha256: unknown}).sha256 : null);
+      if (hashes.some((hash) => typeof hash !== "string" || !allowed.has(hash))) throw Error("Unknown media");
+      setPicked(new Set(hashes as string[]));
+      setImportStatus("Seleção importada e preservada neste navegador.");
+    } catch {
+      setImportStatus("Arquivo incompatível com o acervo oficial. Nenhuma seleção foi alterada.");
+    }
+    event.currentTarget.value = "";
+  }
 
   function toggle(key: string) {
     setPicked((current) => {
@@ -70,10 +102,15 @@ export default function VanessaOfficialArchive() {
             aria-expanded={showCuration} aria-controls="vanessa-curation-help">
             {showCuration ? "Ocultar orientação" : "Como selecionar"}
           </button>
+          <label className="vanessa-import-selection">
+            Importar seleção
+            <input type="file" accept=".json,application/json" onChange={importReview} aria-label="Importar seleção JSON" />
+          </label>
           <button type="button" onClick={exportReview} disabled={picked.size === 0}>
             Baixar minha seleção
           </button>
         </div>
+        {importStatus && <p role="status" className="vanessa-archive-info">{importStatus}</p>}
         {showCuration && <p id="vanessa-curation-help" className="vanessa-archive-info">
           Marque cada foto ou vídeo que deseja manter. O botão de download salva uma lista para revisão editorial.
           Isso não envia nada ao servidor nem autoriza automaticamente a publicação de imagens de clientes.
@@ -114,6 +151,10 @@ export default function VanessaOfficialArchive() {
                 <source src={asset.url} type="video/mp4" />
                 Seu navegador não suporta este vídeo.
               </video>
+              <div className="vanessa-video-caption">
+                <span>Vídeo {i + 1} do acervo</span>
+                {instagramUrl && <a href={instagramUrl} target="_blank" rel="noopener noreferrer" aria-label="Abrir perfil do salão no Instagram">Abrir Instagram ↗</a>}
+              </div>
               <label className="vanessa-archive-pick">
                 <input type="checkbox" checked={picked.has(asset.sha256)} onChange={() => toggle(asset.sha256)} />
                 Selecionar vídeo {i + 1}

@@ -33,7 +33,10 @@ test("official archive supports browsing 155 photos, 28 videos and downloading a
   await videos.getByRole("button", { name: "Mostrar mais vídeos" }).click();
   await expect(videos.locator("video")).toHaveCount(8);
   await expect(page.getByRole("link", { name: /Instagram/ }).first()).toHaveAttribute("href", /instagram.com/);
-  await expect(page.locator("#localizacao iframe")).toHaveAttribute("src", /maps.google.com/);
+  await expect(page.locator("#contato iframe")).toHaveAttribute("src", /maps.google.com/);
+  await expect(page.locator("#contato")).toContainText("Chácara Tatuapé, São Paulo");
+  await page.reload();
+  await expect(archive.getByText("1 mídias selecionadas para revisão")).toBeVisible();
 });
 
 test("mobile menu reveals all Salon sections and illustrated service choices", async ({ page }) => {
@@ -43,7 +46,8 @@ test("mobile menu reveals all Salon sections and illustrated service choices", a
   await page.goto(base, { waitUntil: "domcontentloaded" });
   await page.locator(".vanessa-mobile-menu summary").click();
   await expect(page.locator(".vanessa-mobile-menu").getByRole("link", { name: "Galeria" })).toBeVisible();
-  await expect(page.locator(".vanessa-mobile-menu").getByRole("link", { name: "Vídeos" })).toBeVisible();
+  await expect(page.locator(".vanessa-mobile-menu").getByRole("link", { name: "Contato" })).toBeVisible();
+  await expect(page.locator(".vanessa-mobile-menu").getByRole("link", { name: "Vídeos" })).toHaveCount(0);
   const booking = page.locator(".salon-booking-widget");
   await expect(booking.locator(".salon-service-option")).toHaveCount(7);
   await booking.getByRole("button", { name: "Sobrancelhas" }).click();

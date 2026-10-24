@@ -1,0 +1,7 @@
+.salon-install-prompt{position:fixed;left:16px;bottom:18px;z-index:55;max-width:min(340px,calc(100vw - 102px));padding:10px;background:#fff;color:#312a26;border:1px solid #dccbc1;border-radius:14px;box-shadow:0 14px 38px #0003;font-family:Inter,system-ui,sans-serif}
+.salon-install-line{display:flex;align-items:center;gap:5px}
+.salon-install-button{background:#302925;color:#fff;border:0;border-radius:9px;min-height:42px;padding:11px 16px;font:inherit;font-size:.87rem;font-weight:650;cursor:pointer}
+.salon-install-close{background:transparent;color:#54423b;border:0;min-width:35px;min-height:42px;font:inherit;font-size:1.25rem;cursor:pointer}
+.salon-install-prompt p{font-size:.8rem;line-height:1.5;margin:9px 5px 2px}
+.salon-install-prompt button:focus-visible{outline:3px solid #b49176;outline-offset:3px}
+@media(max-width:430px){.salon-install-prompt{left:10px;bottom:12px;max-width:calc(100vw - 95px)}.salon-install-button{padding:10px;font-size:.8rem}}

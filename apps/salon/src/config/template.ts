@@ -31,7 +31,7 @@ export const vanessaPreviewConfig: SalonPublicConfig = {
   instagramUrl: "https://www.instagram.com/vanessabraz_belezaeautoestima/",
   whatsapp: "5511988149152",
   phoneDisplay: "(11) 98814-9152",
-  address: "Rua Redenção 88",
+  address: "Rua Redenção, 88 - Chácara Tatuapé, São Paulo - SP, 03060-010",
   bookingEnabled: true, // WhatsApp request only; no automatic reservation
   mediaPublicationAuthorized: false,
 };
