@@ -5,9 +5,12 @@ import "./vanessa-showcase.css";
 import type { PublicSalonPhoto } from "./business/public-media";
 import type { PublicSalonPage } from "./business/public-cms";
 import SalonBooking, { FloatingWhatsApp } from "./SalonBooking";
+import VanessaOfficialArchive from "./VanessaOfficialArchive";
+import { officialVanessaPhotos, officialVanessaQaReviewAllowed } from "./official-vanessa-media";
 
 /**
- * Faithful QA visual preview of the upstream Vanessa-Braz editorial landing.
+ * Vanessa editorial site in SaaS, with official VanessaBraz-Beleza-e-Autoestima
+ * photographic and video archive shown only in controlled QA review.
  * Source design and media: tupiniquimtechsolution-blip/Vanessa-Braz
  *                       @ 74dd4b81964b92dd8e5730f55c04bbbc0d2314ea
  *
@@ -32,7 +35,10 @@ export default function VanessaShowcase({ config, photos, published }: { config:
   const whatsapp = whatsappUrl(config);
   // Live uses only the approved tenant-scoped Storage projection; the original GitHub
   // photo library is confined to the explicit QA visual review branch.
-  const gallery = photos?.length ? photos.map((p) => ({ src: p.src, alt: p.alt })) : images.map((p) => ({ src: imageUrl(p.file), alt: p.alt }));
+  const officialReview = !photos?.length && officialVanessaQaReviewAllowed(import.meta.env, config.slug);
+  const gallery = photos?.length ? photos.map((p) => ({ src: p.src, alt: p.alt }))
+    : officialReview ? officialVanessaPhotos.map((p, i) => ({ src: p.url, alt: "Fotografia oficial Vanessa Braz " + (i + 1) }))
+    : images.map((p) => ({ src: imageUrl(p.file), alt: p.alt }));
   const visualReview = !photos?.length;
 
   return (
@@ -42,10 +48,12 @@ export default function VanessaShowcase({ config, photos, published }: { config:
         <a className="vanessa-logo" href="#inicio" aria-label={config.brandName + " — início"}>{config.brandName}</a>
         <nav aria-label="Navegação principal">
           <a href="#inicio">Início</a>
+          <a href="#sobre">Sobre</a>
           <a href="#servicos">Serviços</a>
           <a href="#galeria">Galeria</a>
+          {officialReview && <a href="#videos">Vídeos</a>}
           <a href="#agendar">Agendar</a>
-          <a href="#contato">Contato</a>
+          <a href="#localizacao">Localização</a>
         </nav>
         <a className="vanessa-nav-cta" href="#agendar">Agendar</a>
       </header>
@@ -66,7 +74,7 @@ export default function VanessaShowcase({ config, photos, published }: { config:
           <span className="vanessa-explore">EXPLORE · ↓</span>
         </section>
 
-        <section className="vanessa-editorial vanessa-essence">
+        <section className="vanessa-editorial vanessa-essence" id="sobre">
           <img src={gallery[Math.min(2, gallery.length - 1)].src} alt={gallery[Math.min(2, gallery.length - 1)].alt} loading="lazy" />
           <div>
             <p className="vanessa-eyebrow">NOSSA ESSÊNCIA</p>
@@ -101,7 +109,7 @@ export default function VanessaShowcase({ config, photos, published }: { config:
           </section>
         )}
 
-        <section className="vanessa-editorial vanessa-gallery" id="galeria">
+        {officialReview ? <VanessaOfficialArchive /> : <section className="vanessa-editorial vanessa-gallery" id="galeria">
           <p className="vanessa-eyebrow">GALERIA</p>
           <h2>Imagens do acervo</h2>
           <p className="vanessa-gallery-note">{visualReview ? "Acervo visual original da Vanessa, exibido apenas neste preview de revisão. Publicação definitiva requer autorização de mídia e vínculo ao tenant." : "Acervo público aprovado no SaaS para este espaço."}</p>
@@ -112,10 +120,10 @@ export default function VanessaShowcase({ config, photos, published }: { config:
               </button>
             ))}
           </div>
-        </section>
+        </section>}
 
         <section className="vanessa-ambient">
-          <img src={gallery[Math.min(1, gallery.length - 1)].src} alt={gallery[Math.min(1, gallery.length - 1)].alt} loading="lazy" />
+          <img src={gallery[Math.min(3, gallery.length - 1)].src} alt={gallery[Math.min(3, gallery.length - 1)].alt} loading="lazy" />
           <div><p className="vanessa-eyebrow">ACERVO</p><h2>Um olhar sobre o acervo</h2><p>Uma experiência visual a ser preservada na integração com o SaaS.</p></div>
         </section>
 
@@ -133,9 +141,38 @@ export default function VanessaShowcase({ config, photos, published }: { config:
             <div><small>HORÁRIOS</small><span>A confirmar</span></div>
           </div>
         </section>
+        <section className="vanessa-location" id="localizacao">
+          <div>
+            <p className="vanessa-eyebrow">LOCALIZAÇÃO</p>
+            <h2>Encontre a Vanessa Braz</h2>
+            <p>{config.address || "Endereço a confirmar"}</p>
+            <p className="vanessa-location-note">Confirme a cidade e o endereço completo com a equipe antes de se deslocar.</p>
+            {config.address && <a className="vanessa-cta-light" href={mapsSearchUrl(config.address)} target="_blank" rel="noopener noreferrer">Ver endereço no Google Maps ↗</a>}
+          </div>
+          {config.address && <iframe title="Mapa de localização — confirme o endereço com o salão"
+            loading="lazy" referrerPolicy="no-referrer-when-downgrade"
+            src={"https://maps.google.com/maps?q=" + encodeURIComponent(config.address) + "&output=embed"} />}
+        </section>
       </main>
 
-      <footer className="vanessa-footer"><strong>{config.brandName}</strong><p>{visualReview ? "Preview controlado" : "Live tenant"} · {config.tagline} · Serviços, preços e horários sujeitos a confirmação.</p><small>Vertical Salon / Integração SaaS — {visualReview ? "Preview" : "Conteúdo público autorizado"}</small></footer>
+      <footer className="vanessa-footer">
+        <div className="vanessa-footer-main">
+          <div><strong>{config.brandName}</strong><p>{config.tagline}</p><small>{visualReview ? "Acervo oficial em revisão de QA — publicação comercial não autorizada automaticamente." : "Informações públicas do salão."}</small></div>
+          <nav aria-label="Mapa do site">
+            <strong>Explore o site</strong>
+            <a href="#inicio">Início</a><a href="#sobre">Sobre</a><a href="#servicos">Serviços</a>
+            <a href="#galeria">Galeria de fotos</a>
+            {officialReview && <a href="#videos">Vídeos</a>}
+            <a href="#agendar">Agendamento</a><a href="#localizacao">Localização</a>
+            <a href="#contato">Contato</a>
+          </nav>
+          <div className="vanessa-footer-social"><strong>Conecte-se</strong>
+            {config.instagramUrl && <a href={config.instagramUrl} target="_blank" rel="noopener noreferrer">Instagram ↗</a>}
+            {config.whatsapp && <a href={whatsapp} target="_blank" rel="noopener noreferrer">WhatsApp ↗</a>}
+          </div>
+        </div>
+        <small>© {new Date().getFullYear()} {config.brandName}. Serviços, disponibilidade e valores sujeitos a confirmação.</small>
+      </footer>
       <FloatingWhatsApp config={config} />
 
       {galleryOpen !== null && (
