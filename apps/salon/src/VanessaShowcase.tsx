@@ -55,6 +55,19 @@ export default function VanessaShowcase({ config, photos, published }: { config:
           <a href="#agendar">Agendar</a>
           <a href="#localizacao">Localização</a>
         </nav>
+        <details className="vanessa-mobile-menu">
+          <summary aria-label="Abrir menu do site">Menu ☰</summary>
+          <div>
+            <a href="#inicio">Início</a>
+            <a href="#sobre">Sobre</a>
+            <a href="#servicos">Serviços</a>
+            <a href="#galeria">Galeria</a>
+            {officialReview && <a href="#videos">Vídeos</a>}
+            <a href="#agendar">Agendar</a>
+            <a href="#localizacao">Localização</a>
+            <a href="#contato">Contato</a>
+          </div>
+        </details>
         <a className="vanessa-nav-cta" href="#agendar">Agendar</a>
       </header>
 
@@ -69,6 +82,7 @@ export default function VanessaShowcase({ config, photos, published }: { config:
             <div className="vanessa-actions">
               <a className="vanessa-cta-light" href="#agendar">Agendar horário <span aria-hidden="true">↗</span></a>
               {config.whatsapp && <a className="vanessa-cta-outline" href={whatsapp} target="_blank" rel="noopener noreferrer">WhatsApp</a>}
+              {config.instagramUrl && <a className="vanessa-cta-outline" href={config.instagramUrl} target="_blank" rel="noopener noreferrer">Instagram ↗</a>}
             </div>
           </div>
           <span className="vanessa-explore">EXPLORE · ↓</span>
