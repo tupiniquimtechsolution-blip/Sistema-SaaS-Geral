@@ -5,6 +5,11 @@ on:
     branches: [qa/tenant-isolation-staging-20261010]
     paths:
       - .github/workflows/qa-vanessa-visual-preview.yml
+      - apps/salon/src/official-vanessa-media.ts
+      - apps/salon/src/VanessaOfficialArchive.tsx
+      - apps/salon/src/vanessa-official-archive.css
+      - apps/salon/src/vanessa-showcase.css
+      - tests/salon-official-media.test.mjs
       - apps/salon/src/SalonBooking.tsx
       - apps/salon/src/booking/whatsapp-request.ts
       - apps/salon/src/salon-booking.css
@@ -74,6 +79,13 @@ jobs:
             sleep 10
           done
           exit 1
+      - name: Check official Vanessa Braz photo and video originals
+        shell: bash
+        run: |
+          set -euo pipefail
+          official='https://raw.githubusercontent.com/tupiniquimtechsolution-blip/VanessaBraz-Beleza-e-Autoestima/8e4c3048367ebc3bbcae99d5a1f011fae2908a5d/apps/web/public/media/source'
+          curl -fsSL --retry 3 --max-time 40 "$official/images/WhatsApp%20Image%202026-09-12%20at%2010.23.51.jpeg" --output /dev/null
+          curl -fsSL --retry 3 --max-time 40 "$official/videos/WhatsApp%20Video%202026-09-12%20at%2010.24.25.mp4" --output /dev/null
       - name: Confirm original public Vanessa photos are available
         shell: bash
         run: |
@@ -88,7 +100,7 @@ jobs:
           set -euo pipefail
           npm ci
           npm run typecheck:salon
-          node --experimental-strip-types --test tests/salon-whatsapp-booking.test.mjs
+          node --experimental-strip-types --test tests/salon-whatsapp-booking.test.mjs tests/salon-official-media.test.mjs
           npm run build:salon
       - name: Create non-production QA visual preview without deploying to durable Worker
         shell: bash
