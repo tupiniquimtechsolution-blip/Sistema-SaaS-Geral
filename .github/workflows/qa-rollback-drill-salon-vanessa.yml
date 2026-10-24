@@ -1,0 +1,219 @@
+name: QA Rollback Drill - Salon Vanessa
+
+on:
+  push:
+    branches:
+      - qa/tenant-isolation-staging-20261010
+    paths:
+      - .github/workflows/qa-rollback-drill-salon-vanessa.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: qa-durable-wave1-four
+  cancel-in-progress: false
+
+jobs:
+  qa-rollback:
+    name: QA rollback verification - ${{ matrix.vertical }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    environment: qa-isolation
+    strategy:
+      fail-fast: false
+      max-parallel: 1
+      matrix:
+        include:
+          - { vertical: salon, worker: tupiniquim-salon-qa, build: 'build:salon', title: 'Vanessa Braz' }
+    env:
+      GH_TOKEN: ${{ github.token }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      QA_PROJECT_REF: ${{ vars.QA_APPROVED_PROJECT_REF }}
+      QA_SUPABASE_URL: ${{ secrets.QA_SUPABASE_URL }}
+      QA_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.QA_SUPABASE_PUBLISHABLE_KEY }}
+      VITE_SUPABASE_URL: ${{ secrets.QA_SUPABASE_URL }}
+      VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.QA_SUPABASE_PUBLISHABLE_KEY }}
+      VITE_DEMO_MODE: 'false'
+      VITE_TENANT_SLUG: vanessa-braz
+      VITE_VANESSA_QA_VISUAL_OVERLAY: 'true'
+      QA_VERTICAL: ${{ matrix.vertical }}
+      QA_WORKER_NAME: ${{ matrix.worker }}
+      QA_BUILD_CMD: ${{ matrix.build }}
+      QA_EXPECTED_TITLE: ${{ matrix.title }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Reject unapproved tenant, branch, Worker, routes and bindings
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REF" = 'refs/heads/qa/tenant-isolation-staging-20261010'
+          test "$QA_PROJECT_REF" = 'ynqbnimlpxlokrxlucdm'
+          test "$QA_SUPABASE_URL" = 'https://ynqbnimlpxlokrxlucdm.supabase.co'
+          test "$VITE_DEMO_MODE" = 'false'
+          test "$VITE_TENANT_SLUG" = vanessa-braz
+          test "$VITE_VANESSA_QA_VISUAL_OVERLAY" = true
+          test "$VITE_SUPABASE_URL" = 'https://ynqbnimlpxlokrxlucdm.supabase.co'
+          test -n "$CLOUDFLARE_API_TOKEN" && test -n "$CLOUDFLARE_ACCOUNT_ID"
+          node <<'NODE'
+          const fs = require("node:fs");
+          const permitted = { salon: "tupiniquim-salon-qa" };
+          const v = process.env.QA_VERTICAL;
+          const w = process.env.QA_WORKER_NAME;
+          if (!Object.hasOwn(permitted, v) || permitted[v] !== w)
+            throw new Error("QA rollback Worker allowlist rejected");
+          if (process.env.QA_BUILD_CMD !== "build:" + v)
+            throw new Error("Unexpected build command");
+          const c = JSON.parse(fs.readFileSync("apps/" + v + "/wrangler.qa.jsonc", "utf8"));
+          if (c.name !== w || c.workers_dev !== true ||
+              c.assets?.directory !== "./dist" ||
+              c.assets?.not_found_handling !== "single-page-application" ||
+              Object.keys(c).some(k=>!["$schema","name","compatibility_date","workers_dev","assets","previews"].includes(k)) ||
+              Object.keys(c.assets || {}).some(k=>!["directory","not_found_handling"].includes(k)) ||
+              Object.keys(c.previews || {}).length !== 0)
+            throw new Error("Forbidden QA Worker routes or bindings");
+          NODE
+      - name: Require quality PASS on exact commit
+        shell: bash
+        run: |
+          set -euo pipefail
+          for attempt in $(seq 1 100); do
+            payload="$(gh api "/repos/$GITHUB_REPOSITORY/actions/runs?head_sha=$GITHUB_SHA&event=push&per_page=100")"
+            state="$(jq -r '[.workflow_runs[] | select(.name=="Monorepo Quality Gates")] | sort_by(.created_at) | last | if .==null then "missing" else (.status + "/" + (.conclusion // "-")) end' <<< "$payload")"
+            echo "Quality Gates same SHA: $state"
+            if [ "$state" = "completed/success" ]; then exit 0; fi
+            if [[ "$state" == "completed/"* ]]; then echo "::error::Quality Gate did not pass"; exit 1; fi
+            sleep 10
+          done
+          echo "::error::Same-SHA Quality Gate timed out"
+          exit 1
+      - name: Record baseline deployment from Cloudflare API and current HTTPS
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p qa-rollback
+          curl -fsS --retry 2 \
+            -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
+            "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/workers/scripts/$QA_WORKER_NAME/deployments" > qa-rollback/cloudflare-response.json
+          node <<'NODE'
+          const fs = require("node:fs");
+          const body = JSON.parse(fs.readFileSync("qa-rollback/cloudflare-response.json", "utf8"));
+          const records = body.result?.deployments ?? body.result;
+          if (body.success !== true || !Array.isArray(records) || records.length === 0)
+            throw new Error("No authoritative baseline deployment for QA rollback");
+          const latest = [...records].sort((a,b)=>String(b.created_on).localeCompare(String(a.created_on)))[0];
+          if (!latest || latest.versions?.length !== 1 ||
+              Number(latest.versions[0].percentage) !== 100 ||
+              !/^[0-9a-f-]{36}$/i.test(latest.versions[0].version_id))
+            throw new Error("Ambiguous active baseline version; refuse deploy");
+          const version = latest.versions[0].version_id;
+          fs.writeFileSync("qa-rollback/baseline-version.txt", version+"\n");
+          fs.appendFileSync(process.env.GITHUB_ENV, "QA_BASELINE_VERSION="+version+"\n");
+          console.log("QA baseline version captured for "+process.env.QA_WORKER_NAME);
+          NODE
+          rm qa-rollback/cloudflare-response.json
+          url="https://$QA_WORKER_NAME.tupiniquim-techsolution.workers.dev"
+          curl -fsSL --retry 2 --max-time 30 "$url" -o qa-rollback/baseline.html
+          test -s qa-rollback/baseline.html
+          sha256sum qa-rollback/baseline.html | awk '{print $1}' > qa-rollback/baseline.sha256
+      - name: Deploy current QA commit, verify, restore exact baseline and verify
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$QA_BASELINE_VERSION"
+          mkdir -p qa-rollback
+          npm ci
+          npm run "$QA_BUILD_CMD"
+          node --experimental-strip-types --test tests/salon-whatsapp-booking.test.mjs
+          # Build is against the QA Supabase URL, never a production origin.
+          rollback_needed=0
+          restore_on_failure() {
+            code=$?
+            trap - EXIT
+            if [ "$rollback_needed" -eq 1 ]; then
+              echo "::warning::Restoring previously captured QA version after failed validation"
+              npx wrangler rollback "$QA_BASELINE_VERSION" \
+                --name "$QA_WORKER_NAME" \
+                --message "QA rollback drill recovery $GITHUB_SHA" || {
+                  echo "::error::CRITICAL - QA baseline restore failed"
+                  exit 1
+                }
+            fi
+            exit "$code"
+          }
+          trap restore_on_failure EXIT
+          npx wrangler deploy \
+            --config "apps/$QA_VERTICAL/wrangler.qa.jsonc" \
+            --name "$QA_WORKER_NAME" \
+            --message "Isolated QA rollback drill candidate $GITHUB_SHA" \
+            > qa-rollback/deploy.log 2>&1
+          rollback_needed=1
+          url="https://$QA_WORKER_NAME.tupiniquim-techsolution.workers.dev"
+          ready=0
+          for attempt in $(seq 1 25); do
+            if curl -fsSL --max-time 30 "$url" -o qa-rollback/candidate.html && test -s qa-rollback/candidate.html; then ready=1; break; fi
+            sleep 2
+          done
+          test "$ready" -eq 1
+          npx playwright install --with-deps chromium
+          export DURABLE_SMOKE_URL="$url"
+          export DURABLE_SMOKE_TITLE="$QA_EXPECTED_TITLE"
+          export VANESSA_VISUAL_URL="$url"
+          npx playwright test tests/e2e/durable-deploy-smoke.spec.ts apps/salon/e2e/vanessa-visual.qa.spec.ts apps/salon/e2e/whatsapp-booking.qa.spec.ts --reporter=line
+          npx wrangler rollback "$QA_BASELINE_VERSION" \
+            --name "$QA_WORKER_NAME" \
+            --message "QA rollback drill restore verified baseline $GITHUB_SHA" \
+            > qa-rollback/rollback.log 2>&1
+          rollback_needed=0
+          success=0
+          for attempt in $(seq 1 25); do
+            if curl -fsSL --max-time 30 "$url" -o qa-rollback/restored.html &&
+              cmp -s qa-rollback/baseline.html qa-rollback/restored.html; then success=1; break; fi
+            sleep 2
+          done
+          test "$success" -eq 1 || {
+            echo "::error::Restored content does not match captured baseline"
+            exit 1
+          }
+          curl -fsS -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
+            "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/workers/scripts/$QA_WORKER_NAME/deployments" > qa-rollback/after-response.json
+          node <<'NODE'
+          const fs = require("node:fs");
+          const r = JSON.parse(fs.readFileSync("qa-rollback/after-response.json", "utf8"));
+          const list = r.result?.deployments ?? r.result;
+          if (r.success !== true || !Array.isArray(list) || list.length === 0)
+            throw new Error("Unable to verify restored Cloudflare deployment");
+          const latest = [...list].sort((a,b)=>String(b.created_on).localeCompare(String(a.created_on)))[0];
+          const baseline = fs.readFileSync("qa-rollback/baseline-version.txt","utf8").trim();
+          if (latest?.versions?.length !== 1 ||
+              latest.versions[0].version_id !== baseline ||
+              Number(latest.versions[0].percentage) !== 100)
+            throw new Error("Rollback did not return to captured active QA baseline");
+          console.log("Cloudflare QA rollback baseline restored and verified");
+          NODE
+          rm qa-rollback/after-response.json
+          {
+            echo "## QA rollback drill: $QA_VERTICAL — PASS"
+            echo "Worker: $QA_WORKER_NAME (QA only)"
+            echo "Candidate SHA: $GITHUB_SHA"
+            echo "Baseline version ID: $QA_BASELINE_VERSION"
+            echo "QA HTTPS/SPA/console smoke and restoration to baseline: PASS"
+            echo "No production Worker, domain, DNS, or tenant data changes"
+          } >> "$GITHUB_STEP_SUMMARY"
+      - name: Save non-secret QA rollback evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: qa-rollback-${{ matrix.vertical }}-${{ github.sha }}
+          retention-days: 14
+          if-no-files-found: ignore
+          path: |
+            qa-rollback/baseline-version.txt
+            qa-rollback/baseline.sha256
