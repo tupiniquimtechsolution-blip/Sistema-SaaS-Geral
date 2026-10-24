@@ -1,0 +1,176 @@
+name: QA Salon Vanessa Tenant-Backed Durable
+
+on:
+  push:
+    branches: [qa/tenant-isolation-staging-20261010]
+    paths: [.github/workflows/qa-salon-vanessa-durable.yml]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: qa-durable-wave1-four
+  cancel-in-progress: false
+
+jobs:
+  salon-qa:
+    name: Canonical QA Vanessa storefront + photography + WhatsApp + durable Worker
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    environment: qa-isolation
+    env:
+      GH_TOKEN: ${{ github.token }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      QA_PROJECT_REF: ${{ vars.QA_APPROVED_PROJECT_REF }}
+      QA_SUPABASE_URL: ${{ secrets.QA_SUPABASE_URL }}
+      QA_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.QA_SUPABASE_PUBLISHABLE_KEY }}
+      VITE_SUPABASE_URL: ${{ secrets.QA_SUPABASE_URL }}
+      VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.QA_SUPABASE_PUBLISHABLE_KEY }}
+      VITE_DEMO_MODE: 'false'
+      VITE_TENANT_SLUG: vanessa-braz
+      VITE_VANESSA_QA_VISUAL_OVERLAY: 'true'
+      QA_WORKER_NAME: tupiniquim-salon-qa
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Allow only canonical Vanessa QA, no routes or secret bindings
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REF" = refs/heads/qa/tenant-isolation-staging-20261010
+          test "$QA_PROJECT_REF" = ynqbnimlpxlokrxlucdm
+          test "$QA_SUPABASE_URL" = https://ynqbnimlpxlokrxlucdm.supabase.co
+          test "$VITE_SUPABASE_URL" = "$QA_SUPABASE_URL"
+          test -n "$VITE_SUPABASE_PUBLISHABLE_KEY"
+          test "$VITE_DEMO_MODE" = false
+          test "$VITE_TENANT_SLUG" = vanessa-braz
+          test "$VITE_VANESSA_QA_VISUAL_OVERLAY" = true
+          test "$QA_WORKER_NAME" = tupiniquim-salon-qa
+          test -n "$CLOUDFLARE_API_TOKEN" && test -n "$CLOUDFLARE_ACCOUNT_ID"
+          node <<'NODE'
+          const fs=require('node:fs');
+          const c=JSON.parse(fs.readFileSync('apps/salon/wrangler.qa.jsonc','utf8'));
+          if(c.name!==process.env.QA_WORKER_NAME||c.workers_dev!==true||
+             c.assets?.directory!=='./dist'||c.assets?.not_found_handling!=='single-page-application'||
+             Object.keys(c).some(k=>!['$schema','name','compatibility_date','workers_dev','assets','previews'].includes(k))||
+             Object.keys(c.assets||{}).some(k=>!['directory','not_found_handling'].includes(k))||
+             Object.keys(c.previews||{}).length!==0)
+            throw Error('Unsafe QA Worker configuration');
+          const app=fs.readFileSync('apps/salon/src/App.tsx','utf8');
+          if(!app.includes('VITE_VANESSA_QA_VISUAL_OVERLAY')||!app.includes('ynqbnimlpxlokrxlucdm.supabase.co'))
+            throw Error('Tenant-backed QA overlay must be restricted to QA project');
+          NODE
+      - name: Require same-SHA Monorepo Quality Gates PASS
+        shell: bash
+        run: |
+          set -euo pipefail
+          for attempt in $(seq 1 110); do
+            runs="$(gh api "/repos/$GITHUB_REPOSITORY/actions/runs?head_sha=$GITHUB_SHA&event=push&per_page=100")"
+            state="$(jq -r '[.workflow_runs[]|select(.name=="Monorepo Quality Gates")]|sort_by(.created_at)|last|if .==null then "missing" else (.status+"/"+(.conclusion//"-")) end' <<<"$runs")"
+            echo "same-SHA QA quality=$state"
+            if [[ "$state" == completed/success ]]; then exit 0; fi
+            if [[ "$state" == completed/* ]]; then echo "::error::Quality did not pass"; exit 1; fi
+            sleep 10
+          done
+          echo "::error::Same-SHA quality timeout"
+          exit 1
+      - name: Install, unit tests, QA tenant authorization and Salon build
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm ci
+          node --experimental-strip-types --test tests/salon-public-cms.test.mjs tests/salon-public-media.test.mjs tests/salon-whatsapp-booking.test.mjs
+          QA_APPROVED_PROJECT_REF="$QA_PROJECT_REF" node scripts/qa-salon-launch-readiness.mjs
+          npm run typecheck:salon
+          npm run build:salon
+      - name: Preview tenant-backed site and verify photos and WhatsApp E2E
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p qa-salon-durable
+          short="$(echo "$GITHUB_SHA" | cut -c1-10)"
+          npx wrangler preview \
+            --config apps/salon/wrangler.qa.jsonc \
+            --worker-name tupiniquim-salon-qa \
+            --name "vanessa-tenant-qa-$short" \
+            --tag "salon-qa-$short" \
+            --ignore-base-config \
+            --json 2>&1 | tee qa-salon-durable/preview.log
+          grep -Eo 'https://[A-Za-z0-9.-]+\.workers\.dev' qa-salon-durable/preview.log | awk '!seen[$0]++' > qa-salon-durable/urls.txt
+          preview="$(sed -n '2p' qa-salon-durable/urls.txt)"
+          case "$preview" in https://*tupiniquim-salon-qa.*.workers.dev) ;; *) echo "::error::Non-QA preview"; exit 1;; esac
+          echo "$preview" > qa-salon-durable/preview-url.txt
+          npx playwright install --with-deps chromium
+          export VANESSA_VISUAL_URL="$preview"
+          npx playwright test apps/salon/e2e/vanessa-visual.qa.spec.ts apps/salon/e2e/whatsapp-booking.qa.spec.ts --reporter=line
+          echo "Tenant-backed Vanessa QA preview E2E: PASS" >> "$GITHUB_STEP_SUMMARY"
+      - name: Verify no durable Salon QA release exists before first bootstrap
+        shell: bash
+        run: |
+          set -euo pipefail
+          # The prior Salon QA deploy failed first-version initialization (Cloudflare 10222).
+          # Prevent unexpectedly overwriting a version created by another operator.
+          curl -sS -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
+            "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/workers/scripts/$QA_WORKER_NAME/deployments" \
+            > qa-salon-durable/baseline-api.json
+          node <<'NODE'
+          const fs=require('node:fs');
+          const r=JSON.parse(fs.readFileSync('qa-salon-durable/baseline-api.json','utf8'));
+          if(r.success!==true) {
+            // Some Cloudflare accounts expose Workers created by preview with no deployments.
+            const codes=(r.errors||[]).map(e=>Number(e.code));
+            if(!codes.includes(10007)&&!codes.includes(10090)) throw Error('Unable to inspect QA active deployments');
+          } else {
+            const deployments=r.result?.deployments??r.result;
+            if(!Array.isArray(deployments)) throw Error('Unexpected Cloudflare deployments response');
+            if(deployments.length>0) throw Error('Durable QA Salon already has an active deployment. Refuse overwrite; review first.');
+          }
+          console.log('No existing durable Salon deployment; first-version QA bootstrap permitted');
+          NODE
+          rm qa-salon-durable/baseline-api.json
+      - name: Deploy QA-only durable Salon Worker with approved live bootstrap
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Never use --keep-vars for the first QA-only Worker deployment.
+          npx wrangler deploy \
+            --config apps/salon/wrangler.qa.jsonc \
+            --name "$QA_WORKER_NAME" \
+            --message "QA Vanessa tenant-backed WhatsApp booking, SHA $GITHUB_SHA" \
+            2>&1 | tee qa-salon-durable/deploy.log
+      - name: Verify stable HTTPS, original visual and booking widget
+        shell: bash
+        run: |
+          set -euo pipefail
+          export DURABLE_SMOKE_URL="https://$QA_WORKER_NAME.tupiniquim-techsolution.workers.dev"
+          export DURABLE_SMOKE_TITLE="Vanessa Braz"
+          export VANESSA_VISUAL_URL="$DURABLE_SMOKE_URL"
+          echo "$DURABLE_SMOKE_URL" > qa-salon-durable/stable-url.txt
+          ready=0
+          for attempt in $(seq 1 30); do
+            if curl -fsSL --max-time 30 "$DURABLE_SMOKE_URL" > qa-salon-durable/index.html; then ready=1; break; fi
+            sleep 2
+          done
+          test "$ready" = 1
+          npx playwright test tests/e2e/durable-deploy-smoke.spec.ts \
+            apps/salon/e2e/vanessa-visual.qa.spec.ts \
+            apps/salon/e2e/whatsapp-booking.qa.spec.ts --reporter=line
+          echo "### Salon Vanessa durable QA worker PASS" >> "$GITHUB_STEP_SUMMARY"
+          echo "QA only: $DURABLE_SMOKE_URL" >> "$GITHUB_STEP_SUMMARY"
+          echo "Source: canonical Supabase QA tenant; photos: publicly hosted QA visual overlay; no production or Storage media approval implied." >> "$GITHUB_STEP_SUMMARY"
+      - name: Save nonsecret launch evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: qa-salon-vanessa-durable-${{ github.sha }}
+          retention-days: 14
+          if-no-files-found: ignore
+          path: |
+            qa-salon-durable/stable-url.txt
+            qa-salon-durable/preview-url.txt
