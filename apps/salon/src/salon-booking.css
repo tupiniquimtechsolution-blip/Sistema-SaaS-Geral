@@ -45,3 +45,9 @@
 .salon-service-option.is-selected{background:#f4e8e8;border:2px solid #9a6470;box-shadow:0 0 0 2px #9a647022}
 .salon-service-option:focus-visible{outline:3px solid #9a6470;outline-offset:2px}
 @media(max-width:480px){.salon-service-options{grid-template-columns:repeat(2,minmax(0,1fr))}.salon-service-option{min-height:115px}.salon-service-art{width:48px;height:48px}}
+
+/* Refined editorial illustrations. No synthetic people. */
+.salon-service-option{min-height:139px;border-radius:14px;background:linear-gradient(145deg,#fffdfb,#f1e9e5);border-color:#e4d6d0}
+.salon-service-art{width:66px;height:66px;color:#815e59}
+.salon-service-option span{font-size:.79rem;max-width:130px}
+@media(max-width:480px){.salon-service-art{width:57px;height:57px}}
