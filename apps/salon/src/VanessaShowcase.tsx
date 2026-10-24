@@ -6,6 +6,7 @@ import type { PublicSalonPhoto } from "./business/public-media";
 import type { PublicSalonPage } from "./business/public-cms";
 import SalonBooking, { FloatingWhatsApp } from "./SalonBooking";
 import SalonInstallPrompt from "./SalonInstallPrompt";
+import SalonWelcome from "./SalonWelcome";
 import VanessaOfficialArchive from "./VanessaOfficialArchive";
 import { officialVanessaPhotos, officialVanessaQaReviewAllowed } from "./official-vanessa-media";
 
@@ -51,6 +52,7 @@ export default function VanessaShowcase({ config, photos, published }: { config:
 
   return (
     <div className="vanessa-showcase">
+      <SalonWelcome enabled={officialReview} logoUrl={logoUrl} brandName={config.brandName} />
       <a className="vanessa-skip" href="#conteudo">Ir para o conteúdo</a>
       <header className="vanessa-header">
         <a className="vanessa-logo" href="#inicio" aria-label={config.brandName + " — início"}>{logoUrl ? <img src={logoUrl} alt={"Logo " + config.brandName} width="64" height="64" /> : config.brandName}</a>

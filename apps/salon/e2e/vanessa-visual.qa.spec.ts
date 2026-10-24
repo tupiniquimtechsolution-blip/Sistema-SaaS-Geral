@@ -32,3 +32,18 @@ test("Vanessa visual QA preview displays original editorial photography and no i
     }).toBe(true);
   }
 });
+
+test("Salon first visit has a short skippable Bem Vindo and real brand logo", async ({ page }) => {
+  const base = process.env.VANESSA_VISUAL_URL;
+  if (!base) throw new Error("VANESSA_VISUAL_URL is required");
+  await page.goto(base, { waitUntil: "domcontentloaded" });
+  const intro = page.getByTestId("salon-welcome");
+  await expect(intro).toBeVisible();
+  await expect(intro.getByText("Bem Vindo", { exact: true })).toBeVisible();
+  await expect(intro.getByRole("img", { name: /Logo Vanessa Braz/ })).toBeVisible();
+  await intro.getByRole("button", { name: "Pular abertura" }).click();
+  await expect(intro).toHaveCount(0);
+  await page.reload();
+  await expect(page.getByTestId("salon-welcome")).toHaveCount(0);
+  await expect(page.getByRole("heading", { level: 1, name: "Vanessa Braz" })).toBeVisible();
+});

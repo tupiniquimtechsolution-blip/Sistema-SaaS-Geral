@@ -1,0 +1,10 @@
+/* Short splash screen before the salon home page; no video, tracking or third-party calls. */
+.salon-welcome{position:fixed;inset:0;z-index:120;display:grid;place-items:center;background:#faf8f5;color:#302925;pointer-events:none;animation:salon-welcome-appear .25s ease-out both}
+.salon-welcome-content{text-align:center;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:18px;padding:22px}
+.salon-welcome-logo{display:block;width:min(144px,35vw);height:min(144px,35vw);object-fit:contain;border-radius:50%;box-shadow:0 8px 28px #2c1e171c}
+.salon-welcome-fallback{font:400 clamp(1.4rem,4vw,2.3rem) Georgia,serif}
+.salon-welcome p{margin:0;font:400 clamp(2rem,6vw,4rem) "Playfair Display",Georgia,serif;letter-spacing:.025em}
+.salon-welcome-skip{position:absolute;right:clamp(16px,4vw,44px);bottom:clamp(20px,5vw,44px);padding:12px 16px;border:1px solid #ab8c7a;background:#fff;color:#302925;font:600 .84rem Inter,system-ui,sans-serif;cursor:pointer;border-radius:4px;pointer-events:auto}
+.salon-welcome-skip:focus-visible{outline:3px solid #a87960;outline-offset:4px}
+@keyframes salon-welcome-appear{from{opacity:0}to{opacity:1}}
+@media(prefers-reduced-motion:reduce){.salon-welcome{animation:none}}
