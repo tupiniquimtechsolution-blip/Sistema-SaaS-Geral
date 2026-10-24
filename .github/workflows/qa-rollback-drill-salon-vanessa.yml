@@ -1,4 +1,4 @@
-name: QA Rollback Drill - Salon Vanessa
+name: QA Salon Vanessa - Rollback and Stable Release
 
 on:
   push:
@@ -199,12 +199,42 @@ jobs:
           console.log("Cloudflare QA rollback baseline restored and verified");
           NODE
           rm qa-rollback/after-response.json
+          # After proving actual rollback, promote the validated fixed QA build again.
+          # A failed final smoke automatically returns to the captured baseline.
+          npx wrangler deploy \
+            --config "apps/$QA_VERTICAL/wrangler.qa.jsonc" \
+            --name "$QA_WORKER_NAME" \
+            --message "QA Salon final staging candidate after rollback proof $GITHUB_SHA" \
+            > qa-rollback/final-deploy.log 2>&1
+          rollback_needed=1
+          for attempt in $(seq 1 25); do
+            if curl -fsSL --max-time 30 "$url" -o qa-rollback/final.html &&
+               grep -q 'assets/' qa-rollback/final.html; then break; fi
+            sleep 2
+          done
+          npx playwright test tests/e2e/durable-deploy-smoke.spec.ts apps/salon/e2e/vanessa-visual.qa.spec.ts apps/salon/e2e/whatsapp-booking.qa.spec.ts --reporter=line
+          curl -fsS -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
+            "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/workers/scripts/$QA_WORKER_NAME/deployments" > qa-rollback/final-response.json
+          node <<'NODE'
+          const fs=require("node:fs");
+          const result=JSON.parse(fs.readFileSync("qa-rollback/final-response.json","utf8"));
+          const ds=result.result?.deployments??result.result;
+          const previous=fs.readFileSync("qa-rollback/baseline-version.txt","utf8").trim();
+          const newest=Array.isArray(ds)?[...ds].sort((a,b)=>String(b.created_on).localeCompare(String(a.created_on)))[0]:null;
+          if(result.success!==true||newest?.versions?.length!==1||
+             newest.versions[0].version_id===previous||
+             Number(newest.versions[0].percentage)!==100)
+            throw new Error("New QA Salon stable candidate was not promoted at 100%");
+          console.log("Salon final staging candidate promoted with verified rollback evidence");
+          NODE
+          rm qa-rollback/final-response.json
+          rollback_needed=0
           {
             echo "## QA rollback drill: $QA_VERTICAL — PASS"
             echo "Worker: $QA_WORKER_NAME (QA only)"
             echo "Candidate SHA: $GITHUB_SHA"
             echo "Baseline version ID: $QA_BASELINE_VERSION"
-            echo "QA HTTPS/SPA/console smoke and restoration to baseline: PASS"
+            echo "QA HTTPS/SPA/console smoke and rollback to baseline: PASS; re-promoted fixed candidate after verifying baseline"
             echo "No production Worker, domain, DNS, or tenant data changes"
           } >> "$GITHUB_STEP_SUMMARY"
       - name: Save non-secret QA rollback evidence
