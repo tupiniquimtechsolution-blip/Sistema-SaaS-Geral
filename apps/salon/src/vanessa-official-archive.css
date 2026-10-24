@@ -1,0 +1,29 @@
+.vanessa-full-gallery,.vanessa-official-videos{text-align:left}
+.vanessa-full-gallery{max-width:none;background:#f7f3ef}
+.vanessa-archive-lead{max-width:780px;color:#756b64;line-height:1.8;margin:0 0 32px}
+.vanessa-archive-toolbar{display:flex;align-items:center;flex-wrap:wrap;gap:14px 22px;padding:18px 0 25px;border-top:1px solid #dcd2c8}
+.vanessa-archive-toolbar span{flex:1;color:#4f4440;font-size:.84rem}
+.vanessa-archive-toolbar button,.vanessa-archive-more button{min-height:42px;border:1px solid #aa8172;background:transparent;color:#47372f;padding:11px 18px;font:inherit;font-size:.84rem;cursor:pointer}
+.vanessa-archive-toolbar button:last-child,.vanessa-archive-more button{background:#302a2a;color:#fff;border-color:#302a2a}
+.vanessa-archive-toolbar button:disabled{opacity:.4;cursor:not-allowed}
+.vanessa-archive-info{padding:16px 20px;background:#efe7df;border-left:3px solid #ac8c72;color:#67594e;line-height:1.7;font-size:.87rem;margin:12px 0 24px}
+.vanessa-official-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px}
+.vanessa-archive-tile{min-width:0;background:white;border:1px solid #e9e2db}
+.vanessa-archive-view{position:relative;display:block;border:0;background:#e6ddd6;padding:0;width:100%;aspect-ratio:4/5;overflow:hidden;cursor:zoom-in}
+.vanessa-archive-view img{width:100%;height:100%;object-fit:cover;display:block}
+.vanessa-archive-magnify{position:absolute;bottom:10px;right:12px;border-radius:50%;background:#fff;display:grid;place-items:center;width:28px;height:28px;color:#332826}
+.vanessa-archive-pick{display:flex;align-items:center;gap:10px;padding:13px 14px;font-size:.81rem;color:#413c38;cursor:pointer}
+.vanessa-archive-pick input{width:18px;height:18px;accent-color:#955e64}
+.vanessa-archive-more{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:15px;margin-top:25px;color:#756962;font-size:.86rem}
+.vanessa-videos-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:24px}
+.vanessa-video-tile{min-width:0;background:white;border:1px solid #e6ddd5}
+.vanessa-video-tile video{display:block;width:100%;aspect-ratio:9/12;max-height:520px;object-fit:contain;background:#211b1b}
+.vanessa-archive-lightbox{position:fixed;inset:0;z-index:150;background:#080707f5;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:70px 14px 65px}
+.vanessa-archive-lightbox img{max-width:calc(100vw - 130px);max-height:calc(100vh - 160px);width:auto;height:auto;object-fit:contain}
+.vanessa-archive-lightbox button{background:#fff2;color:#fff;border:1px solid #fff8;cursor:pointer;min-width:42px;min-height:45px;font-size:1.5rem}
+.vanessa-archive-lightbox button:focus-visible,.vanessa-archive-toolbar button:focus-visible,.vanessa-archive-view:focus-visible,.vanessa-archive-more button:focus-visible{outline:3px solid #bc8a6c;outline-offset:2px}
+.vanessa-archive-lightbox .vanessa-archive-close{position:absolute;top:15px;right:20px;font-size:.9rem;padding:8px 20px}
+.vanessa-archive-counter{position:absolute;bottom:20px;left:0;right:0;text-align:center;color:#eee;font-size:.83rem}
+@media(max-width:1000px){.vanessa-official-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:650px){.vanessa-official-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.vanessa-videos-grid{grid-template-columns:1fr}.vanessa-archive-pick{padding:10px;font-size:.75rem}.vanessa-archive-lightbox{padding-inline:5px}.vanessa-archive-lightbox img{max-width:calc(100vw - 100px)}}
+@media(prefers-reduced-motion:reduce){.vanessa-official-grid *{transition:none!important}}
