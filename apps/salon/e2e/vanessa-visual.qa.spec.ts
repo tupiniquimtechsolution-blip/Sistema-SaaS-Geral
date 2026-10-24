@@ -33,7 +33,7 @@ test("Vanessa visual QA preview displays original editorial photography and no i
   }
 });
 
-test("Salon first visit has a short skippable Bem Vindo and real brand logo", async ({ page }) => {
+test("Salon first visit displays Bem Vindo with brand logo for 2.5 seconds without a button", async ({ page }) => {
   const base = process.env.VANESSA_VISUAL_URL;
   if (!base) throw new Error("VANESSA_VISUAL_URL is required");
   await page.goto(base, { waitUntil: "domcontentloaded" });
@@ -41,8 +41,8 @@ test("Salon first visit has a short skippable Bem Vindo and real brand logo", as
   await expect(intro).toBeVisible();
   await expect(intro.getByText("Bem Vindo", { exact: true })).toBeVisible();
   await expect(intro.getByRole("img", { name: /Logo Vanessa Braz/ })).toBeVisible();
-  await intro.getByRole("button", { name: "Pular abertura" }).click();
-  await expect(intro).toHaveCount(0);
+  await expect(intro.getByRole("button")).toHaveCount(0);
+  await expect(intro).toHaveCount(0, { timeout: 5000 });
   await page.reload();
   await expect(page.getByTestId("salon-welcome")).toHaveCount(0);
   await expect(page.getByRole("heading", { level: 1, name: "Vanessa Braz" })).toBeVisible();

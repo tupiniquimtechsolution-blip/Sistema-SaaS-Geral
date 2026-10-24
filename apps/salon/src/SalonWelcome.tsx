@@ -19,8 +19,7 @@ export default function SalonWelcome({
     if (!enabled || !visible) return;
     try { sessionStorage.setItem(SEEN_KEY, "1"); }
     catch { /* private browsing or blocked storage */ }
-    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    const timer = window.setTimeout(() => setVisible(false), reducedMotion ? 700 : 1900);
+    const timer = window.setTimeout(() => setVisible(false), 2500);
     return () => window.clearTimeout(timer);
   }, [enabled, visible]);
 
@@ -33,8 +32,5 @@ export default function SalonWelcome({
         : <span className="salon-welcome-fallback">{brandName}</span>}
       <p>Bem Vindo</p>
     </div>
-    <button className="salon-welcome-skip" type="button" onClick={() => setVisible(false)}>
-      Pular abertura
-    </button>
   </div>;
 }
