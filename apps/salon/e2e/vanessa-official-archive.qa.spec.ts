@@ -15,7 +15,7 @@ test("official archive supports browsing 155 photos, 28 videos and downloading a
   await archive.getByRole("button", { name: "Mostrar mais fotografias" }).click();
   await expect(archive.locator(".vanessa-archive-tile")).toHaveCount(36);
 
-  await archive.getByLabel("Selecionar foto 1").check();
+  await archive.getByRole("checkbox", { name: "Selecionar foto 1", exact: true }).check();
   await expect(archive.getByText("1 mídias selecionadas para revisão")).toBeVisible();
   const [download] = await Promise.all([
     page.waitForEvent("download"),
