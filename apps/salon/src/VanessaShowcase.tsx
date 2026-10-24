@@ -5,6 +5,7 @@ import "./vanessa-showcase.css";
 import type { PublicSalonPhoto } from "./business/public-media";
 import type { PublicSalonPage } from "./business/public-cms";
 import SalonBooking, { FloatingWhatsApp } from "./SalonBooking";
+import SalonInstallPrompt from "./SalonInstallPrompt";
 import VanessaOfficialArchive from "./VanessaOfficialArchive";
 import { officialVanessaPhotos, officialVanessaQaReviewAllowed } from "./official-vanessa-media";
 
@@ -177,6 +178,7 @@ export default function VanessaShowcase({ config, photos, published }: { config:
         </nav>
         <small>© {new Date().getFullYear()} {config.brandName}. Todos os direitos reservados.</small>
       </footer>
+      <SalonInstallPrompt />
       <FloatingWhatsApp config={config} />
 
       {galleryOpen !== null && (
