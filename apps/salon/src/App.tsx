@@ -81,6 +81,21 @@ export default function App() {
   if (runtime.source === "preview") return <VanessaShowcase config={runtime.config} />;
 
   const config = runtime.config;
+  // QA-only visual overlay: read real Vanessa brand/WhatsApp from the canonical
+  // public bootstrap, while reviewing the already-public, pinned original photos.
+  // No such overlay is allowed for other tenants or any production Supabase URL.
+  const vanessaQaOverlay =
+    import.meta.env.VITE_VANESSA_QA_VISUAL_OVERLAY === "true" &&
+    import.meta.env.VITE_DEMO_MODE === "false" &&
+    import.meta.env.VITE_TENANT_SLUG === "vanessa-braz" &&
+    import.meta.env.VITE_SUPABASE_URL === "https://ynqbnimlpxlokrxlucdm.supabase.co" &&
+    config.slug === "vanessa-braz" &&
+    config.tenantId === "d7c34143-c044-4ad6-ac44-75e54118a857";
+  if (vanessaQaOverlay) {
+    // Public QA-only photographs have not been migrated to tenant Storage and
+    // must never imply mediaPublicationAuthorized or production clearance.
+    return <VanessaShowcase config={config} photos={publicPhotos} published={published} />;
+  }
   if (config.mediaPublicationAuthorized && publicPhotos.length > 0) {
     return <VanessaShowcase config={config} photos={publicPhotos} published={published} />;
   }
