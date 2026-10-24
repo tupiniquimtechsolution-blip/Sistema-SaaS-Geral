@@ -6,7 +6,8 @@ test("Vanessa booking calendar creates custom WhatsApp request without reserving
   await page.goto(base, { waitUntil: "domcontentloaded" });
   const widget = page.locator(".salon-booking-widget");
   await expect(widget).toBeVisible();
-  await widget.locator("#salon-service").selectOption("cabelo");
+  await widget.getByRole("button", { name: "Cabelos e tratamentos" }).click();
+  await expect(widget.getByRole("button", { name: "Cabelos e tratamentos" })).toHaveAttribute("aria-pressed", "true");
   const validDays = widget.locator(".salon-booking-day-grid button:not([disabled])");
   await expect(validDays.first()).toBeVisible();
   await validDays.nth(1).click(); // tomorrow, avoids past-time cutoffs
