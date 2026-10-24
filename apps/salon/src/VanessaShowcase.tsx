@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { SalonPublicConfig } from "./config/template";
 import { mapsSearchUrl, whatsappUrl } from "./config/template";
 import "./vanessa-showcase.css";
@@ -45,6 +45,25 @@ export default function VanessaShowcase({ config, photos, published }: { config:
   // Photo numbers are 1-based as shown in the QA gallery.
   const logoUrl = officialReview ? officialVanessaPhotos[13]?.url : null;
   const heroAsset = officialReview ? gallery[77] ?? gallery[0] : gallery[0];
+  const [droneImageAvailable, setDroneImageAvailable] = useState(false);
+  // QA-only: the user-approved generated overhead image becomes the hero when
+  // /public/media/espaco-vanessa-vista-superior.webp is committed to this branch.
+  // Cloudflare SPA fallback may return index.html with 200 for missing files:
+  // validate response MIME to avoid treating fallback HTML as a real image.
+  useEffect(() => {
+    if (!officialReview) return;
+    const controller = new AbortController();
+    fetch("/media/espaco-vanessa-vista-superior.webp", {
+      method: "HEAD", signal: controller.signal, cache: "no-store",
+    }).then((response) => {
+      const type = response.headers.get("content-type") ?? "";
+      if (response.ok && type.includes("image/webp")) setDroneImageAvailable(true);
+    }).catch(() => undefined);
+    return () => controller.abort();
+  }, [officialReview]);
+  const displayedHero = officialReview && droneImageAvailable
+    ? { src: "/media/espaco-vanessa-vista-superior.webp", alt: "Vista superior do salão de beleza Vanessa Braz" }
+    : heroAsset;
   // The address comes from the verified business listing; QA review only.
   const contactAddress = officialReview && config.slug === "vanessa-braz"
     ? "Rua Redenção, 88 - Chácara Tatuapé, São Paulo - SP, 03060-010"
@@ -80,7 +99,7 @@ export default function VanessaShowcase({ config, photos, published }: { config:
 
       <main id="conteudo">
         <section className="vanessa-hero" id="inicio">
-          <img className="vanessa-hero-img" src={heroAsset.src} alt={heroAsset.alt} fetchPriority="high" />
+          <img className="vanessa-hero-img" src={displayedHero.src} alt={displayedHero.alt} fetchPriority="high" onError={() => setDroneImageAvailable(false)} />
           <div className="vanessa-shade" />
           <div className="vanessa-hero-copy">
             <p className="vanessa-eyebrow">BELEZA &amp; AUTOESTIMA</p>
