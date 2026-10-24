@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import type { SalonPublicConfig } from "./config/template";
 import { mapsSearchUrl, whatsappUrl } from "./config/template";
 import "./vanessa-showcase.css";
+import "./vanessa-premium-theme.css";
 import type { PublicSalonPhoto } from "./business/public-media";
 import type { PublicSalonPage } from "./business/public-cms";
 import SalonBooking, { FloatingWhatsApp } from "./SalonBooking";
@@ -35,6 +36,17 @@ const imageUrl = (filename: string) => source + filename;
 export default function VanessaShowcase({ config, photos, published }: { config: SalonPublicConfig; photos?: PublicSalonPhoto[]; published?: PublicSalonPage | null }) {
   const [galleryOpen, setGalleryOpen] = useState<number | null>(null);
   const whatsapp = whatsappUrl(config);
+  const [theme, setTheme] = useState<"light" | "dark">(() => {
+    if (typeof window === "undefined") return "light";
+    try {
+      const saved = window.localStorage.getItem("vanessa-theme-v1");
+      if (saved === "light" || saved === "dark") return saved;
+    } catch { /* private browsing */ }
+    return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+  });
+  useEffect(() => {
+    try { window.localStorage.setItem("vanessa-theme-v1", theme); } catch { /* unavailable */ }
+  }, [theme]);
   // Live uses only the approved tenant-scoped Storage projection; the original GitHub
   // photo library is confined to the explicit QA visual review branch.
   const officialReview = !photos?.length && officialVanessaQaReviewAllowed(import.meta.env, config.slug);
@@ -42,6 +54,9 @@ export default function VanessaShowcase({ config, photos, published }: { config:
     : officialReview ? officialVanessaPhotos.map((p, i) => ({ src: p.url, alt: "Fotografia oficial Vanessa Braz " + (i + 1) }))
     : images.map((p) => ({ src: imageUrl(p.file), alt: p.alt }));
   const visualReview = !photos?.length;
+  const salonDisplayName = officialReview && config.slug === "vanessa-braz"
+    ? "Vanessa Braz — Beleza & Autoestima"
+    : config.brandName;
   // Photo numbers are 1-based as shown in the QA gallery.
   const logoUrl = officialReview ? officialVanessaPhotos[13]?.url : null;
   const heroAsset = officialReview ? gallery[77] ?? gallery[0] : gallery[0];
@@ -70,7 +85,7 @@ export default function VanessaShowcase({ config, photos, published }: { config:
     : config.address;
 
   return (
-    <div className="vanessa-showcase">
+    <div className="vanessa-showcase" data-theme={theme}>
       <SalonWelcome enabled={officialReview} logoUrl={logoUrl} brandName={config.brandName} />
       <a className="vanessa-skip" href="#conteudo">Ir para o conteúdo</a>
       <header className="vanessa-header">
@@ -94,6 +109,17 @@ export default function VanessaShowcase({ config, photos, published }: { config:
             <a href="#contato">Contato</a>
           </div>
         </details>
+        <button
+          className="vanessa-theme-toggle"
+          type="button"
+          onClick={() => setTheme((current) => current === "dark" ? "light" : "dark")}
+          aria-label={theme === "dark" ? "Ativar tema claro" : "Ativar tema escuro"}
+          title={theme === "dark" ? "Ativar tema claro" : "Ativar tema escuro"}
+          aria-pressed={theme === "dark"}
+        >
+          <span aria-hidden="true">{theme === "dark" ? "☀" : "☾"}</span>
+          <span className="vanessa-theme-label">{theme === "dark" ? "Tema claro" : "Tema escuro"}</span>
+        </button>
         <a className="vanessa-nav-cta" href="#agendar">Agendar</a>
       </header>
 
@@ -102,36 +128,51 @@ export default function VanessaShowcase({ config, photos, published }: { config:
           <img className="vanessa-hero-img" src={displayedHero.src} alt={displayedHero.alt} fetchPriority="high" onError={() => setDroneImageAvailable(false)} />
           <div className="vanessa-shade" />
           <div className="vanessa-hero-copy">
-            <p className="vanessa-eyebrow">BELEZA &amp; AUTOESTIMA</p>
-            <h1>{config.brandName}</h1>
-            <p>Um espaço para acompanhar informações confirmadas sobre serviços, disponibilidade e formas de agendamento.</p>
-            <div className="vanessa-actions">
-              <a className="vanessa-cta-light" href="#agendar">Agendar horário <span aria-hidden="true">↗</span></a>
-              <a className="vanessa-cta-outline" href="#galeria">Conheça nosso espaço</a>
+            <div className="vanessa-hero-card">
+              <p className="vanessa-eyebrow">SEU ESPAÇO DE BELEZA &amp; AUTOESTIMA</p>
+              <h1>{salonDisplayName}</h1>
+              <p>Conheça o salão, inspire-se no nosso acervo e solicite seu horário diretamente com a equipe.</p>
+              <div className="vanessa-actions">
+                <a className="vanessa-cta-light" href="#agendar">Solicitar horário <span aria-hidden="true">↗</span></a>
+                <a className="vanessa-cta-outline" href="#sobre">Conhecer o salão</a>
+              </div>
             </div>
           </div>
           <span className="vanessa-explore">EXPLORE · ↓</span>
         </section>
 
         <section className="vanessa-editorial vanessa-essence" id="sobre">
-          <img src={gallery[Math.min(2, gallery.length - 1)].src} alt={gallery[Math.min(2, gallery.length - 1)].alt} loading="lazy" />
-          <div>
-            <p className="vanessa-eyebrow">NOSSA ESSÊNCIA</p>
-            <h2>Beleza e autocuidado, no seu tempo.</h2>
-            <p>Este espaço reúne a identidade visual de {config.brandName} e informações que podem ser consultadas antes do agendamento.</p>
-            <p>Detalhes sobre serviços, técnicas, estrutura e disponibilidade serão publicados somente após confirmação.</p>
-            <a href="#servicos" className="vanessa-inline-link">Conheça os serviços →</a>
+          <div className="vanessa-essence-photo">
+            <img
+              src={gallery[0].src}
+              alt={gallery[0].alt}
+              loading="lazy"
+            />
+            <span>Beleza que começa em você</span>
+          </div>
+          <div className="vanessa-essence-content">
+            <p className="vanessa-eyebrow">01 / NOSSA ESSÊNCIA</p>
+            <h2>Um momento para cuidar de você.</h2>
+            <div className="vanessa-essence-body">
+              <p>Bem-estar, autoestima e cuidado em um só lugar.</p>
+              <p>Explore as fotos do salão, conheça as opções de atendimento e escolha seu horário de preferência. A equipe confirma os detalhes pelo WhatsApp.</p>
+              <a href="#servicos" className="vanessa-inline-link">Conheça nossos serviços <span aria-hidden="true">↗</span></a>
+            </div>
           </div>
         </section>
 
         <section className="vanessa-editorial vanessa-services" id="servicos">
-          <p className="vanessa-eyebrow">SERVIÇOS</p>
-          <h2>Serviços e informações</h2>
-          <p>O catálogo está aguardando confirmação de serviços, preços e horários. Nenhum procedimento ou valor foi inventado para este preview.</p>
+          <div className="vanessa-section-heading">
+            <div>
+              <p className="vanessa-eyebrow">02 / SERVIÇOS</p>
+              <h2>Seu cuidado, no seu ritmo.</h2>
+            </div>
+            <p>Uma experiência simples, do primeiro contato até a escolha do horário. Valores e disponibilidade são confirmados pela equipe.</p>
+          </div>
           <div className="vanessa-info-list">
-            <div><span>01</span><strong>Informações confirmadas</strong><p>Serviços e valores serão exibidos após aprovação no SaaS Core.</p></div>
-            <div><span>02</span><strong>Escolha de data</strong><p>Escolha o dia e horário de preferência e solicite a confirmação pelo WhatsApp.</p></div>
-            <div><span>03</span><strong>Mensagem personalizada</strong><p>Informe o serviço e acrescente observações antes de abrir o WhatsApp.</p></div>
+            <div><span>01 / CONHEÇA</span><strong>Explore o espaço</strong><p>Veja o ambiente e inspire-se nas imagens da galeria.</p></div>
+            <div><span>02 / ESCOLHA</span><strong>Sua preferência</strong><p>Selecione o tipo de cuidado, o dia e o horário que deseja solicitar.</p></div>
+            <div><span>03 / CONVERSE</span><strong>Confirme com a equipe</strong><p>Envie seu pedido pelo WhatsApp e combine os detalhes diretamente com o salão.</p></div>
           </div>
         </section>
 
@@ -161,13 +202,8 @@ export default function VanessaShowcase({ config, photos, published }: { config:
           </div>
         </section>}
 
-        <section className="vanessa-ambient">
-          <img src={gallery[Math.min(3, gallery.length - 1)].src} alt={gallery[Math.min(3, gallery.length - 1)].alt} loading="lazy" />
-          <div><p className="vanessa-eyebrow">ACERVO</p><h2>Um olhar sobre o acervo</h2><p>Uma experiência visual a ser preservada na integração com o SaaS.</p></div>
-        </section>
-
         <section className="vanessa-book" id="agendar">
-          <div><p className="vanessa-eyebrow">AGENDAMENTO</p><h2>Escolha seu dia, horário e serviço.</h2><p>Personalize sua solicitação e envie pelo WhatsApp. A equipe confirma os horários e os detalhes do atendimento diretamente na conversa.</p></div>
+          <div className="vanessa-book-copy"><p className="vanessa-eyebrow">03 / AGENDAMENTO</p><h2>Seu próximo momento de autocuidado.</h2><p>Escolha o cuidado, o dia e o horário de preferência. Envie a solicitação pelo WhatsApp e aguarde a confirmação da equipe.</p></div>
           <SalonBooking config={config} />
         </section>
 
@@ -197,7 +233,7 @@ export default function VanessaShowcase({ config, photos, published }: { config:
           <a href="#inicio">Início</a><a href="#sobre">Sobre</a><a href="#servicos">Serviços</a>
           <a href="#galeria">Galeria</a><a href="#agendar">Agendamento</a><a href="#contato">Contato</a>
         </nav>
-        <small>© {new Date().getFullYear()} {config.brandName}. Todos os direitos reservados.</small>
+        <small>© {new Date().getFullYear()} {salonDisplayName}. Todos os direitos reservados.</small>
       </footer>
       <SalonInstallPrompt />
       <FloatingWhatsApp config={config} />
