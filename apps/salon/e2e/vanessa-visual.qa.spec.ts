@@ -13,7 +13,8 @@ test("Vanessa visual QA preview displays original editorial photography and no i
   await expect(page.locator(".vanessa-official-grid img")).toHaveCount(18);
   await expect(page.locator(".vanessa-videos-grid video")).toHaveCount(4);
   await expect(page.getByText(/155 fotografias distintas/)).toBeVisible();
-  await expect(page.locator("footer")).toContainText("revisão de QA");
+  await expect(page.locator("footer")).not.toContainText("revisão de QA");
+  await expect(page.locator(".vanessa-logo img")).toHaveAttribute("src", /source\/images/);
   await expect(page.getByRole("navigation", { name: "Mapa do site" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Escolha sua preferência" })).toBeVisible();
   await expect(page.getByText(/Nenhum horário é reservado automaticamente/i)).toBeVisible();

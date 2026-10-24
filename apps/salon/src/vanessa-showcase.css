@@ -109,3 +109,21 @@
 .vanessa-mobile-menu>div a{padding:11px 10px;text-decoration:none;border-bottom:1px solid #f4efec}
 .vanessa-mobile-menu>div a:last-child{border-bottom:0}
 @media(max-width:820px){.vanessa-mobile-menu{display:block;margin-left:auto}.vanessa-header{gap:10px}.vanessa-header nav{display:none}}
+
+/* Premium QA header, contact, full address and clean site map. */
+.vanessa-logo{display:inline-flex;align-items:center;justify-content:center;min-width:64px;min-height:64px;flex:none}
+.vanessa-logo img{width:60px;height:60px;object-fit:contain;border-radius:50%;display:block}
+.vanessa-hero-img{object-position:center 48%}
+.vanessa-contact{max-width:1400px}
+.vanessa-contact-actions{display:flex;flex-wrap:wrap;gap:13px;margin-bottom:55px}
+.vanessa-contact-actions a{display:inline-flex;align-items:center;min-height:50px;padding:13px 23px;border:1px solid #a68a74;text-decoration:none;font-size:.93rem;color:#312b27}
+.vanessa-contact-actions a:first-child{background:#302925;color:white}
+.vanessa-contact .vanessa-location{border:1px solid #d9cabd}
+.vanessa-contact .vanessa-location h2{font-size:clamp(2rem,4vw,3.4rem)}
+.vanessa-footer-links{display:flex;justify-content:center;align-items:center;flex-wrap:wrap;gap:15px 28px;margin-bottom:23px}
+.vanessa-footer-links strong{font-family:Inter,system-ui,sans-serif;font-size:.94rem;font-weight:650}
+.vanessa-footer-links a{font-size:.85rem;text-decoration:none;color:#e1d9d2}
+.vanessa-footer-links a:hover{text-decoration:underline;text-underline-offset:4px}
+.vanessa-footer>small{display:block;text-align:center}
+@media(max-width:820px){.vanessa-logo,.vanessa-logo img{width:49px;height:49px;min-width:49px;min-height:49px}.vanessa-contact .vanessa-location{grid-template-columns:1fr}}
+@media(max-width:550px){.vanessa-contact-actions{flex-direction:column}.vanessa-contact-actions a{justify-content:center}.vanessa-footer-links{gap:14px 19px}.vanessa-footer-links strong{width:100%;text-align:center}}

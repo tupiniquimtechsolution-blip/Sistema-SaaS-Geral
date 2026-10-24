@@ -40,20 +40,26 @@ export default function VanessaShowcase({ config, photos, published }: { config:
     : officialReview ? officialVanessaPhotos.map((p, i) => ({ src: p.url, alt: "Fotografia oficial Vanessa Braz " + (i + 1) }))
     : images.map((p) => ({ src: imageUrl(p.file), alt: p.alt }));
   const visualReview = !photos?.length;
+  // Photo numbers are 1-based as shown in the QA gallery.
+  const logoUrl = officialReview ? officialVanessaPhotos[13]?.url : null;
+  const heroAsset = officialReview ? gallery[77] ?? gallery[0] : gallery[0];
+  // The address comes from the verified business listing; QA review only.
+  const contactAddress = officialReview && config.slug === "vanessa-braz"
+    ? "Rua Redenção, 88 - Chácara Tatuapé, São Paulo - SP, 03060-010"
+    : config.address;
 
   return (
     <div className="vanessa-showcase">
       <a className="vanessa-skip" href="#conteudo">Ir para o conteúdo</a>
       <header className="vanessa-header">
-        <a className="vanessa-logo" href="#inicio" aria-label={config.brandName + " — início"}>{config.brandName}</a>
+        <a className="vanessa-logo" href="#inicio" aria-label={config.brandName + " — início"}>{logoUrl ? <img src={logoUrl} alt={"Logo " + config.brandName} width="64" height="64" /> : config.brandName}</a>
         <nav aria-label="Navegação principal">
           <a href="#inicio">Início</a>
           <a href="#sobre">Sobre</a>
           <a href="#servicos">Serviços</a>
           <a href="#galeria">Galeria</a>
-          {officialReview && <a href="#videos">Vídeos</a>}
-          <a href="#agendar">Agendar</a>
-          <a href="#localizacao">Localização</a>
+          <a href="#agendar">Agendamento</a>
+          <a href="#contato">Contato</a>
         </nav>
         <details className="vanessa-mobile-menu">
           <summary aria-label="Abrir menu do site">Menu ☰</summary>
@@ -62,9 +68,7 @@ export default function VanessaShowcase({ config, photos, published }: { config:
             <a href="#sobre">Sobre</a>
             <a href="#servicos">Serviços</a>
             <a href="#galeria">Galeria</a>
-            {officialReview && <a href="#videos">Vídeos</a>}
-            <a href="#agendar">Agendar</a>
-            <a href="#localizacao">Localização</a>
+            <a href="#agendar">Agendamento</a>
             <a href="#contato">Contato</a>
           </div>
         </details>
@@ -73,7 +77,7 @@ export default function VanessaShowcase({ config, photos, published }: { config:
 
       <main id="conteudo">
         <section className="vanessa-hero" id="inicio">
-          <img className="vanessa-hero-img" src={gallery[0].src} alt={gallery[0].alt} fetchPriority="high" />
+          <img className="vanessa-hero-img" src={heroAsset.src} alt={heroAsset.alt} fetchPriority="high" />
           <div className="vanessa-shade" />
           <div className="vanessa-hero-copy">
             <p className="vanessa-eyebrow">BELEZA &amp; AUTOESTIMA</p>
@@ -81,8 +85,7 @@ export default function VanessaShowcase({ config, photos, published }: { config:
             <p>Um espaço para acompanhar informações confirmadas sobre serviços, disponibilidade e formas de agendamento.</p>
             <div className="vanessa-actions">
               <a className="vanessa-cta-light" href="#agendar">Agendar horário <span aria-hidden="true">↗</span></a>
-              {config.whatsapp && <a className="vanessa-cta-outline" href={whatsapp} target="_blank" rel="noopener noreferrer">WhatsApp</a>}
-              {config.instagramUrl && <a className="vanessa-cta-outline" href={config.instagramUrl} target="_blank" rel="noopener noreferrer">Instagram ↗</a>}
+              <a className="vanessa-cta-outline" href="#galeria">Conheça nosso espaço</a>
             </div>
           </div>
           <span className="vanessa-explore">EXPLORE · ↓</span>
@@ -123,7 +126,7 @@ export default function VanessaShowcase({ config, photos, published }: { config:
           </section>
         )}
 
-        {officialReview ? <VanessaOfficialArchive /> : <section className="vanessa-editorial vanessa-gallery" id="galeria">
+        {officialReview ? <VanessaOfficialArchive instagramUrl={config.instagramUrl} /> : <section className="vanessa-editorial vanessa-gallery" id="galeria">
           <p className="vanessa-eyebrow">GALERIA</p>
           <h2>Imagens do acervo</h2>
           <p className="vanessa-gallery-note">{visualReview ? "Acervo visual original da Vanessa, exibido apenas neste preview de revisão. Publicação definitiva requer autorização de mídia e vínculo ao tenant." : "Acervo público aprovado no SaaS para este espaço."}</p>
@@ -147,45 +150,32 @@ export default function VanessaShowcase({ config, photos, published }: { config:
         </section>
 
         <section className="vanessa-editorial vanessa-contact" id="contato">
-          <p className="vanessa-eyebrow">CONTATO</p><h2>{config.brandName}</h2>
-          <div className="vanessa-contact-columns">
-            <div><small>INSTAGRAM</small>{config.instagramUrl && <a href={config.instagramUrl} target="_blank" rel="noopener noreferrer">{config.instagramHandle}</a>}</div>
-            <div><small>WHATSAPP</small>{config.whatsapp && <a href={whatsapp} target="_blank" rel="noopener noreferrer">{config.phoneDisplay}</a>}</div>
-            <div><small>ENDEREÇO</small>{config.address && <a href={mapsSearchUrl(config.address)} target="_blank" rel="noopener noreferrer">{config.address}</a>}</div>
-            <div><small>HORÁRIOS</small><span>A confirmar</span></div>
+          <p className="vanessa-eyebrow">CONTATO</p>
+          <h2>Entre em contato</h2>
+          <div className="vanessa-contact-actions">
+            {config.instagramUrl && <a href={config.instagramUrl} target="_blank" rel="noopener noreferrer" aria-label="Abrir Instagram do salão">Instagram ↗</a>}
+            {config.whatsapp && <a href={whatsapp} target="_blank" rel="noopener noreferrer" aria-label="Conversar com o salão pelo WhatsApp">WhatsApp · {config.phoneDisplay || config.whatsapp} ↗</a>}
           </div>
-        </section>
-        <section className="vanessa-location" id="localizacao">
-          <div>
-            <p className="vanessa-eyebrow">LOCALIZAÇÃO</p>
-            <h2>Encontre a Vanessa Braz</h2>
-            <p>{config.address || "Endereço a confirmar"}</p>
-            <p className="vanessa-location-note">Confirme a cidade e o endereço completo com a equipe antes de se deslocar.</p>
-            {config.address && <a className="vanessa-cta-light" href={mapsSearchUrl(config.address)} target="_blank" rel="noopener noreferrer">Ver endereço no Google Maps ↗</a>}
-          </div>
-          {config.address && <iframe title="Mapa de localização — confirme o endereço com o salão"
-            loading="lazy" referrerPolicy="no-referrer-when-downgrade"
-            src={"https://maps.google.com/maps?q=" + encodeURIComponent(config.address) + "&output=embed"} />}
+          {contactAddress && <div className="vanessa-location">
+            <div>
+              <p className="vanessa-eyebrow">LOCALIZAÇÃO</p>
+              <h2>Encontre nosso salão</h2>
+              <p>{contactAddress}</p>
+              <a className="vanessa-cta-light" href={mapsSearchUrl(contactAddress)} target="_blank" rel="noopener noreferrer">Abrir no Maps ↗</a>
+            </div>
+            <iframe title="Mapa do salão Vanessa Braz" loading="lazy" referrerPolicy="no-referrer-when-downgrade"
+              src={"https://maps.google.com/maps?q=" + encodeURIComponent(contactAddress) + "&output=embed"} />
+          </div>}
         </section>
       </main>
 
       <footer className="vanessa-footer">
-        <div className="vanessa-footer-main">
-          <div><strong>{config.brandName}</strong><p>{config.tagline}</p><small>{visualReview ? "Acervo oficial em revisão de QA — publicação comercial não autorizada automaticamente." : "Informações públicas do salão."}</small></div>
-          <nav aria-label="Mapa do site">
-            <strong>Explore o site</strong>
-            <a href="#inicio">Início</a><a href="#sobre">Sobre</a><a href="#servicos">Serviços</a>
-            <a href="#galeria">Galeria de fotos</a>
-            {officialReview && <a href="#videos">Vídeos</a>}
-            <a href="#agendar">Agendamento</a><a href="#localizacao">Localização</a>
-            <a href="#contato">Contato</a>
-          </nav>
-          <div className="vanessa-footer-social"><strong>Conecte-se</strong>
-            {config.instagramUrl && <a href={config.instagramUrl} target="_blank" rel="noopener noreferrer">Instagram ↗</a>}
-            {config.whatsapp && <a href={whatsapp} target="_blank" rel="noopener noreferrer">WhatsApp ↗</a>}
-          </div>
-        </div>
-        <small>© {new Date().getFullYear()} {config.brandName}. Serviços, disponibilidade e valores sujeitos a confirmação.</small>
+        <nav aria-label="Mapa do site" className="vanessa-footer-links">
+          <strong>Explore o site</strong>
+          <a href="#inicio">Início</a><a href="#sobre">Sobre</a><a href="#servicos">Serviços</a>
+          <a href="#galeria">Galeria</a><a href="#agendar">Agendamento</a><a href="#contato">Contato</a>
+        </nav>
+        <small>© {new Date().getFullYear()} {config.brandName}. Todos os direitos reservados.</small>
       </footer>
       <FloatingWhatsApp config={config} />
 
