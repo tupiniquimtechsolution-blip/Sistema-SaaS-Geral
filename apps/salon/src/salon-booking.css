@@ -35,3 +35,13 @@
 .salon-whatsapp-float:focus-visible{outline:3px solid #20663b;outline-offset:3px}
 @media(max-width:460px){.salon-booking-widget{padding:18px}.salon-booking-day-grid{gap:3px}.salon-booking-day-grid button{min-height:36px;font-size:.8rem}.salon-booking-time-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.salon-whatsapp-float{width:56px;height:56px;right:16px;bottom:16px}}
 @media(prefers-reduced-motion:reduce){.salon-whatsapp-float{transition:none}}
+
+/* Illustrated, directly selectable service choices. */
+.salon-service-options{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;margin-top:12px}
+.salon-service-option{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;min-width:0;min-height:128px;padding:14px 7px;background:#faf7f3;border:1px solid #e7dfd7;border-radius:10px;color:#73544c;cursor:pointer;font:inherit;text-align:center;transition:border-color .15s,background .15s,box-shadow .15s}
+.salon-service-option span{color:#38302d;font-size:.73rem;font-weight:650;line-height:1.35;max-width:115px}
+.salon-service-art{width:54px;height:54px;max-width:100%;flex-shrink:0}
+.salon-service-option:hover{border-color:#aa8172;background:#f4e9e3}
+.salon-service-option.is-selected{background:#f4e8e8;border:2px solid #9a6470;box-shadow:0 0 0 2px #9a647022}
+.salon-service-option:focus-visible{outline:3px solid #9a6470;outline-offset:2px}
+@media(max-width:480px){.salon-service-options{grid-template-columns:repeat(2,minmax(0,1fr))}.salon-service-option{min-height:115px}.salon-service-art{width:48px;height:48px}}
