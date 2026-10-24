@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import type { SalonPublicConfig } from "./config/template";
 import {
   buildSalonWhatsAppRequestUrl,
@@ -42,7 +42,7 @@ const interests = [
 type InterestId = typeof interests[number][0];
 function ServiceIllustration({ id }: { id: InterestId }) {
   // Distinct purpose-drawn SVG line illustrations: no synthetic client photos.
-  const art: Record<InterestId, React.ReactNode> = {
+  const art: Record<InterestId, ReactNode> = {
     cabelo: <><path d="M17 46c-9-9-10-24 0-33 8-7 23-6 30 3 6 8 3 22-7 29"/><path d="M23 42c-6-13-3-26 8-29m-1 29c0-9 5-17 14-20M15 34c8 2 12 8 11 15m15-10c5 3 8 7 9 13"/></>,
     unhas: <><path d="M18 44V27a4 4 0 0 1 8 0v6-16a4 4 0 0 1 8 0v16-13a4 4 0 0 1 8 0v14-9a4 4 0 0 1 8 0v18c0 12-10 17-19 15-8-1-15-7-17-15l-3-9a4 4 0 0 1 8-3l5 9"/><path d="M30 14v8m8-4v7m8-1v6"/></>,
     sobrancelhas: <><path d="M6 27c7-10 17-11 25-6M35 21c8-5 17-4 23 6M9 32c6-6 15-6 22 0-7 6-16 6-22 0Zm25 0c8-6 17-6 22 0-7 6-16 6-22 0Z"/><circle cx="20" cy="32" r="3"/><circle cx="44" cy="32" r="3"/><path d="M24 47c5 4 11 4 16 0"/></>,
