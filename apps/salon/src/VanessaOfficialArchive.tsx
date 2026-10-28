@@ -4,6 +4,16 @@ import "./vanessa-official-archive.css";
 
 const PHOTO_BATCH = 18;
 const VIDEO_BATCH = 4;
+const PUBLIC_PHOTO_BATCH = 12;
+// Editorial preview shortlist: one image per spaced shooting interval, rather than
+// flooding visitors with nearby frames of the same treatment. Numbers are 1-based
+// from the immutable official catalogue. Original files and hashes remain intact.
+// Images 1 (already shown in About), 14 (logo) and 78 (hero reference) are omitted.
+export const PUBLIC_GALLERY_PHOTO_NUMBERS = [
+  2, 9, 17, 25, 33, 41, 49, 57, 65, 73,
+  79, 88, 97, 106, 115, 124, 133, 143, 153,
+] as const;
+export const publicVanessaGalleryPhotos = PUBLIC_GALLERY_PHOTO_NUMBERS.map((number) => officialVanessaPhotos[number - 1]);
 
 /**
  * Full editorial QA inventory of the official repository.
@@ -14,6 +24,9 @@ export default function VanessaOfficialArchive({
   instagramUrl, reviewToolsEnabled = false,
 }: { instagramUrl?: string; reviewToolsEnabled?: boolean }) {
   const [photoLimit, setPhotoLimit] = useState(PHOTO_BATCH);
+  const [publicLimit, setPublicLimit] = useState(PUBLIC_PHOTO_BATCH);
+  const visiblePhotos = reviewToolsEnabled ? officialVanessaPhotos : publicVanessaGalleryPhotos;
+  const displayedPhotoLimit = reviewToolsEnabled ? photoLimit : publicLimit;
   const [videoLimit, setVideoLimit] = useState(VIDEO_BATCH);
   const [picked, setPicked] = useState<Set<string>>(() => {
     try {
@@ -30,12 +43,12 @@ export default function VanessaOfficialArchive({
     if (zoom === null) return;
     function close(e: KeyboardEvent) {
       if (e.key === "Escape") setZoom(null);
-      if (e.key === "ArrowRight") setZoom((i) => i === null ? null : (i + 1) % officialVanessaPhotos.length);
-      if (e.key === "ArrowLeft") setZoom((i) => i === null ? null : (i - 1 + officialVanessaPhotos.length) % officialVanessaPhotos.length);
+      if (e.key === "ArrowRight") setZoom((i) => i === null ? null : (i + 1) % visiblePhotos.length);
+      if (e.key === "ArrowLeft") setZoom((i) => i === null ? null : (i - 1 + visiblePhotos.length) % visiblePhotos.length);
     }
     document.addEventListener("keydown", close);
     return () => document.removeEventListener("keydown", close);
-  }, [zoom]);
+  }, [zoom, visiblePhotos]);
 
   useEffect(() => {
     try { localStorage.setItem("vanessa-qa-selected-media-v1", JSON.stringify([...picked])); } catch { /* local storage unavailable */ }
@@ -114,7 +127,7 @@ export default function VanessaOfficialArchive({
           Isso não envia nada ao servidor nem autoriza automaticamente a publicação de imagens de clientes.
         </p>}
         <div className="vanessa-official-grid">
-          {officialVanessaPhotos.slice(0, photoLimit).map((asset, i) => (
+          {visiblePhotos.slice(0, displayedPhotoLimit).map((asset, i) => (
             <article className="vanessa-archive-tile" key={asset.sha256}>
               <button type="button" className="vanessa-archive-view" aria-label={"Ampliar fotografia " + (i + 1)}
                 onClick={() => setZoom(i)}>
@@ -131,8 +144,10 @@ export default function VanessaOfficialArchive({
         </div>
         <div className="vanessa-archive-more">
           {reviewToolsEnabled && <span>Mostrando {Math.min(photoLimit, officialVanessaPhotos.length)} de {officialVanessaPhotos.length} fotografias</span>}
-          {photoLimit < officialVanessaPhotos.length &&
-            <button type="button" onClick={() => setPhotoLimit((count) => Math.min(count + PHOTO_BATCH, officialVanessaPhotos.length))}>
+          {displayedPhotoLimit < visiblePhotos.length &&
+            <button type="button" onClick={() => reviewToolsEnabled
+              ? setPhotoLimit((count) => Math.min(count + PHOTO_BATCH, officialVanessaPhotos.length))
+              : setPublicLimit((count) => Math.min(count + PUBLIC_PHOTO_BATCH, visiblePhotos.length))}>
               Mostrar mais fotografias
             </button>}
         </div>
@@ -175,11 +190,11 @@ export default function VanessaOfficialArchive({
         <div className="vanessa-archive-lightbox" role="dialog" aria-modal="true" aria-label="Foto ampliada">
           <button type="button" className="vanessa-archive-close" onClick={() => setZoom(null)} aria-label="Fechar fotografia">Fechar ×</button>
           <button type="button" className="vanessa-archive-previous" aria-label="Fotografia anterior"
-            onClick={() => setZoom((zoom - 1 + officialVanessaPhotos.length) % officialVanessaPhotos.length)}>‹</button>
-          <img src={officialVanessaPhotos[zoom].url} alt={"Fotografia do salão " + (zoom + 1)} />
+            onClick={() => setZoom((zoom - 1 + visiblePhotos.length) % visiblePhotos.length)}>‹</button>
+          <img src={visiblePhotos[zoom].url} alt={"Fotografia do salão " + (zoom + 1)} />
           <button type="button" className="vanessa-archive-next" aria-label="Próxima fotografia"
-            onClick={() => setZoom((zoom + 1) % officialVanessaPhotos.length)}>›</button>
-          <span className="vanessa-archive-counter">{zoom + 1} / {officialVanessaPhotos.length}</span>
+            onClick={() => setZoom((zoom + 1) % visiblePhotos.length)}>›</button>
+          <span className="vanessa-archive-counter">{zoom + 1} / {visiblePhotos.length}</span>
         </div>
       )}
     </>
