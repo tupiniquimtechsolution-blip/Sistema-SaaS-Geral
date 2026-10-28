@@ -323,3 +323,30 @@
 .vanessa-showcase[data-theme="dark"] .salon-service-art{color:#efbf9f}
 .vanessa-showcase .salon-service-option:hover{background:var(--v-subtle);border-color:var(--vs-gold)}
 .vanessa-showcase .salon-service-option.is-selected{border-color:var(--vs-gold);box-shadow:inset 0 0 0 1px var(--vs-gold)}
+
+/* Salon identity: warm ivory, muted rosewood and copper from the welcome palette.
+   Uses the existing elegant display serif; logo artwork is shown unchanged. */
+.vanessa-showcase {
+  --vs-paper:#fbf6f0; --vs-ink:#382b29; --vs-gold:#825544; --vs-line:#ddc7bc;
+  --v-surface:#fffaf6; --v-subtle:#f3e8df; --v-muted:#5b4742;
+  --v-accent:#763f3b; --v-accent-ink:#fff9f4;
+  --v-hero:linear-gradient(125deg,#eedbd0 0%,#fff6ef 56%,#e9d1c4 100%);
+}
+.vanessa-showcase[data-theme="dark"] {
+  --vs-paper:#201b1d; --vs-ink:#f9eee8; --vs-gold:#e9bfa8;
+  --vs-line:#5d4746; --v-surface:#302527; --v-subtle:#292225;
+  --v-muted:#dccac5; --v-accent:#e7b5a3; --v-accent-ink:#251b1b;
+  --v-hero:linear-gradient(125deg,#423033 0%,#262022 62%,#3a2d2c 100%);
+}
+.vanessa-showcase :is(.vanessa-hero h1,.vanessa-section-heading h2,.vanessa-essence-content h2,.vanessa-space-heading h2,.vanessa-book h2,.vanessa-full-gallery h2) {
+  font-family:"Playfair Display",Georgia,serif;
+  color:var(--vs-ink);
+}
+.vanessa-showcase .vanessa-hero h1{font-style:italic;font-weight:500}
+.vanessa-showcase .vanessa-hero-card{border-left:3px solid var(--vs-gold);padding-left:clamp(19px,3.4vw,43px)}
+.vanessa-showcase .vanessa-booking-widget h3{font-family:"Playfair Display",Georgia,serif}
+.vanessa-showcase :is(#salon-service-label,#salon-calendar){scroll-margin-top:105px}
+.vanessa-showcase #salon-service-label{padding-top:2px}
+@media(max-width:700px){
+ .vanessa-showcase :is(#salon-service-label,#salon-calendar){scroll-margin-top:94px}
+}
