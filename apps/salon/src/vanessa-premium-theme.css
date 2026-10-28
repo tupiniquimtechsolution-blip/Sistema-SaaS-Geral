@@ -246,3 +246,73 @@
   .vanessa-showcase .vanessa-essence-content,.vanessa-book-copy {padding:28px 22px}
 }
 @media(prefers-reduced-motion:reduce){.vanessa-showcase *{scroll-behavior:auto!important;transition:none!important}}
+
+
+/* Guest-first refinement — open full-width photography, fewer boxes, clearer copy. */
+.vanessa-showcase .vanessa-hero-card {
+  border:0;border-radius:0;box-shadow:none;background:transparent;
+  padding:clamp(12px,2vw,28px) 0;max-width:980px
+}
+.vanessa-showcase .vanessa-hero h1 {max-width:880px}
+.vanessa-showcase .vanessa-space-figure {
+  border:0;border-radius:0;box-shadow:none;background:transparent
+}
+.vanessa-showcase .vanessa-essence {
+  display:flex;flex-direction:column;gap:0;max-width:none;
+  margin:0;padding:0;background:var(--vs-paper)
+}
+.vanessa-showcase .vanessa-essence-photo {
+  width:100%;max-width:none;margin:0;background:var(--v-subtle)
+}
+.vanessa-showcase .vanessa-essence-photo img {
+  display:block;width:100%;height:auto;max-height:none;aspect-ratio:auto;
+  object-fit:contain;object-position:center;
+  border:0;border-radius:0;box-shadow:none;background:transparent
+}
+.vanessa-showcase .vanessa-essence-content {
+  display:flex;align-items:center;justify-content:space-between;gap:clamp(24px,5vw,80px);
+  flex-wrap:wrap;width:min(100%,1440px);margin:0 auto;
+  padding:clamp(55px,7vw,105px) clamp(22px,7vw,100px);
+  background:none;border:0;box-shadow:none
+}
+.vanessa-showcase .vanessa-essence-content h2 {
+  max-width:720px;flex:1 1 430px;margin:0;
+  font-size:clamp(2.6rem,5vw,5.4rem)
+}
+.vanessa-showcase .vanessa-essence-content>p {
+  flex:1 1 270px;max-width:380px;color:var(--v-muted);
+  font-size:clamp(1.1rem,1.8vw,1.35rem);line-height:1.75;margin:0
+}
+.vanessa-showcase .vanessa-essence-content .vanessa-inline-link {
+  flex:0 0 auto;margin:0;padding:15px 20px;
+  background:var(--v-accent);color:var(--v-accent-ink)!important;
+  border-color:var(--v-accent)
+}
+.vanessa-showcase .vanessa-services {padding-top:clamp(65px,8vw,120px);padding-bottom:clamp(75px,9vw,125px)}
+.vanessa-showcase .vanessa-section-heading{margin-bottom:15px}
+.vanessa-services-action {
+  max-width:1280px;margin:34px auto 0;padding-top:27px;
+  display:flex;align-items:center;gap:25px;flex-wrap:wrap;
+  border-top:1px solid var(--vs-line)
+}
+.vanessa-services-action .vanessa-space-link {margin:0}
+.vanessa-services-action>span {font-size:.93rem;line-height:1.6;color:var(--v-muted)}
+.vanessa-showcase .vanessa-book-copy {
+  padding:clamp(20px,3vw,50px) 0;background:transparent;
+  border:0;border-radius:0;box-shadow:none
+}
+.vanessa-showcase .vanessa-archive-tile {
+  border:0;border-radius:0;overflow:hidden
+}
+.vanessa-showcase .vanessa-archive-view {aspect-ratio:4/5}
+.vanessa-showcase .vanessa-archive-view img {transition:transform .35s ease}
+.vanessa-showcase .vanessa-archive-view:hover img {transform:scale(1.035)}
+.vanessa-showcase .vanessa-full-gallery h2,
+.vanessa-showcase .vanessa-official-videos h2 {color:var(--vs-ink)}
+@media(max-width:820px){
+  .vanessa-showcase .vanessa-essence-content{display:block}
+  .vanessa-showcase .vanessa-essence-content>p {margin:22px 0 28px}
+}
+@media(prefers-reduced-motion:reduce){
+  .vanessa-showcase .vanessa-archive-view img{transition:none}
+}
