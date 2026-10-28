@@ -10,7 +10,9 @@ const VIDEO_BATCH = 4;
  * Selection is local to this browser and exports a review manifest; it does
  * NOT publish a photo, mutate the tenant, or grant likeness/usage consent.
  */
-export default function VanessaOfficialArchive({ instagramUrl }: { instagramUrl?: string }) {
+export default function VanessaOfficialArchive({
+  instagramUrl, reviewToolsEnabled = false,
+}: { instagramUrl?: string; reviewToolsEnabled?: boolean }) {
   const [photoLimit, setPhotoLimit] = useState(PHOTO_BATCH);
   const [videoLimit, setVideoLimit] = useState(VIDEO_BATCH);
   const [picked, setPicked] = useState<Set<string>>(() => {
@@ -90,13 +92,9 @@ export default function VanessaOfficialArchive({ instagramUrl }: { instagramUrl?
   return (
     <>
       <section className="vanessa-editorial vanessa-full-gallery" id="galeria">
-        <p className="vanessa-eyebrow">GALERIA OFICIAL · REVISÃO DE QA</p>
-        <h2>Acervo de fotografias</h2>
-        <p className="vanessa-archive-lead">
-          {officialVanessaPhotos.length} fotografias distintas do repositório oficial, sem arquivos repetidos.
-          Você pode conferir e selecionar as que deseja utilizar no site definitivo.
-        </p>
-        <div className="vanessa-archive-toolbar">
+        <h2>Galeria</h2>
+        {reviewToolsEnabled && <p className="vanessa-archive-lead">Curadoria local de QA: {officialVanessaPhotos.length} fotografias e {officialVanessaVideos.length} vídeos disponíveis para selecionar.</p>}
+        {reviewToolsEnabled && <div className="vanessa-archive-toolbar">
           <span>{picked.size} mídias selecionadas para revisão</span>
           <button type="button" onClick={() => setShowCuration((open) => !open)}
             aria-expanded={showCuration} aria-controls="vanessa-curation-help">
@@ -109,9 +107,9 @@ export default function VanessaOfficialArchive({ instagramUrl }: { instagramUrl?
           <button type="button" onClick={exportReview} disabled={picked.size === 0}>
             Baixar minha seleção
           </button>
-        </div>
-        {importStatus && <p role="status" className="vanessa-archive-info">{importStatus}</p>}
-        {showCuration && <p id="vanessa-curation-help" className="vanessa-archive-info">
+        </div>}
+        {reviewToolsEnabled && importStatus && <p role="status" className="vanessa-archive-info">{importStatus}</p>}
+        {reviewToolsEnabled && showCuration && <p id="vanessa-curation-help" className="vanessa-archive-info">
           Marque cada foto ou vídeo que deseja manter. O botão de download salva uma lista para revisão editorial.
           Isso não envia nada ao servidor nem autoriza automaticamente a publicação de imagens de clientes.
         </p>}
@@ -120,19 +118,19 @@ export default function VanessaOfficialArchive({ instagramUrl }: { instagramUrl?
             <article className="vanessa-archive-tile" key={asset.sha256}>
               <button type="button" className="vanessa-archive-view" aria-label={"Ampliar fotografia " + (i + 1)}
                 onClick={() => setZoom(i)}>
-                <img src={asset.url} alt={"Fotografia " + (i + 1) + " do acervo oficial Vanessa Braz"} loading="lazy"
+                <img src={asset.url} alt={"Fotografia " + (i + 1) + " do salão"} loading="lazy"
                   decoding="async" />
                 <span className="vanessa-archive-magnify" aria-hidden="true">↗</span>
               </button>
-              <label className="vanessa-archive-pick">
+              {reviewToolsEnabled && <label className="vanessa-archive-pick">
                 <input type="checkbox" checked={picked.has(asset.sha256)} onChange={() => toggle(asset.sha256)} />
                 Selecionar foto {i + 1}
-              </label>
+              </label>}
             </article>
           ))}
         </div>
         <div className="vanessa-archive-more">
-          <span>Mostrando {Math.min(photoLimit, officialVanessaPhotos.length)} de {officialVanessaPhotos.length} fotografias</span>
+          {reviewToolsEnabled && <span>Mostrando {Math.min(photoLimit, officialVanessaPhotos.length)} de {officialVanessaPhotos.length} fotografias</span>}
           {photoLimit < officialVanessaPhotos.length &&
             <button type="button" onClick={() => setPhotoLimit((count) => Math.min(count + PHOTO_BATCH, officialVanessaPhotos.length))}>
               Mostrar mais fotografias
@@ -141,13 +139,12 @@ export default function VanessaOfficialArchive({ instagramUrl }: { instagramUrl?
       </section>
 
       <section className="vanessa-editorial vanessa-official-videos" id="videos">
-        <p className="vanessa-eyebrow">VÍDEOS REAIS</p>
-        <h2>Bastidores em movimento</h2>
-        <p className="vanessa-archive-lead">Os {officialVanessaVideos.length} vídeos do repositório oficial estão disponíveis para revisão. Reprodução apenas após sua ação, sem áudio automático.</p>
+        <h2>Vídeos</h2>
+        {reviewToolsEnabled && <p className="vanessa-archive-lead">Curadoria local de QA. Reproduza os vídeos e selecione quais devem ser analisados para publicação.</p>}
         <div className="vanessa-videos-grid">
           {officialVanessaVideos.slice(0, videoLimit).map((asset, i) => (
             <article className="vanessa-video-tile" key={asset.sha256}>
-              <video controls preload="none" playsInline aria-label={"Vídeo do acervo oficial " + (i + 1)}>
+              <video controls preload="none" playsInline aria-label={"Vídeo do salão " + (i + 1)}>
                 <source src={asset.url} type="video/mp4" />
                 Seu navegador não suporta este vídeo.
               </video>
@@ -155,32 +152,31 @@ export default function VanessaOfficialArchive({ instagramUrl }: { instagramUrl?
                 <span>Vídeo {i + 1} do acervo</span>
                 {instagramUrl && <a href={instagramUrl} target="_blank" rel="noopener noreferrer" aria-label="Abrir perfil do salão no Instagram">Abrir Instagram ↗</a>}
               </div>
-              <label className="vanessa-archive-pick">
+              {reviewToolsEnabled && <label className="vanessa-archive-pick">
                 <input type="checkbox" checked={picked.has(asset.sha256)} onChange={() => toggle(asset.sha256)} />
                 Selecionar vídeo {i + 1}
-              </label>
+              </label>}
             </article>
           ))}
         </div>
         <div className="vanessa-archive-more">
-          <span>Mostrando {Math.min(videoLimit, officialVanessaVideos.length)} de {officialVanessaVideos.length} vídeos</span>
+          {reviewToolsEnabled && <span>Mostrando {Math.min(videoLimit, officialVanessaVideos.length)} de {officialVanessaVideos.length} vídeos</span>}
           {videoLimit < officialVanessaVideos.length &&
             <button type="button" onClick={() => setVideoLimit((count) => Math.min(count + VIDEO_BATCH, officialVanessaVideos.length))}>
               Mostrar mais vídeos
             </button>}
         </div>
-        <p className="vanessa-archive-info">
-          O acervo é carregado do repositório oficial no GitHub para análise em QA.
-          Apenas mídia revisada e com autorização adequada poderá integrar a publicação comercial.
-        </p>
+        {reviewToolsEnabled && <p className="vanessa-archive-info">
+          Este modo de curadoria não fornece autenticação nem autoriza publicação comercial de mídias.
+        </p>}
       </section>
 
       {zoom !== null && (
-        <div className="vanessa-archive-lightbox" role="dialog" aria-modal="true" aria-label="Foto oficial ampliada">
+        <div className="vanessa-archive-lightbox" role="dialog" aria-modal="true" aria-label="Foto ampliada">
           <button type="button" className="vanessa-archive-close" onClick={() => setZoom(null)} aria-label="Fechar fotografia">Fechar ×</button>
           <button type="button" className="vanessa-archive-previous" aria-label="Fotografia anterior"
             onClick={() => setZoom((zoom - 1 + officialVanessaPhotos.length) % officialVanessaPhotos.length)}>‹</button>
-          <img src={officialVanessaPhotos[zoom].url} alt={"Fotografia do acervo oficial " + (zoom + 1)} />
+          <img src={officialVanessaPhotos[zoom].url} alt={"Fotografia do salão " + (zoom + 1)} />
           <button type="button" className="vanessa-archive-next" aria-label="Próxima fotografia"
             onClick={() => setZoom((zoom + 1) % officialVanessaPhotos.length)}>›</button>
           <span className="vanessa-archive-counter">{zoom + 1} / {officialVanessaPhotos.length}</span>
