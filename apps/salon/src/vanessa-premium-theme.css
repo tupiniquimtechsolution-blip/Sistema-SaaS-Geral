@@ -316,3 +316,10 @@
 @media(prefers-reduced-motion:reduce){
   .vanessa-showcase .vanessa-archive-view img{transition:none}
 }
+
+/* Fine-lined service details remain recognizable in both accessible palettes. */
+.vanessa-showcase .salon-service-option{border-radius:10px;background:var(--v-surface);border-color:var(--vs-line)}
+.vanessa-showcase .salon-service-art{color:var(--v-accent);width:67px;height:67px}
+.vanessa-showcase[data-theme="dark"] .salon-service-art{color:#efbf9f}
+.vanessa-showcase .salon-service-option:hover{background:var(--v-subtle);border-color:var(--vs-gold)}
+.vanessa-showcase .salon-service-option.is-selected{border-color:var(--vs-gold);box-shadow:inset 0 0 0 1px var(--vs-gold)}
