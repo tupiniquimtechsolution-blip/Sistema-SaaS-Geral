@@ -60,9 +60,31 @@ test("Anonymous gallery hides QA review controls but keeps photos and video play
   if (!base) throw new Error("VANESSA_VISUAL_URL is required");
   await page.goto(base, { waitUntil: "domcontentloaded" });
   await expect(page.getByRole("heading", { name: "Galeria" })).toBeVisible();
-  await expect(page.locator(".vanessa-official-grid img")).toHaveCount(18);
+  await expect(page.locator(".vanessa-official-grid img")).toHaveCount(12);
   await expect(page.locator(".vanessa-videos-grid video")).toHaveCount(4);
   await expect(page.getByText(/REVISÃO DE QA|fotografias distintas|repositório oficial/i)).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Baixar minha seleção" })).toHaveCount(0);
   await expect(page.getByRole("checkbox", { name: /Selecionar foto/ })).toHaveCount(0);
+});
+
+test("Public gallery samples spaced original images without adjacent near-duplicate frames", async ({ page }) => {
+  const base = process.env.VANESSA_VISUAL_URL;
+  if (!base) throw new Error("VANESSA_VISUAL_URL is required");
+  await page.goto(base, { waitUntil: "domcontentloaded" });
+  const gallery = page.locator(".vanessa-full-gallery");
+  const initiallyShown = await gallery.locator(".vanessa-archive-view img").evaluateAll((images) =>
+    images.map((image) => (image as HTMLImageElement).src));
+  expect(initiallyShown.length).toBe(12);
+  expect(new Set(initiallyShown).size).toBe(12);
+  await gallery.getByRole("button", { name: "Mostrar mais fotografias" }).click();
+  await expect(gallery.locator(".vanessa-archive-tile")).toHaveCount(19);
+  const allPublic = await gallery.locator(".vanessa-archive-view img").evaluateAll((images) =>
+    images.map((image) => (image as HTMLImageElement).src));
+  expect(new Set(allPublic).size).toBe(19);
+  await gallery.getByRole("button", { name: "Ampliar fotografia 19" }).click();
+  const overlay = page.getByRole("dialog", { name: "Foto ampliada" });
+  await expect(overlay).toBeVisible();
+  await expect(overlay.getByText("19 / 19")).toBeVisible();
+  await overlay.getByRole("button", { name: "Próxima fotografia" }).click();
+  await expect(overlay.getByText("1 / 19")).toBeVisible();
 });
