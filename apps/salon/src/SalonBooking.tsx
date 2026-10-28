@@ -43,10 +43,33 @@ type InterestId = typeof interests[number][0];
 function ServiceIllustration({ id }: { id: InterestId }) {
   // Distinct purpose-drawn SVG line illustrations: no synthetic client photos.
   const art: Record<InterestId, ReactNode> = {
-    cabelo: <><path d="M14 48c-7-10-9-24-2-34C18 5 30 5 38 8c10 4 15 12 13 24-1 7-6 16-12 20"/><path d="M19 47C12 33 16 16 26 12c13-6 23 5 20 19-2 11-8 18-13 24M25 50c-5-14-3-26 5-35M35 52c7-14 8-26 3-37"/><path d="M13 34c6-8 11-12 18-11m-12 17c7-5 10-10 13-18" /></>,
-    unhas: <><path d="M14 42c0-4 4-7 8-6l7 2-3-18c-.5-4 5-6 7-2l5 15-1-14c0-5 7-5 8 0l1 19 2-10c1-4 7-3 7 1l-1 14c-1 11-9 17-20 17-10 0-18-7-20-18Z"/><path d="M26 18l4-2 4 2m3-2 4-2 4 2M46 26l4-1 3 2"/><path d="M19 38c4-2 8-1 11 2M22 45c4-1 7 0 10 2" /></>,
-    sobrancelhas: <><path d="M5 27C13 16 23 14 31 20M33 20c9-6 19-3 26 7" strokeWidth="3.1"/><path d="M7 31c7-7 16-7 24 0-7 8-17 8-24 0Zm26 0c8-7 18-7 24 0-6 8-17 8-24 0Z"/><circle cx="20" cy="31" r="3.5"/><circle cx="45" cy="31" r="3.5"/><path d="M12 21c6-4 11-5 17-2m7 0c7-3 13-3 18 2M32 35l-2 7 5 2" /></>,
-    maquiagem: <><path d="M12 49 34 17l7 5-22 32c-2 3-7 2-7-2Z"/><path d="M34 17 40 8l13 9-12 5Z"/><path d="m45 13 5-3M14 51l6 4M43 40l12-12 5 5-12 12-9 2Z"/><path d="M24 17a9 9 0 1 1 18 0M41 51c4-2 8-2 12 0M43 55c3-1 5-1 8 0" /></>,
+    cabelo: <>
+      <path d="M15 53c-5-8-8-17-8-26C7 13 17 6 32 6s25 7 25 21c0 9-4 18-9 26"/>
+      <path d="M14 27C18 13 26 11 32 11c12 0 19 7 20 19M16 32c7-4 11-11 13-18m2 18c5-4 8-10 9-16"/>
+      <path d="M20 35c-1 8 0 13 4 20m8-21c-3 10-2 17 0 22m10-24c4 9 4 17-1 24"/>
+      <path d="M18 45c3 3 5 5 8 5M35 52c4 1 7 0 10-3"/>
+    </>,
+    unhas: <>
+      <path d="M16 54c-5-6-8-14-7-21 0-3 2-5 5-5 3 0 5 3 7 6L19 17c-.4-5 6-6 7-1l4 18-1-22c0-5 7-5 7 0l2 21 1-17c0-5 7-4 7 0l1 22 1-10c1-5 8-4 8 1l-1 15c-1 12-8 17-20 17-8 0-15-3-19-7Z"/>
+      <path d="M19 17h7m3-5h7m3 4h7m3 12h7"/>
+      <path d="M15 35c4-1 8 2 10 6m-7 3 6 4"/>
+      <path d="m50 9 1.5 4.5L56 15l-4.5 1.5L50 21l-1.5-4.5L44 15l4.5-1.5Z"/>
+    </>,
+    sobrancelhas: <>
+      <path d="M5 28c8-12 17-15 27-10M32 18c10-5 19-2 27 10" strokeWidth="2.6"/>
+      <path d="M7 33c7-7 17-7 24 0-7 8-17 8-24 0Zm26 0c8-7 18-7 24 0-7 8-18 8-24 0Z"/>
+      <circle cx="19" cy="33" r="4"/><circle cx="45" cy="33" r="4"/>
+      <path d="M14 23c5-3 10-4 14-3m8 0c6-2 11-1 15 2M31 37l-2 8 6 2m-10 6c5 2 10 2 14 0"/>
+      <path d="m9 14 3-4m6 5 2-5m26 4 2-5m7 6 3-4"/>
+    </>,
+    maquiagem: <>
+      <path d="m11 51 26-34 8 6-27 33c-3 4-9-1-7-5Z"/>
+      <path d="m37 17 6-9 12 9-10 6Z"/><path d="m40 12 11 8M13 49l7 5"/>
+      <path d="M34 50 48 32l8 7-13 15c-4 5-13 1-9-4Z"/>
+      <path d="M48 32c0-5 3-11 6-13 2 3 3 8 2 13"/>
+      <path d="M8 25c5-7 13-7 18 0-5 6-13 6-18 0Zm1 0c5 4 11 4 16 0"/>
+      <path d="m18 14 2-5 2 5 5 2-5 2-2 5-2-5-5-2Z"/>
+    </>,
     estetica: <><path d="M31 8c-15 0-22 13-22 25 0 12 9 22 22 22 14 0 24-9 24-23C55 19 47 8 31 8Z"/><path d="M17 30c4-3 9-3 13 0m5 0c4-3 9-3 13 0M24 42c5 4 12 4 17 0M32 23v16"/><path d="m8 9 2 5 5 2-5 2-2 5-2-5-5-2 5-2z"/></>,
     autocuidado: <><path d="M32 56c-11-9-23-16-23-28 0-7 5-12 12-12 5 0 9 3 11 7 2-4 6-7 11-7 7 0 12 5 12 12 0 12-12 19-23 28Z"/><path d="m32 13 2-5 2 5 5 2-5 2-2 5-2-5-5-2z"/></>,
     outro: <><circle cx="32" cy="32" r="21"/><path d="M32 20v24M20 32h24"/><path d="m13 13 3-4 3 4M47 51l3 4 3-4"/></>,
@@ -118,7 +141,7 @@ export default function SalonBooking({ config }: { config: SalonPublicConfig }) 
             placeholder="Descreva o serviço" />
         </>
       )}
-      <p className="salon-booking-hint">Áreas para consulta, não um catálogo de serviços ou preços confirmados.</p>
+      <p className="salon-booking-hint">Conte aos nossos profissionais qual cuidado você procura. A disponibilidade será confirmada pelo WhatsApp.</p>
 
       <fieldset className="salon-booking-calendar">
         <legend className="salon-booking-label">Dia de preferência</legend>

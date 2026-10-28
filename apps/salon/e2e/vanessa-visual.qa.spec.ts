@@ -7,11 +7,11 @@ test("Vanessa visual QA preview displays original editorial photography and no i
   if (!base) throw new Error("VANESSA_VISUAL_URL is required");
   await page.goto(base, { waitUntil: "domcontentloaded", timeout: 30_000 });
   await expect(page.getByRole("heading", { level: 1, name: "Vanessa Braz — Beleza & Autoestima" })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Acervo de fotografias" })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Bastidores em movimento" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Galeria" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Vídeos" })).toBeVisible();
   await expect(page.locator(".vanessa-hero-card h1")).toHaveText("Vanessa Braz — Beleza & Autoestima");
   await expect(page.getByRole("link", { name: /EXPLORE O ESPAÇO/ })).toHaveAttribute("href", "#espaco");
-  await expect(page.getByRole("heading", { name: "Conheça nosso salão." })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Um espaço pensado para receber você." })).toBeVisible();
   await expect(page.locator(".vanessa-essence-photo img")).toHaveAttribute("src", /source\/images/);
   await expect(page.locator(".vanessa-hero-img")).toBeVisible();
   await expect.poll(async () => await page.locator(".vanessa-hero-img").getAttribute("src"), {
@@ -27,7 +27,12 @@ test("Vanessa visual QA preview displays original editorial photography and no i
 
   await expect(page.locator(".vanessa-official-grid img")).toHaveCount(18);
   await expect(page.locator(".vanessa-videos-grid video")).toHaveCount(4);
-  await expect(page.getByText(/155 fotografias distintas/)).toBeVisible();
+  await expect(page.getByText(/155 fotografias distintas/)).toHaveCount(0);
+  await expect(page.getByText(/REVISÃO DE QA/i)).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Baixar minha seleção" })).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: "Um momento para cuidar de você." })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Seu cuidado, no seu ritmo." })).toBeVisible();
+  await expect(page.getByRole("link", { name: /Agende seu horário/ })).toHaveAttribute("href", "#agendar");
   await expect(page.locator("footer")).not.toContainText("revisão de QA");
   await expect(page.locator(".vanessa-logo img")).toHaveAttribute("src", /source\/images/);
   await expect(page.getByRole("navigation", { name: "Mapa do site" })).toBeVisible();
@@ -101,4 +106,20 @@ test("Salon offers accessible light/dark switch, preserves preference and keeps 
   await page.reload();
   await expect(salon).toHaveAttribute("data-theme", selected!);
   await checkContrast();
+});
+
+test("Guest layout uses full-width editorial photography and no numbered tutorial cards", async ({ page }) => {
+  const base = process.env.VANESSA_VISUAL_URL;
+  if (!base) throw new Error("VANESSA_VISUAL_URL is required");
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.goto(base, { waitUntil: "domcontentloaded" });
+  await expect(page.locator("#sobre .vanessa-essence-photo img")).toBeVisible();
+  const editorialImage = page.locator("#sobre .vanessa-essence-photo");
+  const width = await editorialImage.evaluate((node) => node.getBoundingClientRect().width);
+  expect(width).toBeGreaterThanOrEqual(1270);
+  await expect(page.locator(".vanessa-info-list")).toHaveCount(0);
+  await expect(page.getByText("01 / NOSSA ESSÊNCIA")).toHaveCount(0);
+  await expect(page.getByText("02 / SERVIÇOS")).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: "Galeria" })).toBeVisible();
+  await expect(page.locator(".vanessa-archive-pick")).toHaveCount(0);
 });
