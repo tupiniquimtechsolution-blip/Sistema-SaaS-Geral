@@ -25,14 +25,14 @@ test("Vanessa visual QA preview displays original editorial photography and no i
     (image: HTMLImageElement) => image.complete && image.naturalWidth === 1448
   ), { timeout: 20_000 }).toBe(true);
 
-  await expect(page.locator(".vanessa-official-grid img")).toHaveCount(18);
+  await expect(page.locator(".vanessa-official-grid img")).toHaveCount(12);
   await expect(page.locator(".vanessa-videos-grid video")).toHaveCount(4);
   await expect(page.getByText(/155 fotografias distintas/)).toHaveCount(0);
   await expect(page.getByText(/REVISÃO DE QA/i)).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Baixar minha seleção" })).toHaveCount(0);
   await expect(page.getByRole("heading", { name: "Um momento para cuidar de você." })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Seu cuidado, no seu ritmo." })).toBeVisible();
-  await expect(page.getByRole("link", { name: /Agende seu horário/ })).toHaveAttribute("href", "#agendar");
+  await expect(page.getByRole("link", { name: /Agende seu horário/ })).toHaveAttribute("href", "#salon-calendar");
   await expect(page.locator("footer")).not.toContainText("revisão de QA");
   await expect(page.locator(".vanessa-logo img")).toHaveAttribute("src", /source\/images/);
   await expect(page.getByRole("navigation", { name: "Mapa do site" })).toBeVisible();
@@ -60,10 +60,10 @@ test("Salon first visit displays a translucent photo welcome with full salon ide
   const intro = page.getByTestId("salon-welcome");
   await expect(intro).toHaveCSS("background-color", "rgb(250, 248, 245)");
   await expect(intro).toBeVisible();
-  await expect(intro.getByText("Bem-vindo", { exact: true })).toBeVisible();
+  await expect(intro.getByText("Bem-Vindo!", { exact: true })).toBeVisible();
   await expect(intro.getByRole("img", { name: /Logo Vanessa Braz/ })).toBeVisible();
-  await expect(intro.getByText("ao salão", { exact: true })).toBeVisible();
-  await expect(intro.getByText("Vanessa Braz — Beleza & Autoestima", { exact: true })).toBeVisible();
+  await expect(intro.getByText("Beleza e Autoestima", { exact: true })).toBeVisible();
+  await expect(intro.getByText("Vanessa Braz", { exact: true })).toBeVisible();
   await expect(intro.getByRole("button")).toHaveCount(0);
   await expect(intro).toHaveCount(0, { timeout: 5000 });
   await page.reload();
@@ -122,4 +122,31 @@ test("Guest layout uses full-width editorial photography and no numbered tutoria
   await expect(page.getByText("02 / SERVIÇOS")).toHaveCount(0);
   await expect(page.getByRole("heading", { name: "Galeria" })).toBeVisible();
   await expect(page.locator(".vanessa-archive-pick")).toHaveCount(0);
+});
+
+test("Salon links take guests to actual service choices and calendar, not marketing copy", async ({ page }) => {
+  const base = process.env.VANESSA_VISUAL_URL;
+  if (!base) throw new Error("VANESSA_VISUAL_URL is required");
+  await page.goto(base, { waitUntil: "domcontentloaded" });
+  const serviceLink = page.getByRole("link", { name: /Conheça nossos serviços/ });
+  await expect(serviceLink).toHaveAttribute("href", "#salon-service-label");
+  await serviceLink.click();
+  await expect(page).toHaveURL(/#salon-service-label$/);
+  const choices = page.locator("#salon-service-label");
+  await expect(choices).toBeVisible();
+  await expect.poll(async () => choices.evaluate((el) => {
+    const rect = el.getBoundingClientRect();
+    return rect.top >= 65 && rect.top <= 160;
+  }), {timeout: 5000}).toBe(true);
+
+  const scheduleLink = page.getByRole("link", { name: /Agende seu horário/ });
+  await expect(scheduleLink).toHaveAttribute("href", "#salon-calendar");
+  await scheduleLink.click();
+  await expect(page).toHaveURL(/#salon-calendar$/);
+  const calendar = page.locator("#salon-calendar");
+  await expect(calendar.getByRole("button", { name: "Próximo mês" })).toBeVisible();
+  await expect.poll(async () => calendar.evaluate((el) => {
+    const rect = el.getBoundingClientRect();
+    return rect.top >= 65 && rect.top <= 160;
+  }), {timeout: 5000}).toBe(true);
 });

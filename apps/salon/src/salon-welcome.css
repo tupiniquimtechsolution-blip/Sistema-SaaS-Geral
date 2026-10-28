@@ -45,3 +45,28 @@
   .salon-welcome-logo{margin-bottom:12px}
 }
 @media(prefers-reduced-motion:reduce){.salon-welcome{animation:none}}
+
+/* Align the brief welcome with the salon's warm, elegant identity.
+   The original logo image remains unchanged; lettering uses the site's display serif
+   until the brand supplies the actual wordmark typeface. */
+.salon-welcome::after {background:rgba(251,245,238,.76)}
+.salon-welcome-content {
+  background:rgba(253,248,242,.89);border-color:rgba(122,68,52,.16);
+  border-radius:0;box-shadow:0 15px 65px rgba(66,38,31,.12);
+  gap:8px
+}
+.salon-welcome .salon-welcome-greeting {
+  font-family:"Playfair Display",Georgia,serif;color:#6c3b36;
+  font-size:clamp(2.5rem,7vw,4.65rem);font-style:italic;font-weight:500;
+  letter-spacing:-.03em;margin:0 0 8px
+}
+.salon-welcome .salon-welcome-brand {
+  font-family:"Playfair Display",Georgia,serif;font-style:italic;
+  font-weight:500;font-size:clamp(2.3rem,7.2vw,4.7rem);
+  line-height:1.07;letter-spacing:-.04em;color:#63362f;
+  margin:0
+}
+.salon-welcome .salon-welcome-subtitle {
+  font-family:"Playfair Display",Georgia,serif;font-size:clamp(1.2rem,3vw,1.75rem);
+  letter-spacing:.05em;font-weight:500;color:#784f40;margin:2px 0 0
+}

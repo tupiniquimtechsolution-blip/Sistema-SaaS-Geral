@@ -97,9 +97,9 @@ export default function VanessaShowcase({ config, photos, published }: { config:
         <nav aria-label="Navegação principal">
           <a href="#inicio">Início</a>
           <a href="#sobre">Sobre</a>
-          <a href="#servicos">Serviços</a>
+          <a href="#salon-service-label">Serviços</a>
           <a href="#galeria">Galeria</a>
-          <a href="#agendar">Agendamento</a>
+          <a href="#salon-calendar">Agendamento</a>
           <a href="#contato">Contato</a>
         </nav>
         <details className="vanessa-mobile-menu">
@@ -107,9 +107,9 @@ export default function VanessaShowcase({ config, photos, published }: { config:
           <div>
             <a href="#inicio">Início</a>
             <a href="#sobre">Sobre</a>
-            <a href="#servicos">Serviços</a>
+            <a href="#salon-service-label">Serviços</a>
             <a href="#galeria">Galeria</a>
-            <a href="#agendar">Agendamento</a>
+            <a href="#salon-calendar">Agendamento</a>
             <a href="#contato">Contato</a>
           </div>
         </details>
@@ -124,7 +124,7 @@ export default function VanessaShowcase({ config, photos, published }: { config:
           <span aria-hidden="true">{theme === "dark" ? "☀" : "☾"}</span>
           <span className="vanessa-theme-label">{theme === "dark" ? "Tema claro" : "Tema escuro"}</span>
         </button>
-        <a className="vanessa-nav-cta" href="#agendar">Agendar</a>
+        <a className="vanessa-nav-cta" href="#salon-calendar">Agendar</a>
       </header>
 
       <main id="conteudo">
@@ -136,7 +136,7 @@ export default function VanessaShowcase({ config, photos, published }: { config:
               <h1>{salonDisplayName}</h1>
               <p>Seu momento de beleza e autocuidado começa aqui. Conheça nosso espaço e converse com a equipe para escolher seu atendimento.</p>
               <div className="vanessa-actions">
-                <a className="vanessa-cta-light" href="#agendar">Solicitar horário <span aria-hidden="true">↗</span></a>
+                <a className="vanessa-cta-light" href="#salon-calendar">Solicitar horário <span aria-hidden="true">↗</span></a>
                 <a className="vanessa-cta-outline" href="#sobre">Conhecer o salão</a>
               </div>
             </div>
@@ -166,7 +166,7 @@ export default function VanessaShowcase({ config, photos, published }: { config:
           <div className="vanessa-essence-content">
             <h2>Um momento para cuidar de você.</h2>
             <p>Bem-estar, autoestima e cuidado em um só lugar.</p>
-            <a href="#servicos" className="vanessa-inline-link">Conheça nossos serviços <span aria-hidden="true">↗</span></a>
+            <a href="#salon-service-label" className="vanessa-inline-link">Conheça nossos serviços <span aria-hidden="true">↗</span></a>
           </div>
         </section>
 
@@ -178,7 +178,7 @@ export default function VanessaShowcase({ config, photos, published }: { config:
             <p>Escolha o tipo de cuidado, o dia e o horário de sua preferência. Converse com nossos profissionais para confirmar os detalhes do atendimento.</p>
           </div>
           <div className="vanessa-services-action">
-            <a href="#agendar" className="vanessa-space-link">Agende seu horário <span aria-hidden="true">↗</span></a>
+            <a href="#salon-calendar" className="vanessa-space-link">Agende seu horário <span aria-hidden="true">↗</span></a>
             <span>Atendimento combinado diretamente com nossa equipe.</span>
           </div>
         </section>
@@ -237,8 +237,8 @@ export default function VanessaShowcase({ config, photos, published }: { config:
       <footer className="vanessa-footer">
         <nav aria-label="Mapa do site" className="vanessa-footer-links">
           <strong>Explore o site</strong>
-          <a href="#inicio">Início</a><a href="#sobre">Sobre</a><a href="#servicos">Serviços</a>
-          <a href="#galeria">Galeria</a><a href="#agendar">Agendamento</a><a href="#contato">Contato</a>
+          <a href="#inicio">Início</a><a href="#sobre">Sobre</a><a href="#salon-service-label">Serviços</a>
+          <a href="#galeria">Galeria</a><a href="#salon-calendar">Agendamento</a><a href="#contato">Contato</a>
         </nav>
         <small>© {new Date().getFullYear()} {salonDisplayName}. Todos os direitos reservados.</small>
       </footer>

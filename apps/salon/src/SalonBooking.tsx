@@ -143,7 +143,7 @@ export default function SalonBooking({ config }: { config: SalonPublicConfig }) 
       )}
       <p className="salon-booking-hint">Conte aos nossos profissionais qual cuidado você procura. A disponibilidade será confirmada pelo WhatsApp.</p>
 
-      <fieldset className="salon-booking-calendar">
+      <fieldset className="salon-booking-calendar" id="salon-calendar">
         <legend className="salon-booking-label">Dia de preferência</legend>
         <div className="salon-booking-month">
           <button type="button" aria-label="Mês anterior" onClick={() => setMonthOffset((v) => Math.max(0, v - 1))}
