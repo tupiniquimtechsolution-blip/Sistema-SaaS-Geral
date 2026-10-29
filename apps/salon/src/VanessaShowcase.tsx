@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { SalonPublicConfig } from "./config/template";
 import { mapsSearchUrl, whatsappUrl } from "./config/template";
 import "./vanessa-showcase.css";
@@ -35,6 +35,36 @@ const imageUrl = (filename: string) => source + filename;
 
 export default function VanessaShowcase({ config, photos, published }: { config: SalonPublicConfig; photos?: PublicSalonPhoto[]; published?: PublicSalonPage | null }) {
   const [galleryOpen, setGalleryOpen] = useState<number | null>(null);
+  const menuRef = useRef<HTMLDetailsElement>(null);
+  const [showReturnTop, setShowReturnTop] = useState(false);
+  const [activeSection, setActiveSection] = useState("inicio");
+  useEffect(() => {
+    let scheduled = false;
+    const update = () => {
+      scheduled = false;
+      setShowReturnTop(window.scrollY > 650);
+      const markers = ["inicio", "espaco", "sobre", "servicos", "salon-service-label", "galeria", "salon-calendar", "contato"];
+      const active = markers.map((id) => document.getElementById(id))
+        .filter((node): node is HTMLElement => Boolean(node))
+        .filter((node) => node.getBoundingClientRect().top <= 185)
+        .at(-1);
+      if (active) setActiveSection(active.id);
+    };
+    const onScroll = () => {
+      if (!scheduled) { scheduled = true; window.requestAnimationFrame(update); }
+    };
+    update();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("hashchange", onScroll);
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("hashchange", onScroll);
+    };
+  }, []);
+  const navActive = (id: string) => {
+    if (id === "salon-service-label") return activeSection === "servicos" || activeSection === id;
+    return activeSection === id;
+  };
   const whatsapp = whatsappUrl(config);
   const [theme, setTheme] = useState<"light" | "dark">(() => {
     if (typeof window === "undefined") return "light";
@@ -94,16 +124,18 @@ export default function VanessaShowcase({ config, photos, published }: { config:
       <a className="vanessa-skip" href="#conteudo">Ir para o conteúdo</a>
       <header className="vanessa-header">
         <a className="vanessa-logo" href="#inicio" aria-label={config.brandName + " — início"}>{logoUrl ? <img src={logoUrl} alt={"Logo " + config.brandName} width="64" height="64" /> : config.brandName}</a>
-        <nav aria-label="Navegação principal">
-          <a href="#inicio">Início</a>
-          <a href="#sobre">Sobre</a>
-          <a href="#salon-service-label">Serviços</a>
-          <a href="#galeria">Galeria</a>
-          <a href="#salon-calendar">Agendamento</a>
-          <a href="#contato">Contato</a>
+        <nav aria-label="Navegação principal do salão">
+          <a href="#inicio" aria-current={navActive("inicio") ? "location" : undefined}>Início</a>
+          <a href="#sobre" aria-current={navActive("sobre") ? "location" : undefined}>Sobre</a>
+          <a href="#salon-service-label" aria-current={navActive("salon-service-label") ? "location" : undefined}>Serviços</a>
+          <a href="#galeria" aria-current={navActive("galeria") ? "location" : undefined}>Galeria</a>
+          <a href="#salon-calendar" aria-current={navActive("salon-calendar") ? "location" : undefined}>Agendamento</a>
+          <a href="#contato" aria-current={navActive("contato") ? "location" : undefined}>Contato</a>
         </nav>
-        <details className="vanessa-mobile-menu">
-          <summary aria-label="Abrir menu do site">Menu ☰</summary>
+        <details ref={menuRef} className="vanessa-mobile-menu" onClick={(event) => {
+          if ((event.target as HTMLElement).closest("a")) menuRef.current?.removeAttribute("open");
+        }}>
+          <summary aria-label="Abrir ou fechar menu de navegação">Menu <span aria-hidden="true">☰</span></summary>
           <div>
             <a href="#inicio">Início</a>
             <a href="#sobre">Sobre</a>
@@ -124,10 +156,10 @@ export default function VanessaShowcase({ config, photos, published }: { config:
           <span aria-hidden="true">{theme === "dark" ? "☀" : "☾"}</span>
           <span className="vanessa-theme-label">{theme === "dark" ? "Tema claro" : "Tema escuro"}</span>
         </button>
-        <a className="vanessa-nav-cta" href="#salon-calendar">Agendar</a>
+        <a className="vanessa-nav-cta" href="#salon-calendar" aria-label="Ir diretamente ao calendário de agendamento">Agendar</a>
       </header>
 
-      <main id="conteudo">
+      <main id="conteudo" tabIndex={-1}>
         <section className="vanessa-hero" id="inicio">
           <div className="vanessa-hero-arch" aria-hidden="true" />
           <div className="vanessa-hero-copy">
@@ -137,7 +169,7 @@ export default function VanessaShowcase({ config, photos, published }: { config:
               <p>Seu momento de beleza e autocuidado começa aqui. Conheça nosso espaço e converse com a equipe para escolher seu atendimento.</p>
               <div className="vanessa-actions">
                 <a className="vanessa-cta-light" href="#salon-calendar">Solicitar horário <span aria-hidden="true">↗</span></a>
-                <a className="vanessa-cta-outline" href="#sobre">Conhecer o salão</a>
+                <a className="vanessa-cta-outline" href="#espaco">Conhecer o espaço</a>
               </div>
             </div>
           </div>
@@ -153,7 +185,7 @@ export default function VanessaShowcase({ config, photos, published }: { config:
             <p>Um salão acolhedor, preparado para oferecer uma experiência de cuidado, beleza e bem-estar.</p>
           </div>
           <figure className="vanessa-space-figure">
-            <img className="vanessa-hero-img" src={displayedHero.src} alt={displayedHero.alt} fetchPriority="high" onError={() => setDroneImageAvailable(false)} />
+            <img className="vanessa-hero-img" src={displayedHero.src} alt={displayedHero.alt} loading="lazy" decoding="async" onError={() => setDroneImageAvailable(false)} />
             {officialReview && droneImageAvailable && <figcaption>Vista ilustrativa do ambiente baseada em fotografia do salão.</figcaption>}
           </figure>
           <a className="vanessa-space-link" href="#galeria">Conhecer a galeria <span aria-hidden="true">↗</span></a>
@@ -228,7 +260,7 @@ export default function VanessaShowcase({ config, photos, published }: { config:
               <p>{contactAddress}</p>
               <a className="vanessa-cta-light" href={mapsSearchUrl(contactAddress)} target="_blank" rel="noopener noreferrer">Abrir no Maps ↗</a>
             </div>
-            <iframe title="Mapa do salão Vanessa Braz" loading="lazy" referrerPolicy="no-referrer-when-downgrade"
+            <iframe title="Mapa da localização do salão Vanessa Braz" loading="lazy" referrerPolicy="no-referrer"
               src={"https://maps.google.com/maps?q=" + encodeURIComponent(contactAddress) + "&output=embed"} />
           </div>}
         </section>
@@ -242,6 +274,9 @@ export default function VanessaShowcase({ config, photos, published }: { config:
         </nav>
         <small>© {new Date().getFullYear()} {salonDisplayName}. Todos os direitos reservados.</small>
       </footer>
+      {showReturnTop && <a className="vanessa-back-top" href="#inicio" aria-label="Voltar ao início da página">
+        <span aria-hidden="true">↑</span><span className="vanessa-back-top-text">Voltar ao início</span>
+      </a>}
       <SalonInstallPrompt />
       <FloatingWhatsApp config={config} />
 
