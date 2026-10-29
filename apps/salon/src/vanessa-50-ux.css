@@ -237,3 +237,57 @@
 @media(max-width:450px){
   .vanessa-showcase .vanessa-faq-questions summary{font-size:.95rem}
 }
+
+/* 29/10 manual screenshot review: dark booking colors must follow rosewood brand,
+   not the original green-tinted prototype. */
+.vanessa-showcase[data-theme="dark"] .salon-booking-widget{
+  background:#302427;color:#f8ede7;border-color:#6e5254
+}
+.vanessa-showcase[data-theme="dark"] .salon-booking-widget :is(
+  .salon-booking-control,.salon-booking-month button,
+  .salon-booking-day-grid button,.salon-booking-time-grid button,
+  .salon-service-option){
+  background:#3b2e31;color:#f8ede7;border-color:#74585a
+}
+.vanessa-showcase[data-theme="dark"] .salon-service-option span{color:#f8ede7}
+.vanessa-showcase[data-theme="dark"] .salon-service-option.is-selected,
+.vanessa-showcase[data-theme="dark"] .salon-booking-day-grid button.selected,
+.vanessa-showcase[data-theme="dark"] .salon-booking-time-grid button.selected{
+  background:#e9bfa8;color:#241a1a;border-color:#e9bfa8
+}
+.vanessa-showcase[data-theme="dark"] .salon-service-option.is-selected span{color:#241a1a}
+.vanessa-showcase[data-theme="dark"] .salon-booking-progress,
+.vanessa-showcase[data-theme="dark"] .salon-booking-chosen,
+.vanessa-showcase[data-theme="dark"] .salon-booking-review{
+  background:#423236;color:#f8ede7;border-color:#76575a
+}
+.vanessa-showcase[data-theme="dark"] .salon-booking-day-grid button:disabled,
+.vanessa-showcase[data-theme="dark"] .salon-booking-time-grid button:disabled{
+  opacity:.65
+}
+.vanessa-showcase[data-theme="dark"] .salon-booking-day-grid button:hover:not(:disabled),
+.vanessa-showcase[data-theme="dark"] .salon-booking-time-grid button:hover:not(:disabled){
+  background:#514043
+}
+/* Video reel becomes a short, swipeable rail on phones instead of four screens
+   of stacked empty player frames. Native controls remain accessible. */
+@media(max-width:650px){
+  .vanessa-showcase .vanessa-videos-grid{
+    display:flex;overflow-x:auto;overscroll-behavior-x:contain;
+    scroll-snap-type:x mandatory;gap:14px;padding:5px 3px 16px;
+    scrollbar-width:thin;scrollbar-color:var(--vs-gold) var(--v-subtle)
+  }
+  .vanessa-showcase .vanessa-video-tile{
+    flex:0 0 min(76vw,305px);scroll-snap-align:start;
+    max-width:305px
+  }
+  .vanessa-showcase .vanessa-video-tile video{
+    max-height:490px;width:100%;aspect-ratio:9/16
+  }
+  .vanessa-showcase .vanessa-video-swipe-hint{
+    display:block;color:var(--v-muted);font-size:.87rem;margin:6px 0 15px
+  }
+}
+@media(min-width:651px){
+  .vanessa-showcase .vanessa-video-swipe-hint{display:none}
+}

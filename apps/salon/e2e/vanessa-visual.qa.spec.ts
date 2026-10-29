@@ -194,13 +194,29 @@ test("QA page uses tenant metadata and prevents preview indexing", async ({ page
 });
 
 test("QA saves desktop light and mobile dark screenshots for human design review", async ({ page }) => {
-  test.setTimeout(90_000);
+  test.setTimeout(180_000);
   const base = process.env.VANESSA_VISUAL_URL;
   if (!base) throw new Error("VANESSA_VISUAL_URL is required");
   mkdirSync("qa-vanessa-visual/screenshots", { recursive: true });
   await page.setViewportSize({ width: 1280, height: 900 });
   await page.goto(base, { waitUntil: "domcontentloaded" });
+  await expect(page.getByTestId("salon-welcome")).toBeVisible();
+  await page.screenshot({
+    path: "qa-vanessa-visual/screenshots/welcome.png",
+    animations: "disabled", timeout: 30000,
+  });
   await expect(page.getByTestId("salon-welcome")).toHaveCount(0, { timeout: 5000 });
+  // Full-page captures do not always trigger loading="lazy". Visit each real
+  // image first so the screenshot reflects what a scrolling customer sees.
+  const media = page.locator(".vanessa-space-figure img, .vanessa-essence-photo img, .vanessa-official-grid img");
+  const count = await media.count();
+  for (let i = 0; i < count; i++) {
+    const image = media.nth(i);
+    await image.scrollIntoViewIfNeeded();
+    await expect.poll(() => image.evaluate((node: HTMLImageElement) => node.complete && node.naturalWidth > 0),
+      { timeout: 20000, message: "All visitor photos must load before screenshot evidence" }).toBe(true);
+  }
+  await page.evaluate(() => window.scrollTo(0, 0));
   await page.screenshot({
     path: "qa-vanessa-visual/screenshots/desktop-light.png",
     fullPage: true, animations: "disabled", timeout: 60000,
@@ -212,4 +228,16 @@ test("QA saves desktop light and mobile dark screenshots for human design review
     path: "qa-vanessa-visual/screenshots/mobile-dark.png",
     fullPage: true, animations: "disabled", timeout: 60000,
   });
+});
+
+test("Mobile videos scroll horizontally with preserved native playback controls", async ({ page }) => {
+  const base = process.env.VANESSA_VISUAL_URL;
+  if (!base) throw new Error("VANESSA_VISUAL_URL is required");
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto(base, { waitUntil: "domcontentloaded" });
+  const reel = page.getByRole("region", { name: /Vídeos do salão, navegue lateralmente/ });
+  await expect(reel.locator("video")).toHaveCount(4);
+  const state = await reel.evaluate((node) => ({width:node.clientWidth,total:node.scrollWidth}));
+  expect(state.total).toBeGreaterThan(state.width);
+  await expect(page.getByText("Deslize para conhecer outros vídeos do salão.")).toBeVisible();
 });

@@ -183,8 +183,9 @@ export default function VanessaOfficialArchive({
 
       <section className="vanessa-editorial vanessa-official-videos" id="videos">
         <h2>Vídeos</h2>
+        <p className="vanessa-video-swipe-hint">Deslize para conhecer outros vídeos do salão.</p>
         {reviewToolsEnabled && <p className="vanessa-archive-lead">Curadoria local de QA. Reproduza os vídeos e selecione quais devem ser analisados para publicação.</p>}
-        <div className="vanessa-videos-grid">
+        <div className="vanessa-videos-grid" role="region" aria-label="Vídeos do salão, navegue lateralmente no celular" tabIndex={0}>
           {officialVanessaVideos.slice(0, videoLimit).map((asset, i) => (
             <article className="vanessa-video-tile" key={asset.sha256}>
               <video controls preload="none" playsInline aria-label={"Vídeo do salão " + (i + 1)} disablePictureInPicture>
