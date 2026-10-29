@@ -1,5 +1,8 @@
 # Handoff — Vanessa Braz → Sistema-SaaS-Geral / vertical Salon
 
+> **Atualização operacional mais recente (29/10/2026):** para retomar a interface do tenant e as correções após as 50 melhorias, consulte primeiro [VANESSA_50_UX_CHECKPOINT_20261029.md](./VANESSA_50_UX_CHECKPOINT_20261029.md) e o [checklist numerado 01–50](../salon/QA_VANESSA_50_UX_20261029.md). O conteúdo histórico abaixo continua como referência de arquitetura, não substitui o checkpoint do QA atual.
+
+
 ## Decisão canônica
 
 O projeto `tupiniquimtechsolution-blip/Vanessa-Braz` deixa de ser tratado como um backend/Supabase isolado e passa a ser **fonte de produto, UX e regras de domínio** para um novo vertical white-label de salão/beleza dentro do monorepo `Sistema-SaaS-Geral`.
