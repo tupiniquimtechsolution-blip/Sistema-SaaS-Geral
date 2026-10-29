@@ -3,6 +3,7 @@ import type { SalonPublicConfig } from "./config/template";
 import { mapsSearchUrl, whatsappUrl } from "./config/template";
 import "./vanessa-showcase.css";
 import "./vanessa-premium-theme.css";
+import "./vanessa-50-ux.css";
 import type { PublicSalonPhoto } from "./business/public-media";
 import type { PublicSalonPage } from "./business/public-cms";
 import SalonBooking, { FloatingWhatsApp } from "./SalonBooking";
