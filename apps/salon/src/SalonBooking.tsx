@@ -116,18 +116,33 @@ export default function SalonBooking({ config }: { config: SalonPublicConfig }) 
   const url = buildSalonWhatsAppRequestUrl(config.whatsapp, { service, date, time, note }, now);
   const canRequest = config.bookingEnabled && Boolean(number);
   const canSend = canRequest && Boolean(url);
+  const stepsCompleted = Number(Boolean(service)) + Number(Boolean(date)) + Number(Boolean(time));
+  const summaryDate = date ? date.slice(8,10) + "/" + date.slice(5,7) + "/" + date.slice(0,4) : "";
+  const hasSelection = Boolean(interest || date || time || note.trim() || customService);
+  const clearSelection = () => {
+    setInterest(""); setCustomService(""); setMonthOffset(0);
+    setDate(""); setTime(""); setNote("");
+  };
+  const changeMonth = (delta: number) => {
+    setMonthOffset((offset) => Math.max(0, Math.min(3, offset + delta)));
+    setDate(""); setTime("");
+  };
 
   return (
     <div className="salon-booking-widget" aria-label="Solicitação de agendamento pelo WhatsApp">
       <p className="salon-booking-kicker">AGENDAMENTO PERSONALIZADO</p>
       <h3>Escolha sua preferência</h3>
-      <p className="salon-booking-intro">Escolha o atendimento, o dia e o horário que deseja. A equipe confirmará a disponibilidade diretamente pelo WhatsApp.</p>
+      <p className="salon-booking-intro">Selecione uma área de interesse, uma data e um horário. Nossa equipe confirma sua solicitação pelo WhatsApp.</p>
+      <div className="salon-booking-progress" aria-label={"Preenchimento: " + stepsCompleted + " de 3 etapas concluídas"}>
+        <span className="salon-booking-progress-caption">Seu pedido <strong>{stepsCompleted} de 3 etapas</strong></span>
+        <progress value={stepsCompleted} max={3} aria-label="Progresso do pedido" />
+      </div>
 
-      <div className="salon-booking-label" id="salon-service-label">Tipo de serviço</div>
+      <div className="salon-booking-label" id="salon-service-label">1. Qual cuidado você procura?</div>
       <div className="salon-service-options" role="group" aria-labelledby="salon-service-label">
         {interests.map(([id, label]) => (
           <button type="button" key={id} className={interest === id ? "salon-service-option is-selected" : "salon-service-option"}
-            aria-pressed={interest === id} onClick={() => setInterest(id)}>
+            aria-pressed={interest === id} onClick={() => {setInterest(id); if(id !== "outro") setCustomService("");}}>
             <ServiceIllustration id={id} />
             <span>{label}</span>
           </button>
@@ -137,19 +152,20 @@ export default function SalonBooking({ config }: { config: SalonPublicConfig }) 
         <>
           <label className="salon-booking-label" htmlFor="salon-custom-service">Qual serviço deseja?</label>
           <input id="salon-custom-service" className="salon-booking-control" maxLength={120}
-            value={customService} onChange={(e) => setCustomService(e.target.value)}
+            value={customService} onChange={(e) => setCustomService(e.target.value)} aria-required={interest === "outro"}
             placeholder="Descreva o serviço" />
         </>
       )}
-      <p className="salon-booking-hint">Conte aos nossos profissionais qual cuidado você procura. A disponibilidade será confirmada pelo WhatsApp.</p>
+      <p className="salon-booking-hint">Estas são áreas de interesse, não um catálogo de preços ou serviços confirmados.</p>
+      <p className="salon-booking-chosen" aria-live="polite">{service ? "Selecionado: " + service : "Selecione uma opção para continuar."}</p>
 
       <fieldset className="salon-booking-calendar" id="salon-calendar">
-        <legend className="salon-booking-label">Dia de preferência</legend>
+        <legend className="salon-booking-label">2. Escolha a data de preferência</legend>
         <div className="salon-booking-month">
-          <button type="button" aria-label="Mês anterior" onClick={() => setMonthOffset((v) => Math.max(0, v - 1))}
+          <button type="button" aria-label="Mês anterior" onClick={() => changeMonth(-1)}
             disabled={monthOffset === 0}>‹</button>
           <strong aria-live="polite">{displayMonth}</strong>
-          <button type="button" aria-label="Próximo mês" onClick={() => setMonthOffset((v) => Math.min(3, v + 1))}
+          <button type="button" aria-label="Próximo mês" onClick={() => changeMonth(1)}
             disabled={monthOffset === 3}>›</button>
         </div>
         <div className="salon-booking-days-header" aria-hidden="true">
@@ -158,8 +174,8 @@ export default function SalonBooking({ config }: { config: SalonPublicConfig }) 
         <div className="salon-booking-day-grid">
           {cells.map((value, index) => value ? (
             <button type="button" key={value}
-              aria-label={"Dia " + value.slice(8) + "/" + value.slice(5, 7) + "/" + value.slice(0, 4)}
               aria-pressed={date === value}
+              aria-label={"Escolher dia " + value.slice(8) + "/" + value.slice(5,7) + "/" + value.slice(0,4)}
               className={date === value ? "selected" : ""}
               disabled={!salonDateAtMost90DaysAhead(value, now)}
               onClick={() => { setDate(value); setTime(""); }}>
@@ -169,34 +185,47 @@ export default function SalonBooking({ config }: { config: SalonPublicConfig }) 
         </div>
       </fieldset>
 
+      <p className="salon-booking-chosen" aria-live="polite">{summaryDate ? "Data selecionada: " + summaryDate : "Escolha uma data nos próximos 90 dias."}</p>
       <fieldset className="salon-booking-times">
-        <legend className="salon-booking-label">Horário de preferência (horário de Brasília)</legend>
+        <legend className="salon-booking-label">3. Horário de preferência (Brasília)</legend>
         <div className="salon-booking-time-grid">
           {preferredTimes.map((slot) => (
             <button type="button" key={slot} aria-pressed={time === slot}
               className={time === slot ? "selected" : ""}
               disabled={!date || (date === today && slot <= nowTime)}
+              aria-label={"Horário " + slot + " de Brasília"}
               onClick={() => setTime(slot)}>{slot}</button>
           ))}
         </div>
         <p className="salon-booking-hint">Os horários são sugestões para consulta, não vagas livres confirmadas.</p>
       </fieldset>
 
-      <label className="salon-booking-label" htmlFor="salon-message">Personalize sua mensagem (opcional)</label>
+      <p className="salon-booking-chosen" aria-live="polite">{time ? "Horário escolhido: " + time : "Os horários são apenas sugestões para consulta."}</p>
+      <label className="salon-booking-label" htmlFor="salon-message">Observações para nossos profissionais (opcional)</label>
       <textarea id="salon-message" className="salon-booking-control" rows={3} maxLength={500}
         placeholder="Conte o que você gostaria de fazer, dúvidas ou observações..."
         value={note} onChange={(e) => setNote(e.target.value)} />
       <p className="salon-booking-hint">{note.length}/500 caracteres</p>
 
+      <section className="salon-booking-review" aria-labelledby="salon-review-heading" aria-live="polite">
+        <h4 id="salon-review-heading">Resumo da sua solicitação</h4>
+        <dl>
+          <div><dt>Cuidado</dt><dd>{service || "A escolher"}</dd></div>
+          <div><dt>Data</dt><dd>{summaryDate || "A escolher"}</dd></div>
+          <div><dt>Horário</dt><dd>{time ? time + " (Brasília)" : "A escolher"}</dd></div>
+        </dl>
+        <p>O salão confirma a disponibilidade. Nenhuma reserva é feita automaticamente.</p>
+      </section>
+      {hasSelection && <button type="button" className="salon-booking-reset" onClick={clearSelection}>Limpar minha seleção</button>}
       {canSend ? (
         <a className="salon-booking-send" href={url!} target="_blank" rel="noopener noreferrer">
           <WhatsAppMark size={22} />
-          Solicitar pelo WhatsApp
+          Revisar e enviar pelo WhatsApp
         </a>
       ) : (
         <button type="button" className="salon-booking-send" disabled>
           <WhatsAppMark size={22} />
-          {canRequest ? "Escolha serviço, dia e horário" : "WhatsApp indisponível"}
+          {canRequest ? (interest === "outro" && !service ? "Descreva o serviço desejado" : "Complete as três etapas") : "WhatsApp indisponível"}
         </button>
       )}
       <p className="salon-booking-disclaimer" role="status">
