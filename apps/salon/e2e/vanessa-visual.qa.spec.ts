@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { mkdirSync } from "node:fs";
 
 // The official Vanessa Braz Beleza e Autoestima review is pinned at 8e4c304
 // and deduplicates the inventory before exposing it for editorial curation.
@@ -190,4 +191,25 @@ test("QA page uses tenant metadata and prevents preview indexing", async ({ page
   await expect(page.locator('meta[name="description"]')).toHaveAttribute("content", /WhatsApp/);
   await expect(page.locator('meta[name="robots"]')).toHaveAttribute("content", /noindex/);
   await expect(page.locator('meta[property="og:title"]')).toHaveAttribute("content", /Vanessa Braz/);
+});
+
+test("QA saves desktop light and mobile dark screenshots for human design review", async ({ page }) => {
+  test.setTimeout(90_000);
+  const base = process.env.VANESSA_VISUAL_URL;
+  if (!base) throw new Error("VANESSA_VISUAL_URL is required");
+  mkdirSync("qa-vanessa-visual/screenshots", { recursive: true });
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.goto(base, { waitUntil: "domcontentloaded" });
+  await expect(page.getByTestId("salon-welcome")).toHaveCount(0, { timeout: 5000 });
+  await page.screenshot({
+    path: "qa-vanessa-visual/screenshots/desktop-light.png",
+    fullPage: true, animations: "disabled", timeout: 60000,
+  });
+  await page.getByRole("button", { name: "Ativar tema escuro" }).click();
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await page.screenshot({
+    path: "qa-vanessa-visual/screenshots/mobile-dark.png",
+    fullPage: true, animations: "disabled", timeout: 60000,
+  });
 });
