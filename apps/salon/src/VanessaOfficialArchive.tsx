@@ -1,4 +1,4 @@
-import { useEffect, useState, type ChangeEvent } from "react";
+import { useEffect, useRef, useState, type ChangeEvent } from "react";
 import { OFFICIAL_VANESSA_COMMIT, OFFICIAL_VANESSA_REPO, officialVanessaPhotos, officialVanessaVideos } from "./official-vanessa-media";
 import "./vanessa-official-archive.css";
 
@@ -38,16 +38,39 @@ export default function VanessaOfficialArchive({
   const [importStatus, setImportStatus] = useState("");
   const [zoom, setZoom] = useState<number | null>(null);
   const [showCuration, setShowCuration] = useState(false);
+  const [brokenPhotos, setBrokenPhotos] = useState<Set<string>>(() => new Set());
+  const modalCloseRef = useRef<HTMLButtonElement>(null);
+  const openTriggerRef = useRef<HTMLElement | null>(null);
+  const openPhoto = (index: number) => {
+    openTriggerRef.current = document.activeElement as HTMLElement;
+    setZoom(index);
+  };
+  const closePhoto = () => setZoom(null);
+
 
   useEffect(() => {
     if (zoom === null) return;
+    const priorOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    modalCloseRef.current?.focus();
     function close(e: KeyboardEvent) {
-      if (e.key === "Escape") setZoom(null);
+      if (e.key === "Escape") { e.preventDefault(); setZoom(null); }
+      if (e.key === "Tab") {
+        const buttons = document.querySelectorAll<HTMLButtonElement>(".vanessa-archive-lightbox button");
+        if (!buttons.length) return;
+        const first = buttons[0], last = buttons[buttons.length - 1];
+        if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+        else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+      }
       if (e.key === "ArrowRight") setZoom((i) => i === null ? null : (i + 1) % visiblePhotos.length);
       if (e.key === "ArrowLeft") setZoom((i) => i === null ? null : (i - 1 + visiblePhotos.length) % visiblePhotos.length);
     }
     document.addEventListener("keydown", close);
-    return () => document.removeEventListener("keydown", close);
+    return () => {
+      document.removeEventListener("keydown", close);
+      document.body.style.overflow = priorOverflow;
+      openTriggerRef.current?.focus();
+    };
   }, [zoom, visiblePhotos]);
 
   useEffect(() => {
@@ -104,8 +127,10 @@ export default function VanessaOfficialArchive({
 
   return (
     <>
-      <section className="vanessa-editorial vanessa-full-gallery" id="galeria">
-        <h2>Galeria</h2>
+      <section className="vanessa-editorial vanessa-full-gallery" id="galeria" aria-labelledby="vanessa-gallery-heading">
+        <div className="vanessa-gallery-heading"><h2 id="vanessa-gallery-heading">Galeria</h2>
+          {!reviewToolsEnabled && <p>Uma seleção de momentos e detalhes do nosso espaço.</p>}
+        </div>
         {reviewToolsEnabled && <p className="vanessa-archive-lead">Curadoria local de QA: {officialVanessaPhotos.length} fotografias e {officialVanessaVideos.length} vídeos disponíveis para selecionar.</p>}
         {reviewToolsEnabled && <div className="vanessa-archive-toolbar">
           <span>{picked.size} mídias selecionadas para revisão</span>
@@ -130,9 +155,11 @@ export default function VanessaOfficialArchive({
           {visiblePhotos.slice(0, displayedPhotoLimit).map((asset, i) => (
             <article className="vanessa-archive-tile" key={asset.sha256}>
               <button type="button" className="vanessa-archive-view" aria-label={"Ampliar fotografia " + (i + 1)}
-                onClick={() => setZoom(i)}>
-                <img src={asset.url} alt={"Fotografia " + (i + 1) + " do salão"} loading="lazy"
-                  decoding="async" />
+                onClick={() => openPhoto(i)}>
+                {brokenPhotos.has(asset.sha256)
+                  ? <span className="vanessa-photo-fallback" role="img" aria-label="Imagem temporariamente indisponível">Foto indisponível</span>
+                  : <img src={asset.url} alt={"Fotografia " + (i + 1) + " do salão"} loading="lazy"
+                    decoding="async" onError={() => setBrokenPhotos((current) => new Set([...current, asset.sha256]))} />}
                 <span className="vanessa-archive-magnify" aria-hidden="true">↗</span>
               </button>
               {reviewToolsEnabled && <label className="vanessa-archive-pick">
@@ -143,6 +170,7 @@ export default function VanessaOfficialArchive({
           ))}
         </div>
         <div className="vanessa-archive-more">
+          {!reviewToolsEnabled && <span aria-live="polite">{Math.min(displayedPhotoLimit, visiblePhotos.length)} de {visiblePhotos.length} fotografias</span>}
           {reviewToolsEnabled && <span>Mostrando {Math.min(photoLimit, officialVanessaPhotos.length)} de {officialVanessaPhotos.length} fotografias</span>}
           {displayedPhotoLimit < visiblePhotos.length &&
             <button type="button" onClick={() => reviewToolsEnabled
@@ -159,12 +187,12 @@ export default function VanessaOfficialArchive({
         <div className="vanessa-videos-grid">
           {officialVanessaVideos.slice(0, videoLimit).map((asset, i) => (
             <article className="vanessa-video-tile" key={asset.sha256}>
-              <video controls preload="none" playsInline aria-label={"Vídeo do salão " + (i + 1)}>
+              <video controls preload="none" playsInline aria-label={"Vídeo do salão " + (i + 1)} disablePictureInPicture>
                 <source src={asset.url} type="video/mp4" />
                 Seu navegador não suporta este vídeo.
               </video>
               <div className="vanessa-video-caption">
-                <span>Vídeo {i + 1} do acervo</span>
+                <span>Vídeo {i + 1}</span>
                 {instagramUrl && <a href={instagramUrl} target="_blank" rel="noopener noreferrer" aria-label="Abrir perfil do salão no Instagram">Abrir Instagram ↗</a>}
               </div>
               {reviewToolsEnabled && <label className="vanessa-archive-pick">
@@ -187,14 +215,14 @@ export default function VanessaOfficialArchive({
       </section>
 
       {zoom !== null && (
-        <div className="vanessa-archive-lightbox" role="dialog" aria-modal="true" aria-label="Foto ampliada">
-          <button type="button" className="vanessa-archive-close" onClick={() => setZoom(null)} aria-label="Fechar fotografia">Fechar ×</button>
+        <div className="vanessa-archive-lightbox" role="dialog" aria-modal="true" aria-label="Foto ampliada" aria-describedby="vanessa-photo-count">
+          <button type="button" ref={modalCloseRef} className="vanessa-archive-close" onClick={closePhoto} aria-label="Fechar fotografia">Fechar ×</button>
           <button type="button" className="vanessa-archive-previous" aria-label="Fotografia anterior"
             onClick={() => setZoom((zoom - 1 + visiblePhotos.length) % visiblePhotos.length)}>‹</button>
           <img src={visiblePhotos[zoom].url} alt={"Fotografia do salão " + (zoom + 1)} />
           <button type="button" className="vanessa-archive-next" aria-label="Próxima fotografia"
             onClick={() => setZoom((zoom + 1) % visiblePhotos.length)}>›</button>
-          <span className="vanessa-archive-counter">{zoom + 1} / {visiblePhotos.length}</span>
+          <span className="vanessa-archive-counter" id="vanessa-photo-count" aria-live="polite">{zoom + 1} / {visiblePhotos.length}</span>
         </div>
       )}
     </>
