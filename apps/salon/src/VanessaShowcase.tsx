@@ -37,6 +37,16 @@ export default function VanessaShowcase({ config, photos, published }: { config:
   const [galleryOpen, setGalleryOpen] = useState<number | null>(null);
   const menuRef = useRef<HTMLDetailsElement>(null);
   const [showReturnTop, setShowReturnTop] = useState(false);
+  const [showMap, setShowMap] = useState(false);
+  const [addressCopied, setAddressCopied] = useState(false);
+  const copyAddress = async (value: string) => {
+    try {
+      await navigator.clipboard.writeText(value);
+      setAddressCopied(true);
+    } catch {
+      setAddressCopied(false);
+    }
+  };
   const [activeSection, setActiveSection] = useState("inicio");
   useEffect(() => {
     let scheduled = false;
@@ -76,6 +86,8 @@ export default function VanessaShowcase({ config, photos, published }: { config:
   });
   useEffect(() => {
     try { window.localStorage.setItem("vanessa-theme-v1", theme); } catch { /* unavailable */ }
+    const color = theme === "dark" ? "#201b1d" : "#fbf6f0";
+    document.querySelector<HTMLMetaElement>('meta[name="theme-color"]')?.setAttribute("content", color);
   }, [theme]);
   // Live uses only the approved tenant-scoped Storage projection; the original GitHub
   // photo library is confined to the explicit QA visual review branch.
@@ -247,8 +259,9 @@ export default function VanessaShowcase({ config, photos, published }: { config:
         </section>
 
         <section className="vanessa-editorial vanessa-contact" id="contato">
-          <p className="vanessa-eyebrow">CONTATO</p>
-          <h2>Entre em contato</h2>
+          <p className="vanessa-eyebrow">FALE COM A GENTE</p>
+          <h2>Será um prazer receber você.</h2>
+          <p className="vanessa-contact-intro">Precisa de informações? Nossa equipe atende suas dúvidas e combina os detalhes do atendimento com você.</p>
           <div className="vanessa-contact-actions">
             {config.instagramUrl && <a href={config.instagramUrl} target="_blank" rel="noopener noreferrer" aria-label="Abrir Instagram do salão">Instagram ↗</a>}
             {config.whatsapp && <a href={whatsapp} target="_blank" rel="noopener noreferrer" aria-label="Conversar com o salão pelo WhatsApp">WhatsApp · {config.phoneDisplay || config.whatsapp} ↗</a>}
@@ -257,16 +270,29 @@ export default function VanessaShowcase({ config, photos, published }: { config:
             <div>
               <p className="vanessa-eyebrow">LOCALIZAÇÃO</p>
               <h2>Encontre nosso salão</h2>
-              <p>{contactAddress}</p>
-              <a className="vanessa-cta-light" href={mapsSearchUrl(contactAddress)} target="_blank" rel="noopener noreferrer">Abrir no Maps ↗</a>
+              <address>{contactAddress}</address>
+              <div className="vanessa-location-actions">
+                <a className="vanessa-cta-light" href={mapsSearchUrl(contactAddress)} target="_blank" rel="noopener noreferrer">Traçar rota no Google Maps ↗</a>
+                <button type="button" className="vanessa-copy-address" onClick={() => void copyAddress(contactAddress)}>Copiar endereço</button>
+                <button type="button" className="vanessa-copy-address" onClick={() => setShowMap((shown) => !shown)}
+                  aria-expanded={showMap} aria-controls="vanessa-contact-map">{showMap ? "Ocultar mapa" : "Visualizar mapa"}</button>
+              </div>
+              {addressCopied && <p role="status" className="vanessa-copy-result">Endereço copiado.</p>}
             </div>
-            <iframe title="Mapa da localização do salão Vanessa Braz" loading="lazy" referrerPolicy="no-referrer"
-              src={"https://maps.google.com/maps?q=" + encodeURIComponent(contactAddress) + "&output=embed"} />
+            <div className="vanessa-map-panel" id="vanessa-contact-map">
+              {showMap ? <iframe title="Mapa da localização do salão Vanessa Braz" loading="lazy"
+                referrerPolicy="no-referrer" src={"https://maps.google.com/maps?q=" + encodeURIComponent(contactAddress) + "&output=embed"} /> :
+                <div className="vanessa-map-placeholder">
+                  <span aria-hidden="true">⌖</span>
+                  <p>Rua Redenção, Chácara Tatuapé, São Paulo</p>
+                  <p>Abra o mapa quando quiser consultar a localização.</p>
+                </div>}
+            </div>
           </div>}
         </section>
       </main>
 
-      <footer className="vanessa-footer">
+      <footer className="vanessa-footer" aria-label="Informações do salão">
         <nav aria-label="Mapa do site" className="vanessa-footer-links">
           <strong>Explore o site</strong>
           <a href="#inicio">Início</a><a href="#sobre">Sobre</a><a href="#salon-service-label">Serviços</a>
