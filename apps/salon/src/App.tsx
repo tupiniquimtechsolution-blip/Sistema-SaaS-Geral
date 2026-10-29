@@ -69,9 +69,41 @@ export default function App() {
   // generic HTML shell. Also covers refreshes and deep-link SPA navigation.
   useEffect(() => {
     if (!runtime || runtime.source === "error") return;
-    const previousTitle = document.title;
-    document.title = runtime.config.brandName + " | Agendamento";
-    return () => { document.title = previousTitle; };
+    const brand = runtime.config.slug === "vanessa-braz"
+      ? "Vanessa Braz — Beleza e Autoestima" : runtime.config.brandName;
+    const title = brand + " | Conheça o espaço e solicite seu horário";
+    const description = "Conheça " + brand + ", veja nossa galeria e solicite um atendimento. A equipe confirma disponibilidade e detalhes pelo WhatsApp.";
+    const beforeTitle = document.title;
+    const modified: { node: HTMLMetaElement; value: string | null }[] = [];
+    const applyMeta = (attribute: "name" | "property", key: string, value: string) => {
+      let node = document.head.querySelector<HTMLMetaElement>(
+        'meta[' + attribute + '="' + key + '"]'
+      );
+      if (!node) {
+        node = document.createElement("meta");
+        node.setAttribute(attribute, key);
+        document.head.appendChild(node);
+      }
+      modified.push({ node, value: node.getAttribute("content") });
+      node.setAttribute("content", value);
+    };
+    document.title = title;
+    applyMeta("name", "description", description);
+    applyMeta("property", "og:title", title);
+    applyMeta("property", "og:description", description);
+    applyMeta("property", "og:type", "website");
+    applyMeta("property", "og:locale", "pt_BR");
+    const qaPreview = runtime.source === "preview" ||
+      (import.meta.env.VITE_VANESSA_QA_VISUAL_OVERLAY === "true" &&
+        import.meta.env.VITE_SUPABASE_URL === "https://ynqbnimlpxlokrxlucdm.supabase.co");
+    if (qaPreview) applyMeta("name", "robots", "noindex,nofollow,noarchive");
+    return () => {
+      document.title = beforeTitle;
+      for (const item of modified) {
+        if (item.value === null) item.node.removeAttribute("content");
+        else item.node.setAttribute("content", item.value);
+      }
+    };
   }, [runtime]);
 
   if (!runtime) {
