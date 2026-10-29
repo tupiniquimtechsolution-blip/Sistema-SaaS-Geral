@@ -1,0 +1,239 @@
+/* Vanessa 50-point UX audit — deliberately scoped to the salon showcase.
+   Never apply these brand choices to the other SaaS tenants. */
+.vanessa-showcase {
+  --ux-radius:8px;
+  --ux-gutter:clamp(18px,5vw,78px);
+  --ux-shadow:0 18px 46px rgba(54,34,31,.10);
+  min-width:0;
+  overflow-x:clip;
+  line-height:1.6;
+  -webkit-font-smoothing:antialiased;
+}
+.vanessa-showcase[data-theme="dark"] {--ux-shadow:0 18px 56px rgba(0,0,0,.3)}
+.vanessa-showcase :where(h1,h2,h3){text-wrap:balance}
+.vanessa-showcase :where(p,li,dd){overflow-wrap:break-word}
+.vanessa-showcase :where(a,button,summary,input,textarea):focus-visible {
+  outline:3px solid var(--vs-gold)!important;
+  outline-offset:3px!important
+}
+.vanessa-showcase :where(a,button,summary){touch-action:manipulation}
+.vanessa-showcase .vanessa-header{min-height:76px;height:auto;gap:clamp(8px,1.4vw,24px)}
+.vanessa-showcase .vanessa-header nav a[aria-current="location"]{
+  color:var(--vs-ink);font-weight:800;
+  text-decoration:underline;text-underline-offset:8px;
+  text-decoration-thickness:2px;text-decoration-color:var(--vs-gold)
+}
+.vanessa-showcase .vanessa-header nav a{transition:color .15s ease}
+.vanessa-showcase .vanessa-mobile-menu summary{min-height:44px;display:flex;align-items:center;gap:8px}
+.vanessa-showcase .vanessa-mobile-menu>div{max-height:calc(100dvh - 105px);overflow-y:auto;box-shadow:var(--ux-shadow)}
+.vanessa-showcase .vanessa-mobile-menu>div a{display:flex;align-items:center;min-height:45px;padding:10px 14px}
+.vanessa-showcase .vanessa-nav-cta{min-height:44px;display:inline-flex;align-items:center;justify-content:center}
+.vanessa-showcase .vanessa-logo img{object-fit:contain;border-radius:50%;max-width:64px;height:auto}
+.vanessa-showcase .vanessa-theme-toggle{transition:background .2s ease,border-color .2s ease}
+.vanessa-showcase .vanessa-theme-toggle:hover{border-color:var(--vs-gold)}
+.vanessa-showcase .vanessa-skip:focus-visible{position:fixed;top:8px;left:8px;z-index:200;color:#1c1616;background:#fff;min-height:44px;border-radius:6px}
+.vanessa-showcase .vanessa-hero {min-height:clamp(570px,76svh,820px)}
+.vanessa-showcase .vanessa-hero-copy{padding-top:clamp(75px,10vw,145px)}
+.vanessa-showcase .vanessa-hero h1{max-width:18ch;line-height:1.08}
+.vanessa-showcase .vanessa-hero-card>p:not(.vanessa-eyebrow){max-width:55ch}
+.vanessa-showcase .vanessa-actions a{min-height:48px;border-radius:var(--ux-radius);font-weight:700}
+.vanessa-showcase .vanessa-actions a:active{transform:translateY(1px)}
+.vanessa-showcase .vanessa-space-tour{padding-block:clamp(55px,8vw,112px)}
+.vanessa-showcase .vanessa-space-heading>p{font-size:clamp(1rem,1.4vw,1.15rem);line-height:1.75}
+.vanessa-showcase .vanessa-space-figure .vanessa-hero-img{
+  max-height:min(70vw,780px);object-fit:contain;background:var(--v-subtle);
+  width:100%;height:auto;aspect-ratio:4/3
+}
+.vanessa-showcase .vanessa-space-figure figcaption{
+  background:rgba(31,23,23,.92);font-size:.78rem;max-width:min(480px,calc(100% - 24px))
+}
+.vanessa-showcase .vanessa-space-link{min-height:48px;align-items:center}
+.vanessa-showcase .vanessa-essence-content>p{max-width:40ch}
+.vanessa-showcase .vanessa-services-action{align-items:center}
+.vanessa-showcase .vanessa-contact-intro{
+  max-width:57ch;font-size:1.08rem;color:var(--v-muted);
+  line-height:1.75;margin:0 0 27px
+}
+.vanessa-showcase .vanessa-location {align-items:stretch;gap:clamp(22px,4vw,55px)}
+.vanessa-showcase .vanessa-location address {
+  font-style:normal;font-weight:550;color:var(--vs-ink);
+  line-height:1.8;margin:16px 0 20px;max-width:42ch
+}
+.vanessa-showcase .vanessa-location-actions{display:flex;gap:10px;flex-wrap:wrap}
+.vanessa-showcase .vanessa-location-actions a,
+.vanessa-showcase .vanessa-location-actions button {
+  min-height:44px;display:inline-flex;align-items:center;justify-content:center;
+  padding:11px 15px;cursor:pointer;font:700 .87rem Inter,system-ui,sans-serif;
+  border-radius:6px;text-decoration:none
+}
+.vanessa-showcase .vanessa-location-actions .vanessa-cta-light{
+  color:var(--v-accent-ink)!important;background:var(--v-accent);border:1px solid var(--v-accent)
+}
+.vanessa-showcase .vanessa-location-actions .vanessa-copy-address {
+  background:var(--v-surface);border:1px solid var(--vs-line);color:var(--vs-ink)
+}
+.vanessa-showcase .vanessa-copy-address:hover {border-color:var(--vs-gold)}
+.vanessa-showcase .vanessa-copy-result {color:var(--vs-ink);font-weight:700;margin-top:12px}
+.vanessa-showcase .vanessa-map-panel {height:100%;min-height:260px}
+.vanessa-showcase .vanessa-map-panel iframe{display:block;width:100%;height:100%;min-height:300px;border:0;border-radius:var(--ux-radius)}
+.vanessa-showcase .vanessa-map-placeholder{
+  min-height:270px;height:100%;padding:clamp(22px,4vw,50px);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:8px;background:var(--v-subtle);color:var(--vs-ink);
+  border:1px dashed var(--vs-line);border-radius:var(--ux-radius);text-align:center
+}
+.vanessa-showcase .vanessa-map-placeholder span{font-size:2.4rem;color:var(--vs-gold);line-height:1}
+.vanessa-showcase .vanessa-map-placeholder p{margin:0;max-width:37ch;line-height:1.55}
+.vanessa-showcase .vanessa-footer{padding-block:clamp(28px,5vw,60px)}
+.vanessa-showcase .vanessa-footer-links {gap:clamp(14px,2vw,29px);flex-wrap:wrap}
+.vanessa-showcase .vanessa-footer a:focus-visible{outline:3px solid var(--vs-gold)}
+.vanessa-back-top {
+  position:fixed;bottom:25px;left:18px;z-index:60;
+  min-height:46px;display:inline-flex;gap:9px;align-items:center;justify-content:center;
+  padding:10px 17px;background:var(--v-surface);color:var(--vs-ink)!important;
+  border:1px solid var(--vs-line);border-radius:99px;
+  text-decoration:none;font-weight:750;font-size:.8rem;box-shadow:var(--ux-shadow)
+}
+.vanessa-back-top span:first-child {font-size:1.3rem;line-height:1}
+/* Booking is a guided three-step request, never an availability claim. */
+.vanessa-showcase .salon-booking-widget {border-radius:14px;box-shadow:var(--ux-shadow)}
+.vanessa-showcase .salon-booking-progress{margin:4px 0 24px;padding:13px 15px;background:var(--v-subtle);border-radius:8px}
+.vanessa-showcase .salon-booking-progress-caption{display:flex;justify-content:space-between;gap:12px;font-size:.82rem;color:var(--vs-ink);margin-bottom:7px}
+.vanessa-showcase .salon-booking-progress progress{display:block;width:100%;height:8px;accent-color:var(--v-accent)}
+.vanessa-showcase .salon-booking-label{font-size:1rem;line-height:1.45}
+.vanessa-showcase .salon-service-option {min-height:130px;transition:background .18s ease,border-color .18s ease}
+.vanessa-showcase .salon-service-option[aria-pressed="true"]{outline-offset:0}
+.vanessa-showcase .salon-service-option span{font-size:.83rem;line-height:1.42}
+.vanessa-showcase .salon-booking-day-grid button,
+.vanessa-showcase .salon-booking-time-grid button{min-height:44px}
+.vanessa-showcase .salon-booking-day-grid button{border-radius:9px}
+.vanessa-showcase .salon-booking-calendar,
+.vanessa-showcase .salon-booking-times {padding-block:9px}
+.vanessa-showcase .salon-booking-chosen {
+  margin:11px 0 19px;padding:9px 12px;
+  color:var(--vs-ink);background:var(--v-subtle);
+  border-left:3px solid var(--vs-gold);font-size:.86rem;line-height:1.6
+}
+.vanessa-showcase .salon-booking-review {
+  margin-top:26px;padding:17px 19px;background:var(--v-subtle);
+  border:1px solid var(--vs-line);border-radius:8px;color:var(--vs-ink)
+}
+.vanessa-showcase .salon-booking-review h4{
+  font:650 clamp(1.1rem,1.8vw,1.3rem) Inter,system-ui,sans-serif;margin:0 0 14px
+}
+.vanessa-showcase .salon-booking-review dl {display:grid;gap:8px;margin:0}
+.vanessa-showcase .salon-booking-review dl>div{display:grid;grid-template-columns:minmax(70px,1fr) minmax(0,2fr);gap:12px}
+.vanessa-showcase .salon-booking-review dt{color:var(--v-muted)}
+.vanessa-showcase .salon-booking-review dd{text-align:right;margin:0;font-weight:750}
+.vanessa-showcase .salon-booking-review p {color:var(--v-muted);font-size:.82rem;line-height:1.7;margin:18px 0 0}
+.vanessa-showcase .salon-booking-reset {
+  width:100%;margin-top:14px;min-height:44px;
+  border:1px solid var(--vs-line);background:transparent;color:var(--vs-ink);
+  border-radius:8px;font:750 .86rem Inter,system-ui,sans-serif;cursor:pointer
+}
+.vanessa-showcase .salon-booking-reset:hover{background:var(--v-subtle)}
+.vanessa-showcase .salon-booking-send {min-height:54px}
+.vanessa-showcase[data-theme="dark"] .salon-booking-review,
+.vanessa-showcase[data-theme="dark"] .salon-booking-progress,
+.vanessa-showcase[data-theme="dark"] .salon-booking-chosen{background:#303a35;color:#f6eae2;border-color:#67736b}
+.vanessa-showcase[data-theme="dark"] .salon-booking-review :is(h4,dd,p,dt),
+.vanessa-showcase[data-theme="dark"] .salon-booking-progress-caption{color:#f6eae2}
+.vanessa-showcase[data-theme="dark"] .salon-booking-reset{color:#f6eae2;border-color:#67736b}
+/* Media: clear grid, readable controls, no motion surprises. */
+.vanessa-showcase .vanessa-gallery-heading{display:flex;justify-content:space-between;align-items:end;gap:25px;flex-wrap:wrap;margin-bottom:30px}
+.vanessa-showcase .vanessa-gallery-heading h2{margin:0}
+.vanessa-showcase .vanessa-gallery-heading p{max-width:38ch;color:var(--v-muted);margin:0;font-size:1rem;line-height:1.65}
+.vanessa-showcase .vanessa-official-grid{gap:clamp(8px,1.6vw,19px)}
+.vanessa-showcase .vanessa-archive-tile{background:var(--v-subtle)}
+.vanessa-showcase .vanessa-archive-view {border-radius:4px;min-height:180px}
+.vanessa-showcase .vanessa-archive-view img{width:100%;height:100%;object-fit:cover}
+.vanessa-showcase .vanessa-photo-fallback{
+  width:100%;height:100%;display:flex;align-items:center;justify-content:center;
+  padding:20px;color:var(--v-muted);text-align:center;background:var(--v-subtle)
+}
+.vanessa-showcase .vanessa-archive-magnify{width:35px;height:35px;box-shadow:0 3px 12px #0002}
+.vanessa-showcase .vanessa-archive-more button,
+.vanessa-showcase .vanessa-archive-toolbar button{min-height:44px}
+.vanessa-showcase .vanessa-archive-lightbox{padding:65px clamp(6px,2vw,36px);overscroll-behavior:contain}
+.vanessa-showcase .vanessa-archive-lightbox img{max-height:calc(100dvh - 155px)}
+.vanessa-showcase .vanessa-archive-lightbox button{min-width:44px;min-height:48px}
+.vanessa-showcase .vanessa-archive-counter{font-weight:700}
+.vanessa-showcase .vanessa-video-tile{border:0;background:var(--v-surface);box-shadow:var(--ux-shadow)}
+.vanessa-showcase .vanessa-video-caption{color:var(--vs-ink)}
+.vanessa-showcase .vanessa-video-caption a{color:var(--vs-gold);min-height:44px;display:inline-flex;align-items:center}
+.vanessa-showcase[data-theme="dark"] .vanessa-archive-more button,
+.vanessa-showcase[data-theme="dark"] .vanessa-archive-toolbar button{background:#e9bfa8;border-color:#e9bfa8;color:#211b1a}
+.vanessa-showcase[data-theme="dark"] .vanessa-archive-toolbar span,
+.vanessa-showcase[data-theme="dark"] .vanessa-archive-more{color:var(--vs-ink)}
+.vanessa-showcase[data-theme="dark"] .vanessa-photo-fallback{color:#ede0d9}
+@media(max-width:1100px) {
+  .vanessa-showcase .vanessa-header nav{gap:clamp(9px,1.4vw,16px)}
+  .vanessa-showcase .vanessa-header nav a{font-size:.79rem}
+}
+@media(max-width:820px) {
+  .vanessa-showcase .vanessa-hero h1{max-width:100%;font-size:clamp(2.55rem,8vw,4.3rem)}
+  .vanessa-showcase .vanessa-space-heading{gap:18px}
+  .vanessa-showcase .vanessa-location{display:grid;grid-template-columns:1fr}
+  .vanessa-showcase .vanessa-book{gap:clamp(18px,5vw,35px)}
+  .vanessa-showcase .vanessa-map-panel{min-height:230px}
+}
+@media(max-width:480px) {
+  .vanessa-showcase .vanessa-header{padding-inline:10px}
+  .vanessa-showcase .vanessa-hero{min-height:570px}
+  .vanessa-showcase .vanessa-hero-copy{padding-top:45px}
+  .vanessa-showcase .vanessa-hero-card{padding-left:16px}
+  .vanessa-showcase .vanessa-hero-card>p:not(.vanessa-eyebrow){font-size:.93rem}
+  .vanessa-showcase .vanessa-actions a{flex:1 1 100%;padding-inline:14px}
+  .vanessa-showcase .vanessa-space-figure .vanessa-hero-img{max-height:500px}
+  .vanessa-showcase .vanessa-archive-lightbox{gap:2px;padding-inline:4px}
+  .vanessa-showcase .vanessa-archive-lightbox img{max-width:calc(100vw - 102px)}
+  .vanessa-showcase .vanessa-map-placeholder{padding:20px}
+  .vanessa-back-top{bottom:95px;left:12px;padding:10px 13px}
+  .vanessa-back-top-text{display:none}
+  .vanessa-showcase .salon-booking-review dl>div{grid-template-columns:70px minmax(0,1fr)}
+}
+@media(prefers-reduced-motion:reduce) {
+  .vanessa-showcase :where(a,button,img,summary){animation:none!important;transition:none!important}
+  .vanessa-showcase * {scroll-behavior:auto!important}
+}
+@media(forced-colors:active) {
+  .vanessa-showcase :is(a,button,summary):focus-visible{outline:2px solid Highlight!important}
+  .vanessa-showcase .salon-booking-progress progress{forced-color-adjust:auto}
+  .vanessa-showcase .salon-service-option[aria-pressed="true"]{outline:2px solid Highlight}
+}
+
+/* Calm FAQ: no excessive cards, native keyboard-accessible disclosure controls. */
+.vanessa-showcase .vanessa-faq{
+  padding:clamp(64px,8vw,110px) var(--ux-gutter);
+  display:grid;grid-template-columns:minmax(0,.85fr) minmax(0,1.15fr);
+  gap:clamp(34px,7vw,110px);background:var(--v-surface);color:var(--vs-ink)
+}
+.vanessa-showcase .vanessa-faq h2{
+  font:400 clamp(2.5rem,4.7vw,4.7rem)/1.1 "Playfair Display",Georgia,serif;
+  letter-spacing:-.03em;margin:0 0 22px;max-width:14ch
+}
+.vanessa-showcase .vanessa-faq-intro>p:not(.vanessa-eyebrow){
+  color:var(--v-muted);max-width:39ch;line-height:1.8;margin:0 0 18px
+}
+.vanessa-showcase .vanessa-faq-questions details{border-bottom:1px solid var(--vs-line)}
+.vanessa-showcase .vanessa-faq-questions details:first-child{border-top:1px solid var(--vs-line)}
+.vanessa-showcase .vanessa-faq-questions summary{
+  list-style:none;min-height:68px;padding:17px 38px 17px 0;position:relative;
+  display:flex;align-items:center;cursor:pointer;font-weight:750;line-height:1.45
+}
+.vanessa-showcase .vanessa-faq-questions summary::-webkit-details-marker{display:none}
+.vanessa-showcase .vanessa-faq-questions summary::after{
+  content:"+";position:absolute;right:8px;top:50%;transform:translateY(-50%);
+  color:var(--vs-gold);font-size:1.7rem;font-weight:400
+}
+.vanessa-showcase .vanessa-faq-questions details[open] summary::after{content:"−"}
+.vanessa-showcase .vanessa-faq-questions details p{
+  color:var(--v-muted);margin:0 0 22px;max-width:62ch;line-height:1.8
+}
+@media(max-width:820px){
+  .vanessa-showcase .vanessa-faq{grid-template-columns:1fr;gap:27px}
+  .vanessa-showcase .vanessa-faq h2{max-width:none}
+}
+@media(max-width:450px){
+  .vanessa-showcase .vanessa-faq-questions summary{font-size:.95rem}
+}

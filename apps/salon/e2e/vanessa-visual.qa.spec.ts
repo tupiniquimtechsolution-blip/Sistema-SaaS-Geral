@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { mkdirSync } from "node:fs";
 
 // The official Vanessa Braz Beleza e Autoestima review is pinned at 8e4c304
 // and deduplicates the inventory before exposing it for editorial curation.
@@ -149,4 +150,66 @@ test("Salon links take guests to actual service choices and calendar, not market
     const rect = el.getBoundingClientRect();
     return rect.top >= 65 && rect.top <= 160;
   }), {timeout: 5000}).toBe(true);
+});
+
+test("Guest navigation, map privacy and FAQs are useful without login", async ({ page }) => {
+  const base = process.env.VANESSA_VISUAL_URL;
+  if (!base) throw new Error("VANESSA_VISUAL_URL is required");
+  await page.goto(base, { waitUntil: "domcontentloaded" });
+  await expect(page.getByRole("heading", { name: "Tudo mais simples para você." })).toBeVisible();
+  await page.locator("#duvidas summary").first().click();
+  await expect(page.locator("#duvidas details").first()).toHaveAttribute("open", "");
+  await expect(page.locator("#contato iframe")).toHaveCount(0);
+  await page.getByRole("button", { name: "Visualizar mapa" }).click();
+  await expect(page.locator("#contato iframe")).toHaveCount(1);
+  await page.getByRole("button", { name: "Ocultar mapa" }).click();
+  await expect(page.locator("#contato iframe")).toHaveCount(0);
+  await page.evaluate(() => window.scrollTo(0, 1300));
+  await expect(page.getByRole("link", { name: "Voltar ao início da página" })).toBeVisible();
+  await page.getByRole("link", { name: "Voltar ao início da página" }).click();
+  await expect(page).toHaveURL(/#inicio$/);
+});
+test("Mobile menu closes after link activation and site has no horizontal scroll", async ({ page }) => {
+  const base = process.env.VANESSA_VISUAL_URL;
+  if (!base) throw new Error("VANESSA_VISUAL_URL is required");
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto(base, { waitUntil: "domcontentloaded" });
+  const menu = page.locator(".vanessa-mobile-menu");
+  await menu.locator("summary").click();
+  await expect(menu).toHaveAttribute("open", "");
+  await menu.getByRole("link", { name: "Contato" }).click();
+  await expect(menu).not.toHaveAttribute("open", "");
+  await expect(page).toHaveURL(/#contato$/);
+  const widths = await page.evaluate(() => ({page:document.documentElement.scrollWidth, viewport:window.innerWidth}));
+  expect(widths.page).toBeLessThanOrEqual(widths.viewport + 2);
+});
+test("QA page uses tenant metadata and prevents preview indexing", async ({ page }) => {
+  const base = process.env.VANESSA_VISUAL_URL;
+  if (!base) throw new Error("VANESSA_VISUAL_URL is required");
+  await page.goto(base, { waitUntil: "domcontentloaded" });
+  await expect(page).toHaveTitle(/Vanessa Braz.*Conheça o espaço/);
+  await expect(page.locator('meta[name="description"]')).toHaveAttribute("content", /WhatsApp/);
+  await expect(page.locator('meta[name="robots"]')).toHaveAttribute("content", /noindex/);
+  await expect(page.locator('meta[property="og:title"]')).toHaveAttribute("content", /Vanessa Braz/);
+});
+
+test("QA saves desktop light and mobile dark screenshots for human design review", async ({ page }) => {
+  test.setTimeout(90_000);
+  const base = process.env.VANESSA_VISUAL_URL;
+  if (!base) throw new Error("VANESSA_VISUAL_URL is required");
+  mkdirSync("qa-vanessa-visual/screenshots", { recursive: true });
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.goto(base, { waitUntil: "domcontentloaded" });
+  await expect(page.getByTestId("salon-welcome")).toHaveCount(0, { timeout: 5000 });
+  await page.screenshot({
+    path: "qa-vanessa-visual/screenshots/desktop-light.png",
+    fullPage: true, animations: "disabled", timeout: 60000,
+  });
+  await page.getByRole("button", { name: "Ativar tema escuro" }).click();
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await page.screenshot({
+    path: "qa-vanessa-visual/screenshots/mobile-dark.png",
+    fullPage: true, animations: "disabled", timeout: 60000,
+  });
 });

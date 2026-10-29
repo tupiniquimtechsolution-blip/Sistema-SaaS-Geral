@@ -14,11 +14,15 @@ export default function SalonInstallPrompt() {
   const [installed, setInstalled] = useState(false);
   const [isMobile, setMobile] = useState(false);
   const [help, setHelp] = useState("");
-  const [hidden, setHidden] = useState(false);
+  const [hidden, setHidden] = useState(() => {
+    try { return sessionStorage.getItem("salon-install-hidden") === "1"; }
+    catch { return false; }
+  });
+  const [ready, setReady] = useState(false);
   useEffect(() => {
     setInstalled(isInstalled());
     setMobile(/Android|iPhone|iPad|iPod/i.test(navigator.userAgent));
-    try { setHidden(sessionStorage.getItem("salon-install-hidden") === "1"); } catch { /* ignore */ }
+    const delay = window.setTimeout(() => setReady(true), 7000);
     const onBefore = (e: Event) => { e.preventDefault(); setInstallEvent(e as DeferredInstallEvent); };
     const onInstalled = () => { setInstalled(true); setInstallEvent(null); setHelp(""); };
     window.addEventListener("beforeinstallprompt", onBefore);
@@ -26,9 +30,10 @@ export default function SalonInstallPrompt() {
     return () => {
       window.removeEventListener("beforeinstallprompt", onBefore);
       window.removeEventListener("appinstalled", onInstalled);
+      window.clearTimeout(delay);
     };
   }, []);
-  if (installed || hidden || (!installEvent && !isMobile)) return null;
+  if (!ready || installed || hidden || (!installEvent && !isMobile)) return null;
   async function onInstall() {
     if (installEvent) {
       try {
@@ -48,7 +53,7 @@ export default function SalonInstallPrompt() {
   }
   return <aside className="salon-install-prompt" aria-label="Instalar aplicativo do salão">
     <div className="salon-install-line">
-      <button type="button" className="salon-install-button" onClick={() => void onInstall()}>Instalar aplicativo</button>
+      <button type="button" className="salon-install-button" onClick={() => void onInstall()}>Adicionar à tela inicial</button>
       <button type="button" className="salon-install-close" onClick={dismiss} aria-label="Ocultar opção de instalação">×</button>
     </div>
     {help && <p role="status">{help}</p>}
