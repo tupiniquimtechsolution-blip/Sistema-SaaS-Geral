@@ -201,3 +201,39 @@
   .vanessa-showcase .salon-booking-progress progress{forced-color-adjust:auto}
   .vanessa-showcase .salon-service-option[aria-pressed="true"]{outline:2px solid Highlight}
 }
+
+/* Calm FAQ: no excessive cards, native keyboard-accessible disclosure controls. */
+.vanessa-showcase .vanessa-faq{
+  padding:clamp(64px,8vw,110px) var(--ux-gutter);
+  display:grid;grid-template-columns:minmax(0,.85fr) minmax(0,1.15fr);
+  gap:clamp(34px,7vw,110px);background:var(--v-surface);color:var(--vs-ink)
+}
+.vanessa-showcase .vanessa-faq h2{
+  font:400 clamp(2.5rem,4.7vw,4.7rem)/1.1 "Playfair Display",Georgia,serif;
+  letter-spacing:-.03em;margin:0 0 22px;max-width:14ch
+}
+.vanessa-showcase .vanessa-faq-intro>p:not(.vanessa-eyebrow){
+  color:var(--v-muted);max-width:39ch;line-height:1.8;margin:0 0 18px
+}
+.vanessa-showcase .vanessa-faq-questions details{border-bottom:1px solid var(--vs-line)}
+.vanessa-showcase .vanessa-faq-questions details:first-child{border-top:1px solid var(--vs-line)}
+.vanessa-showcase .vanessa-faq-questions summary{
+  list-style:none;min-height:68px;padding:17px 38px 17px 0;position:relative;
+  display:flex;align-items:center;cursor:pointer;font-weight:750;line-height:1.45
+}
+.vanessa-showcase .vanessa-faq-questions summary::-webkit-details-marker{display:none}
+.vanessa-showcase .vanessa-faq-questions summary::after{
+  content:"+";position:absolute;right:8px;top:50%;transform:translateY(-50%);
+  color:var(--vs-gold);font-size:1.7rem;font-weight:400
+}
+.vanessa-showcase .vanessa-faq-questions details[open] summary::after{content:"−"}
+.vanessa-showcase .vanessa-faq-questions details p{
+  color:var(--v-muted);margin:0 0 22px;max-width:62ch;line-height:1.8
+}
+@media(max-width:820px){
+  .vanessa-showcase .vanessa-faq{grid-template-columns:1fr;gap:27px}
+  .vanessa-showcase .vanessa-faq h2{max-width:none}
+}
+@media(max-width:450px){
+  .vanessa-showcase .vanessa-faq-questions summary{font-size:.95rem}
+}
