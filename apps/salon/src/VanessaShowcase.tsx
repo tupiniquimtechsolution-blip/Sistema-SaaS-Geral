@@ -284,7 +284,7 @@ export default function VanessaShowcase({ config, photos, published }: { config:
                 referrerPolicy="no-referrer" src={"https://maps.google.com/maps?q=" + encodeURIComponent(contactAddress) + "&output=embed"} /> :
                 <div className="vanessa-map-placeholder">
                   <span aria-hidden="true">⌖</span>
-                  <p>Rua Redenção, Chácara Tatuapé, São Paulo</p>
+                  <p>{contactAddress}</p>
                   <p>Abra o mapa quando quiser consultar a localização.</p>
                 </div>}
             </div>
