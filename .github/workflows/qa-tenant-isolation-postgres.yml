@@ -1,0 +1,91 @@
+name: QA Tenant Isolation PostgreSQL Contract
+
+on:
+  push:
+    branches:
+      - 'qa/tenant-isolation-*'
+    paths:
+      - 'tests/postgres/fixtures/tenant_isolation_ci.sql'
+      - 'tests/postgres/tenant_isolation_contract.real.sql'
+      - 'tests/postgres/privileged_rpc_boundaries.real.sql'
+      - '.github/workflows/qa-tenant-isolation-postgres.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  disposable-postgres-rls:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: qa_contract
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d qa_contract"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+    env:
+      PGPASSWORD: postgres
+      PGHOST: 127.0.0.1
+      PGPORT: '5432'
+      PGUSER: postgres
+      PGDATABASE: qa_contract
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build disposable modeled-policy fixture
+        run: psql -v ON_ERROR_STOP=1 -f tests/postgres/fixtures/tenant_isolation_ci.sql
+      - name: Test ordinary A/B RLS, RBAC and privilege escalation
+        shell: bash
+        run: |
+          set -euo pipefail
+          psql -v ON_ERROR_STOP=1 -f tests/postgres/tenant_isolation_contract.real.sql 2>&1 | tee /tmp/qa-tenant-rls-contract.log
+          grep -Fq 'TENANT_ISOLATION_PG_CONTRACT=PASS' /tmp/qa-tenant-rls-contract.log
+          grep -Fq 'ACTOR_A=PASS' /tmp/qa-tenant-rls-contract.log
+          grep -Fq 'ACTOR_B=PASS' /tmp/qa-tenant-rls-contract.log
+          grep -Fq 'NO_IDENTITY=PASS' /tmp/qa-tenant-rls-contract.log
+          grep -Fq 'PLATFORM_MASTER=PASS' /tmp/qa-tenant-rls-contract.log
+      - name: Validate modeled AI-credit and audit RPC authorization boundaries
+        shell: bash
+        run: |
+          set -euo pipefail
+          psql -v ON_ERROR_STOP=1 -f tests/postgres/privileged_rpc_boundaries.real.sql 2>&1 | tee /tmp/qa-privileged-rpc-contract.log
+          grep -Fq 'PRIVILEGED_RPC_BOUNDARIES=PASS' /tmp/qa-privileged-rpc-contract.log
+          grep -Fq 'QA_RPC_A=PASS' /tmp/qa-privileged-rpc-contract.log
+          grep -Fq 'QA_RPC_B=PASS' /tmp/qa-privileged-rpc-contract.log
+          grep -Fq 'QA_RPC_NO_IDENTITY=PASS' /tmp/qa-privileged-rpc-contract.log
+          grep -Fq 'QA_RPC_ACL=PASS' /tmp/qa-privileged-rpc-contract.log
+      - name: Back up synthetic QA database and restore into a fresh database
+        shell: bash
+        run: |
+          set -euo pipefail
+          # The source is a disposable, generated-only CI fixture.
+          # Runner client may be older than PostgreSQL 17; use the server image's matching tools.
+          container_id="${{ job.services.postgres.id }}"
+          docker exec "$container_id" pg_dump -U postgres -Fc -d qa_contract > "$RUNNER_TEMP/qa_tenant_model.dump"
+          docker exec "$container_id" createdb -U postgres qa_restore
+          docker exec -i "$container_id" pg_restore --no-owner --exit-on-error -U postgres -d qa_restore < "$RUNNER_TEMP/qa_tenant_model.dump"
+          psql -v ON_ERROR_STOP=1 -d qa_restore -At -c "SELECT count(*) FROM public.tenants" | grep -Fx '2'
+          psql -v ON_ERROR_STOP=1 -d qa_restore -f tests/postgres/tenant_isolation_contract.real.sql 2>&1 \
+            | tee "$RUNNER_TEMP/qa_tenant_restore_proof.log"
+          grep -Fq 'TENANT_ISOLATION_PG_CONTRACT=PASS' "$RUNNER_TEMP/qa_tenant_restore_proof.log"
+          echo 'DISPOSABLE_QA_RESTORE=PASS (modeled fixtures only; not a hosted Supabase backup)'
+      - name: Document scope of evidence
+        if: always()
+        shell: bash
+        run: |
+          {
+            echo "## Disposable PostgreSQL 17 tenant-isolation contract"
+            echo
+            echo "- Fixture: synthetic identities and modeled authorization helpers/policies"
+            echo "- No hosted Supabase project, credentials, migrations or customer data accessed"
+            echo "- Coverage: A/B reads/writes, role escalation, no-JWT, modeled privileged AI-credit/audit RPC boundaries"
+            echo "- Scope: modeled SQL only; does NOT establish provider metering/audit-event authenticity, hosted RLS parity, backups or deployment safety"
+            echo "- Staging matrix remains NOT RUN unless separately authorized"
+          } >> "$GITHUB_STEP_SUMMARY"

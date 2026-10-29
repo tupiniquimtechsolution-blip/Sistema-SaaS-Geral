@@ -1,29 +1,42 @@
+import { foreignRowsDenied, foreignCountDenied, updateDenied, insertDenied, viewerOnly } from "./qa-rls-assertions.mjs";
+
 // Minimal ambient Node globals — keeps the harness dependency-free.
 declare const process: {
   env: Record<string, string | undefined>;
   argv: string[];
   exitCode: number;
 };
+
 /**
- * FULL RLS GATE — proves the release-gate matrix against the LIVE canonical
- * Supabase project with the publishable key ONLY (no service_role):
+ * QA RLS GATE — isolated Supabase QA only.
  *
- *   READ:  A→A ALLOW, A→B DENY/EMPTY, B→B ALLOW, B→A DENY/EMPTY
- *          across tenants, tenant_brands, tenant_themes, tenant_settings,
- *          memberships, subscriptions, tenant_entitlements, tenant_features
- *          (+ contacts, products, bookings when exposed)
- *   WRITE: A create own ALLOW, A create B DENY, B create own ALLOW,
- *          B create A DENY, then A update B DENY, B update A DENY
- *          (contacts only, QA_RLS_ prefixed, cleaned up on success)
- *   MEMBERSHIP: A sees own membership only; B sees own membership only
- *   ENTITLEMENT: A reads only A entitlements; passing tenant B → DENY/EMPTY
- *   STORAGE: cross-tenant minimal check if buckets reachable (else PARTIAL)
+ * Project: ynqbnimlpxlokrxlucdm
  *
- * Unexpected exceptions are NOT PASS: they mark the check FAIL.
- * No policy is modified; QA rows are deleted only by the identity that owns them.
+ * Test identities:
+ * - QA-A: Viewer of Tenant A.
+ * - QA-B: Viewer of Tenant B.
  *
- * Run: bun scripts/rls-gate.ts
+ * READ MATRIX:
+ * - A can read A.
+ * - A cannot read B.
+ * - B can read B.
+ * - B cannot read A.
+ *
+ * NEGATIVE WRITE MATRIX:
+ * - Viewer cannot edit own tenant.
+ * - Viewer cannot edit foreign tenant.
+ * - User cannot create a foreign membership.
+ * - Viewer cannot assign themselves Owner.
+ * - Original Viewer role must remain unchanged.
+ *
+ * Safety:
+ * - No service_role credentials.
+ * - No production fallback.
+ * - Explicit isolated-QA write authorization required.
+ * - Unexpected writes or permissions fail the gate.
+ * - No automatic cleanup of unauthorized changes.
  */
+
 
 type CreateClientFn = (
   url: string,
@@ -63,24 +76,39 @@ const READ_TABLES = [
 
 const CONDITIONAL_TABLES = ["contacts", "products", "bookings"] as const;
 
-const REF = "mmykyzzkcugxunmekwew";
+const QA_PROJECT_REF = "ynqbnimlpxlokrxlucdm";
+const QA_URL = `https://${QA_PROJECT_REF}.supabase.co`;
 
 function readEnv(): { url: string; key: string; a: Identity; b: Identity } | null {
   const env = typeof process !== "undefined" ? process.env : {};
-  const url = env["SUPABASE_URL"] || `https://${REF}.supabase.co`;
+  const url = (env["SUPABASE_URL"] ?? "").trim();
+
+if (url !== QA_URL) {
+  throw new Error(
+    "RLS gate bloqueado: o projeto Supabase não é o QA autorizado"
+  );
+}
   const key = env["SUPABASE_PUBLISHABLE_KEY"] ?? "";
   const a: Identity = {
     email: env["TEST_A_EMAIL"] ?? "",
     password: env["TEST_A_PASSWORD"] ?? "",
-    slug: env["TEST_A_TENANT_SLUG"] || "qa-tenant-a",
+    slug: env["TEST_A_TENANT_SLUG"] || "qa-isolation-tenant-a",
   };
   const b: Identity = {
     email: env["TEST_B_EMAIL"] ?? "",
     password: env["TEST_B_PASSWORD"] ?? "",
-    slug: env["TEST_B_TENANT_SLUG"] || "qa-tenant-b",
+    slug: env["TEST_B_TENANT_SLUG"] || "qa-isolation-tenant-b",
   };
   if (!key || !a.email || !a.password || !b.email || !b.password) return null;
   if (/^<.*>$/.test(a.email) || /^<.*>$/.test(b.email)) return null;
+  if (
+  a.slug !== "qa-isolation-tenant-a" ||
+  b.slug !== "qa-isolation-tenant-b"
+) {
+  throw new Error(
+    "RLS gate bloqueado: identificadores QA dos tenants inválidos"
+  );
+}
   return { url, key, a, b };
 }
 
@@ -104,15 +132,43 @@ function tenantColumn(table: string): string {
   return table === "tenants" ? "id" : "tenant_id";
 }
 
-async function countRows(client: import("@supabase/supabase-js").SupabaseClient, table: string, tenantId: string): Promise<{ n: number; err?: string }> {
+
+async function countRows(
+  client: import("@supabase/supabase-js").SupabaseClient,
+  table: string,
+  tenantId: string,
+): Promise<{
+  n: number;
+  err?: string;
+  code?: string;
+}> {
   const { data, error } = await client
     .from(table)
     .select("*", { count: "exact", head: false })
     .eq(tenantColumn(table), tenantId)
     .limit(50);
-  if (error) return { n: -1, err: error.message };
-  return { n: (data ?? []).length };
+
+  if (error) {
+    return {
+      n: -1,
+      err: error.message,
+      code: error.code,
+    };
+  }
+
+  if (!Array.isArray(data)) {
+    return {
+      n: -1,
+      err: "Resposta inesperada: dados ausentes",
+      code: "UNEXPECTED_RESPONSE",
+    };
+  }
+
+  return {
+    n: data.length,
+  };
 }
+
 
 export async function runRlsGate(
   createClientFn: CreateClientFn,
@@ -171,14 +227,37 @@ export async function runRlsGate(
       { label: "B→A", client: clientB, target: env.a, cross: true },
     ];
     for (const { label, client, target, cross } of cases) {
-      const { n, err } = await countRows(client, table, target.tenantId!);
+      
+      const { n, err, code } =
+        await countRows(
+          client,
+          table,
+          target.tenantId!
+        );
+
       if (!cross) {
-        // reading own tenant: must succeed (>=1 row; entitlement tables may be 0)
-        add(`read:${table}:${label}`, !err && n >= 0, err ?? `${n} rows`);
+        // Own tenant: query must succeed.
+        add(
+          `read:${table}:${label}`,
+          err === undefined && n >= 0,
+          err
+            ? `Erro ${code ?? "desconhecido"}: ${err}`
+            : `${n} rows`,
+        );
+
       } else {
-        // cross: must deny (empty result or RLS error); unexpected exception = FAIL
-        add(`read:${table}:${label}`, !err ? n === 0 : true, err ? "denied via RLS error" : `${n} rows (must be 0)`);
+        // Foreign tenant: only empty result or RLS denial.
+        const deniedByRls = foreignCountDenied({ n, err, code });
+
+        add(
+          `read:${table}:${label}`,
+          deniedByRls,
+          err
+            ? `Erro ${code ?? "desconhecido"}: ${err}`
+            : `${n} rows (must be 0)`,
+        );
       }
+
     }
   }
 
@@ -196,8 +275,24 @@ export async function runRlsGate(
       ["A→B", clientA, env.b],
       ["B→A", clientB, env.a],
     ] as const) {
-      const { n, err } = await countRows(client, table, foreign.tenantId!);
-      add(`read:${table}:${label}`, err !== undefined || n === 0, err ? "denied via RLS error" : `${n} rows (must be 0)`);
+     
+      const { n, err, code } =
+        await countRows(
+          client,
+          table,
+          foreign.tenantId!
+        );
+
+      const deniedByRls = foreignCountDenied({ n, err, code });
+
+      add(
+        `read:${table}:${label}`,
+        deniedByRls,
+        err
+          ? `Erro ${code ?? "desconhecido"}: ${err}`
+          : `${n} rows (must be 0)`,
+      );
+
     }
   }
 
@@ -222,110 +317,251 @@ export async function runRlsGate(
     // Explicit tenant filter from the OTHER tenant must yield empty (or RLS error).
     const aOnB = await clientA.from("tenant_entitlements").select("*").eq("tenant_id", env.b.tenantId!);
     const bOnA = await clientB.from("tenant_entitlements").select("*").eq("tenant_id", env.a.tenantId!);
+    
     add(
       "entitlement:A→B",
-      aOnB.error ? true : (aOnB.data ?? []).length === 0,
-      aOnB.error ? "denied via RLS error" : `${(aOnB.data ?? []).length} rows (must be 0)`,
+      foreignRowsDenied({ data: aOnB.data, error: aOnB.error }),
+      aOnB.error
+        ? `Erro ${aOnB.error.code}: ${aOnB.error.message}`
+        : `${aOnB.data?.length ?? "desconhecido"} rows (must be 0)`,
     );
+
     add(
       "entitlement:B→A",
-      bOnA.error ? true : (bOnA.data ?? []).length === 0,
-      bOnA.error ? "denied via RLS error" : `${(bOnA.data ?? []).length} rows (must be 0)`,
+      foreignRowsDenied({ data: bOnA.data, error: bOnA.error }),
+      bOnA.error
+        ? `Erro ${bOnA.error.code}: ${bOnA.error.message}`
+        : `${bOnA.data?.length ?? "desconhecido"} rows (must be 0)`,
+    );
+
+  }
+
+  
+  // ---- VIEWER NEGATIVE WRITE MATRIX (QA ONLY) ----
+
+  // Fail closed if any previous read or identity test failed.
+  if (checks.some((check) => !check.pass)) {
+    throw new Error(
+      "QA RLS gate bloqueado: verificacoes de leitura falharam"
     );
   }
 
-  // ---- WRITE ISOLATION (contacts, QA_RLS_ prefix) ----
-  let qaRowIds: Array<{ client: "A" | "B"; id: string }> = [];
-  {
-    type Id = { id: string };
-    const probeColumns = async (client: import("@supabase/supabase-js").SupabaseClient): Promise<Record<string, unknown> | null> => {
-      // Discover a writable shape from one allowed own read of contacts table
-      // metadata via a tiny own-tenant insert attempt with minimal fields.
-      const { error } = await client.from("contacts").select("*").limit(1);
-      if (error) return null;
-      return {}; // shape resolved by insert attempts below
-    };
-    await probeColumns(clientA);
+  // Explicit QA project, tenant and write authorization checks.
+  if (
+    env.url !== QA_URL ||
+    env.a.slug !== "qa-isolation-tenant-a" ||
+    env.b.slug !== "qa-isolation-tenant-b" ||
+    env.a.tenantId !==
+      "f92215f9-da30-4453-9190-aece00984284" ||
+    env.b.tenantId !==
+      "a8494bfa-ac05-478c-b06f-3031e0d2cb8c" ||
+    process.env.QA_TEST_MODE !== "write" ||
+    process.env.QA_WRITES_CONFIRM !==
+      "AUTHORIZE_ISOLATED_QA_WRITES"
+  ) {
+    throw new Error(
+      "Matriz de escrita bloqueada: QA ou autorizacao invalida"
+    );
+  }
 
-    const tryInsert = async (
-      client: import("@supabase/supabase-js").SupabaseClient,
-      tenantId: string,
-      targetLabel: string,
-    ): Promise<{ ok: boolean; id?: string; detail: string }> => {
-      const attempts: Array<Record<string, unknown>> = [
-        { tenant_id: tenantId, name: "QA_RLS_contact", email: "qa_rls_probe@example.invalid" },
-        { tenant_id: tenantId, display_name: "QA_RLS_contact", email: "qa_rls_probe@example.invalid" },
-        { tenant_id: tenantId, full_name: "QA_RLS_contact", email: "qa_rls_probe@example.invalid" },
-      ];
-      let lastErr = "table not readable";
-      for (const payload of attempts) {
-        const { data, error } = await client.from("contacts").insert(payload).select("id").single();
-        if (!error) {
-          return { ok: true, id: (data as Id | null)?.id, detail: "inserted" };
-        }
-        lastErr = error.message;
-        if (!/column|schema|Could not find/i.test(error.message)) break; // real denial, stop
-      }
-      return { ok: false, detail: lastErr };
-    };
+  const viewerRoleId =
+    "2d48dba2-746e-45ab-ba0b-5748d7f3cf92";
 
-    const aOwn = await tryInsert(clientA, env.a.tenantId!, "A");
-    add("write:A create own", aOwn.ok, aOwn.detail);
-    if (aOwn.id) qaRowIds.push({ client: "A", id: aOwn.id });
+  const ownerRoleId =
+    "781dd7cf-17ae-4e24-9721-285ff029a620";
 
-    const aToB = await tryInsert(clientA, env.b.tenantId!, "A→B");
-    // DENY = any error, INCLUDING the misleading duplicate-slug-style FK error;
-    // but a successful insert into B is a LEAK = FAIL.
-    add("write:A create B", !aToB.ok, aToB.ok ? "LEAK: cross-tenant insert succeeded" : `denied: ${aToB.detail}`);
-    if (aToB.id) qaRowIds.push({ client: "A", id: aToB.id });
+  const actors = [
+    {
+      label: "A",
+      client: clientA,
+      userId:
+        "90be8f98-2002-493d-8bb4-bf0b35b7f48e",
+      membershipId:
+        "a863adec-508e-4c14-9553-59f1ed4790d1",
+      ownTenantId: env.a.tenantId!,
+      foreignTenantId: env.b.tenantId!,
+      ownName: "QA Isolation Tenant A",
+      foreignName: "QA Isolation Tenant B",
+    },
+    {
+      label: "B",
+      client: clientB,
+      userId:
+        "7560c592-331f-4992-a925-f095c76858f4",
+      membershipId:
+        "705c127e-851d-4e0d-990a-272039ae5a03",
+      ownTenantId: env.b.tenantId!,
+      foreignTenantId: env.a.tenantId!,
+      ownName: "QA Isolation Tenant B",
+      foreignName: "QA Isolation Tenant A",
+    },
+  ] as const;
 
-    const bOwn = await tryInsert(clientB, env.b.tenantId!, "B");
-    add("write:B create own", bOwn.ok, bOwn.detail);
-    if (bOwn.id) qaRowIds.push({ client: "B", id: bOwn.id });
+  // A denied operation must be explicitly verified.
+  const checkBlocked = (
+    name: string,
+    blocked: boolean,
+    detail: string,
+  ) => {
+    add(name, blocked, detail);
 
-    const bToA = await tryInsert(clientB, env.a.tenantId!, "B→A");
-    add("write:B create A", !bToA.ok, bToA.ok ? "LEAK: cross-tenant insert succeeded" : `denied: ${bToA.detail}`);
-    if (bToA.id) qaRowIds.push({ client: "B", id: bToA.id });
-
-    // UPDATE isolation: A tries to update B's row and vice versa. An UPDATE
-    // statement matching a row the writer cannot see must report ZERO affected
-    // rows; PostgREST signals that with a null error but empty affected rows.
-    // supabase-js: update().eq().select() returns data=[] when no row matched.
-    const bRow = qaRowIds.find((r) => r.client === "B");
-    const aRow = qaRowIds.find((r) => r.client === "A");
-    if (bRow) {
-      const { data, error } = await clientA
-        .from("contacts")
-        .update({ name: "QA_RLS_tamper" })
-        .eq("id", bRow.id)
-        .select("id");
-      const leaked = (data ?? []).length > 0;
-      add(
-        "write:A update B",
-        !leaked,
-        error ? `denied: ${error.message}` : leaked ? "LEAK: cross-tenant update affected a foreign row" : "denied (0 rows affected)",
+    if (!blocked) {
+      throw new Error(
+        `${name}: negacao de acesso nao comprovada`
       );
     }
-    if (aRow) {
-      const { data, error } = await clientB
-        .from("contacts")
-        .update({ name: "QA_RLS_tamper" })
-        .eq("id", aRow.id)
-        .select("id");
-      const leaked = (data ?? []).length > 0;
-      add(
-        "write:B update A",
-        !leaked,
-        error ? `denied: ${error.message}` : leaked ? "LEAK: cross-tenant update affected a semantic-foreign row" : "denied (0 rows affected)",
+  };
+
+  // --------------------------------------------------
+  // STEP 1: Verify real identities and memberships.
+  // --------------------------------------------------
+
+  for (const actor of actors) {
+    const { data: auth, error: authError } =
+      await actor.client.auth.getUser();
+
+    if (
+      authError ||
+      auth.user?.id !== actor.userId
+    ) {
+      throw new Error(
+        `${actor.label}: identidade QA invalida`
       );
     }
 
-    // Cleanup QA rows (own rows only — RLS will silently skip foreign rows).
-    for (const row of qaRowIds) {
-      const client = row.client === "A" ? clientA : clientB;
-      await client.from("contacts").delete().eq("id", row.id);
+    // Confirm the own tenant exists and is unchanged.
+    const { data: ownTenant, error: tenantError } =
+      await actor.client
+        .from("tenants")
+        .select("id,name")
+        .eq("id", actor.ownTenantId)
+        .single();
+
+    if (
+      tenantError ||
+      ownTenant?.id !== actor.ownTenantId ||
+      ownTenant?.name !== actor.ownName
+    ) {
+      throw new Error(
+        `${actor.label}: tenant QA nao confirmado`
+      );
+    }
+
+    // Confirm exactly the expected active membership.
+    const { data: membership, error: memberError } =
+      await actor.client
+        .from("memberships")
+        .select("id,user_id,tenant_id,status")
+        .eq("id", actor.membershipId)
+        .single();
+
+    if (
+      memberError ||
+      membership?.user_id !== actor.userId ||
+      membership?.tenant_id !== actor.ownTenantId ||
+      membership?.status !== "active"
+    ) {
+      throw new Error(
+        `${actor.label}: membership QA inesperada`
+      );
+    }
+
+    // Confirm the user holds only the Viewer role.
+    const { data: roles, error: rolesError } =
+      await actor.client
+        .from("membership_roles")
+        .select("role_id")
+        .eq("membership_id", actor.membershipId);
+
+    if (
+      !viewerOnly({ data: roles, error: rolesError }, viewerRoleId)
+    ) {
+      throw new Error(
+        `${actor.label}: usuario nao e exclusivamente Viewer`
+      );
     }
   }
+
+  // --------------------------------------------------
+  // STEP 2: Execute negative authorization tests.
+  // --------------------------------------------------
+
+  for (const actor of actors) {
+
+    // TEST 1: Viewer cannot update own tenant.
+    const ownUpdate = await actor.client
+      .from("tenants")
+      .update({ name: actor.ownName })
+      .eq("id", actor.ownTenantId)
+      .select("id");
+
+    checkBlocked(
+      `write:${actor.label}:update-own`,
+      updateDenied({ data: ownUpdate.data, error: ownUpdate.error }),
+      ownUpdate.error?.code ?? "0 linhas esperadas",
+    );
+
+    // TEST 2: Viewer cannot update another tenant.
+    const foreignUpdate = await actor.client
+      .from("tenants")
+      .update({ name: actor.foreignName })
+      .eq("id", actor.foreignTenantId)
+      .select("id");
+
+    checkBlocked(
+      `write:${actor.label}:update-foreign`,
+      updateDenied({ data: foreignUpdate.data, error: foreignUpdate.error }),
+      foreignUpdate.error?.code ?? "0 linhas esperadas",
+    );
+
+    // TEST 3: User cannot join a foreign tenant.
+    const crossMembership = await actor.client
+      .from("memberships")
+      .insert({
+        tenant_id: actor.foreignTenantId,
+        user_id: actor.userId,
+        status: "active",
+      })
+      .select("id");
+
+    checkBlocked(
+      `write:${actor.label}:cross-membership`,
+      insertDenied({ error: crossMembership.error }),
+      crossMembership.error?.code ??
+        "INSERCAO INESPERADA",
+    );
+
+    // TEST 4: Viewer cannot assign themselves Owner.
+    const ownerAttempt = await actor.client
+      .from("membership_roles")
+      .insert({
+        membership_id: actor.membershipId,
+        role_id: ownerRoleId,
+      })
+      .select("role_id");
+
+    checkBlocked(
+      `write:${actor.label}:owner-escalation`,
+      insertDenied({ error: ownerAttempt.error }),
+      ownerAttempt.error?.code ??
+        "INSERCAO INESPERADA",
+    );
+
+    // TEST 5: Viewer must remain the only role.
+    const { data: finalRoles, error: finalError } =
+      await actor.client
+        .from("membership_roles")
+        .select("role_id")
+        .eq("membership_id", actor.membershipId);
+
+    checkBlocked(
+      `write:${actor.label}:viewer-preserved`,
+      viewerOnly({ data: finalRoles, error: finalError }, viewerRoleId),
+      finalError?.code ??
+        "Verificacao final do papel Viewer",
+    );
+  }
+
 
   const failed = checks.filter((c) => !c.pass);
   for (const c of checks) console.log(`[${c.pass ? "PASS" : "FAIL"}] ${c.name}${c.detail ? ` — ${c.detail}` : ""}`);
@@ -340,6 +576,15 @@ if (isDirectRun) {
     (...args: unknown[]) =>
       import("@supabase/supabase-js").then((m) => m.createClient(...(args as Parameters<typeof m.createClient>))) as never,
   ).then((r) => {
-    if (r.status === "FAIL") process.exitCode = 1;
+    if (r.status !== "PASS") {
+      process.exitCode = 1;
+    }
+  }).catch((error) => {
+    console.error(
+      `[gate] Execução bloqueada: ${
+        error instanceof Error ? error.message : String(error)
+      }`
+    );
+    process.exitCode = 1;
   });
 }

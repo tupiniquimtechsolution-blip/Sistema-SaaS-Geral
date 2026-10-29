@@ -1,0 +1,53 @@
+.salon-booking-widget {
+  width:100%;padding:clamp(20px,3.5vw,40px);border-radius:20px;
+  color:#282222;background:#fff;box-shadow:0 14px 65px #0001;
+  font-family:Inter,"DM Sans",system-ui,sans-serif;text-align:left;
+}
+.salon-booking-widget *{box-sizing:border-box}
+.salon-booking-kicker{color:#8b6a51;font-size:.72rem;letter-spacing:.16em;font-weight:700;margin:0 0 12px}
+.salon-booking-widget h3{font-family:"Playfair Display",Georgia,serif;font-size:clamp(1.7rem,3vw,2.35rem);font-weight:400;margin:0 0 12px;line-height:1.2}
+.salon-booking-intro{line-height:1.65;color:#716a65;font-size:.92rem;margin:0 0 26px}
+.salon-booking-label{display:block;color:#332a27;font-weight:650;font-size:.86rem;margin:20px 0 9px}
+.salon-booking-control{display:block;width:100%;border:1px solid #d9d2cc;border-radius:10px;background:#fff;color:#332a27;font:inherit;font-size:.95rem;min-height:48px;padding:12px}
+.salon-booking-control:focus-visible,.salon-booking-widget button:focus-visible,.salon-booking-send:focus-visible{outline:3px solid #aa8068;outline-offset:2px}
+.salon-booking-hint{font-size:.78rem;line-height:1.5;margin:8px 0 0;color:#7c7370}
+.salon-booking-calendar,.salon-booking-times{padding:0;border:0;min-width:0;margin:20px 0 10px}
+.salon-booking-calendar legend,.salon-booking-times legend{padding:0}
+.salon-booking-month{display:grid;grid-template-columns:44px 1fr 44px;align-items:center;gap:8px;margin:0 0 14px}
+.salon-booking-month strong{font-size:.99rem;text-align:center;text-transform:capitalize;color:#332a27}
+.salon-booking-month button{width:44px;height:44px;border:1px solid #ded8d1;background:white;border-radius:10px;cursor:pointer;color:#302a26;font-size:1.7rem}
+.salon-booking-days-header,.salon-booking-day-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:5px;text-align:center}
+.salon-booking-days-header{margin-bottom:8px;color:#776c66;font-size:.76rem}
+.salon-booking-days-header span{padding:8px 0}
+.salon-booking-day-grid button{aspect-ratio:1;min-height:35px;min-width:0;background:#faf8f5;border:1px solid #ebe5de;border-radius:10px;cursor:pointer;color:#39302d;font:inherit;font-size:.86rem}
+.salon-booking-day-grid button:hover:not(:disabled),.salon-booking-time-grid button:hover:not(:disabled){border-color:#9b6c55;background:#f4e9df}
+.salon-booking-day-grid button.selected,.salon-booking-time-grid button.selected{background:#33302e;color:#fff;border-color:#33302e}
+.salon-booking-day-grid button:disabled,.salon-booking-time-grid button:disabled,.salon-booking-month button:disabled{opacity:.32;cursor:not-allowed}
+.salon-booking-time-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px;margin-top:8px}
+.salon-booking-time-grid button{min-height:41px;border:1px solid #ded8d1;border-radius:9px;background:#fff;color:#3e3530;cursor:pointer;font-size:.85rem}
+.salon-booking-widget textarea{resize:vertical;min-height:86px}
+.salon-booking-send{display:flex;width:100%;align-items:center;justify-content:center;gap:12px;padding:15px 18px;margin-top:22px;border:none;border-radius:12px;background:#208c59;color:#fff!important;font:inherit;font-size:.94rem;font-weight:700;text-decoration:none;cursor:pointer;min-height:54px}
+.salon-booking-send:hover:not(:disabled){background:#187849}
+.salon-booking-send:disabled{opacity:.47;cursor:not-allowed}
+.salon-booking-disclaimer{line-height:1.5;margin:14px 0 0;color:#716a65;font-size:.79rem}
+.salon-whatsapp-float{position:fixed;right:22px;bottom:22px;z-index:60;width:60px;height:60px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:#25D366;color:white!important;box-shadow:0 12px 34px #0004;border:2px solid #fff;text-decoration:none;transition:transform .2s ease}
+.salon-whatsapp-float:hover{transform:translateY(-3px);background:#1cad55}
+.salon-whatsapp-float:focus-visible{outline:3px solid #20663b;outline-offset:3px}
+@media(max-width:460px){.salon-booking-widget{padding:18px}.salon-booking-day-grid{gap:3px}.salon-booking-day-grid button{min-height:36px;font-size:.8rem}.salon-booking-time-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.salon-whatsapp-float{width:56px;height:56px;right:16px;bottom:16px}}
+@media(prefers-reduced-motion:reduce){.salon-whatsapp-float{transition:none}}
+
+/* Illustrated, directly selectable service choices. */
+.salon-service-options{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;margin-top:12px}
+.salon-service-option{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;min-width:0;min-height:128px;padding:14px 7px;background:#faf7f3;border:1px solid #e7dfd7;border-radius:10px;color:#73544c;cursor:pointer;font:inherit;text-align:center;transition:border-color .15s,background .15s,box-shadow .15s}
+.salon-service-option span{color:#38302d;font-size:.73rem;font-weight:650;line-height:1.35;max-width:115px}
+.salon-service-art{width:54px;height:54px;max-width:100%;flex-shrink:0}
+.salon-service-option:hover{border-color:#aa8172;background:#f4e9e3}
+.salon-service-option.is-selected{background:#f4e8e8;border:2px solid #9a6470;box-shadow:0 0 0 2px #9a647022}
+.salon-service-option:focus-visible{outline:3px solid #9a6470;outline-offset:2px}
+@media(max-width:480px){.salon-service-options{grid-template-columns:repeat(2,minmax(0,1fr))}.salon-service-option{min-height:115px}.salon-service-art{width:48px;height:48px}}
+
+/* Refined editorial illustrations. No synthetic people. */
+.salon-service-option{min-height:139px;border-radius:14px;background:linear-gradient(145deg,#fffdfb,#f1e9e5);border-color:#e4d6d0}
+.salon-service-art{width:66px;height:66px;color:#815e59}
+.salon-service-option span{font-size:.79rem;max-width:130px}
+@media(max-width:480px){.salon-service-art{width:57px;height:57px}}

@@ -1,0 +1,145 @@
+name: QA Salon Editorial Auth Preflight
+
+on:
+  push:
+    branches:
+      - 'qa/tenant-isolation-staging-20261010'
+    paths:
+      - 'scripts/qa-salon-editor-guard.mjs'
+      - 'tests/qa-salon-editor-guard.test.mjs'
+      - '.github/workflows/qa-salon-editorial-preflight.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: qa-salon-editorial-preflight-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  editorial-auth-readonly:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    environment: qa-isolation
+    env:
+      QA_PROJECT_REF: ${{ vars.QA_APPROVED_PROJECT_REF }}
+      QA_APPROVED_PROJECT_REF: ${{ vars.QA_APPROVED_PROJECT_REF }}
+      QA_SUPABASE_URL: ${{ secrets.QA_SUPABASE_URL }}
+      QA_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.QA_SUPABASE_PUBLISHABLE_KEY }}
+      QA_EDITOR_EMAIL: ${{ secrets.QA_EDITOR_EMAIL }}
+      QA_EDITOR_PASSWORD: ${{ secrets.QA_EDITOR_PASSWORD }}
+      QA_TEST_MODE: editorial-preflight
+      GITHUB_REF: ${{ github.ref }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install locked dependencies
+        run: npm ci
+      - name: Prove editorial and readonly authorization guards offline
+        run: node --test tests/qa-salon-editor-guard.test.mjs
+      - name: Verify real Supabase QA editor login, Tenant-A-only rights and empty CMS baseline
+        run: node scripts/qa-salon-editor-guard.mjs
+      - name: Summarize read-only evidence
+        if: success()
+        run: |
+          echo '### QA Salon Editorial Auth Preflight' >> "$GITHUB_STEP_SUMMARY"
+          echo "- SHA: ${GITHUB_SHA}" >> "$GITHUB_STEP_SUMMARY"
+          echo '- Only QA Supabase Auth sign-in and SQL SELECT / RPC permission checks performed' >> "$GITHUB_STEP_SUMMARY"
+          echo '- No CMS INSERT, UPDATE, DELETE or publication' >> "$GITHUB_STEP_SUMMARY"
+
+  salon-editorial-write-once:
+    # A normal push NEVER performs CMS writes. Only the explicit owner
+    # approved one-time commit message on the exact QA branch can enter.
+    if: >-
+      github.event_name == 'push'
+      && github.ref == 'refs/heads/qa/tenant-isolation-staging-20261010'
+      && github.event.head_commit.message == 'qa(approved): run salon editorial lifecycle once'
+      && github.actor == 'tupiniquimtechsolution-blip'
+    needs: editorial-auth-readonly
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    environment: qa-isolation
+    env:
+      QA_PROJECT_REF: ${{ vars.QA_APPROVED_PROJECT_REF }}
+      QA_APPROVED_PROJECT_REF: ${{ vars.QA_APPROVED_PROJECT_REF }}
+      QA_SUPABASE_URL: ${{ secrets.QA_SUPABASE_URL }}
+      QA_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.QA_SUPABASE_PUBLISHABLE_KEY }}
+      QA_EDITOR_EMAIL: ${{ secrets.QA_EDITOR_EMAIL }}
+      QA_EDITOR_PASSWORD: ${{ secrets.QA_EDITOR_PASSWORD }}
+      QA_TEST_MODE: editorial-write
+      QA_EDITORIAL_WRITES_CONFIRM: AUTHORIZE_QA_SALON_EDITORIAL_WRITES
+      VITE_SUPABASE_URL: ${{ secrets.QA_SUPABASE_URL }}
+      VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.QA_SUPABASE_PUBLISHABLE_KEY }}
+      VITE_DEMO_MODE: 'false'
+      VITE_TENANT_SLUG: qa-isolation-tenant-a
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install locked dependencies
+        run: npm ci
+      - name: Revalidate real editor JWT, narrow permission, single role and empty homepage
+        run: node scripts/qa-salon-editor-guard.mjs
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Build both QA apps without production credentials
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm run build:builder
+          npm run build:salon
+      - name: Start isolated preview servers
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm run preview --workspace=tupiniquim-builder -- --host 127.0.0.1 --port 4173 --strictPort > /tmp/qa-editor-builder.log 2>&1 &
+          npx vite preview apps/salon --host 127.0.0.1 --port 4174 --strictPort > /tmp/qa-editor-salon.log 2>&1 &
+          for port in 4173 4174; do
+            ready=0
+            for attempt in {1..30}; do
+              if curl --fail --silent "http://127.0.0.1:${port}/" >/dev/null; then ready=1; break; fi
+              sleep 1
+            done
+            if [ "$ready" != "1" ]; then
+              echo "::error::QA editorial preview failed on port ${port}"
+              cat /tmp/qa-editor-builder.log /tmp/qa-editor-salon.log
+              exit 1
+            fi
+          done
+      - name: Run one controlled QA editorial E2E (writes only Tenant A)
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd apps/builder
+          npx playwright test e2e/salon-editor.write.qa.spec.ts --workers=1 --retries=0 --reporter=line
+      - name: Reconfirm original A/B Viewer isolation after editorial test
+        if: success()
+        env:
+          QA_TEST_A_EMAIL: ${{ secrets.QA_TEST_A_EMAIL }}
+          QA_TEST_A_PASSWORD: ${{ secrets.QA_TEST_A_PASSWORD }}
+          QA_TEST_B_EMAIL: ${{ secrets.QA_TEST_B_EMAIL }}
+          QA_TEST_B_PASSWORD: ${{ secrets.QA_TEST_B_PASSWORD }}
+          QA_TENANT_A_SLUG: qa-isolation-tenant-a
+          QA_TENANT_B_SLUG: qa-isolation-tenant-b
+        run: node scripts/qa-stage-identity-check.mjs
+      - name: Record controlled write outcome; cleanup remains required
+        if: always()
+        run: |
+          echo '### QA Salon Editorial Write' >> "$GITHUB_STEP_SUMMARY"
+          echo "- SHA: ${GITHUB_SHA}" >> "$GITHUB_STEP_SUMMARY"
+          echo '- Project: ynqbnimlpxlokrxlucdm (independent QA)' >> "$GITHUB_STEP_SUMMARY"
+          echo '- No production deployment, Stripe, DNS, or branch merge' >> "$GITHUB_STEP_SUMMARY"
+          echo '- Any created pages and revisions require exact-ID QA fixture verification and cleanup' >> "$GITHUB_STEP_SUMMARY"
+
+# One-time QA editorial lifecycle invocation; original user authorization 22 Oct 2026.
+
+# Second explicitly authorized QA-only E2E retry after JSONB revision dirty-state fix.
+
+
+# Revalidacao automatica QA somente leitura

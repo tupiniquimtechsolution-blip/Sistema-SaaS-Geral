@@ -1,3 +1,5 @@
+import { foreignRowsDenied } from "./qa-rls-assertions.mjs";
+
 // Minimal ambient Node globals — keeps the harness dependency-free.
 declare const process: {
   env: Record<string, string | undefined>;
@@ -7,8 +9,8 @@ declare const process: {
 /**
  * CROSS-TENANT SMOKE HARNESS (foundation).
  *
- * Read-only harness prepared to prove tenant isolation against the LIVE
- * canonical Supabase project once two controlled identities (A and B) exist.
+ * Read-only harness for the isolated Supabase QA project using two
+ * controlled non-administrator QA identities (A and B).
  *
  * REQUIRED ENV (never commit real values):
  *   SUPABASE_URL               project URL (https://<ref>.supabase.co)
@@ -45,6 +47,8 @@ interface SmokeEnv {
   b: { email: string; password: string; tenantId?: string; tenantSlug?: string };
 }
 
+const QA_URL = "https://ynqbnimlpxlokrxlucdm.supabase.co";
+
 function readEnv(): SmokeEnv | null {
   const env = typeof process !== "undefined" ? process.env : {};
   const url = env["SUPABASE_URL"] ?? "";
@@ -56,7 +60,7 @@ function readEnv(): SmokeEnv | null {
   // Literal "<...>" placeholders mean identities were never provisioned —
   // fail closed as NOT RUN instead of attempting auth with junk values.
   const placeholder = /^<.*>$/.test(aEmail) || /^<.*>$/.test(bEmail);
-  if (!url || !publishableKey || !aEmail || !aPassword || !bEmail || !bPassword || placeholder) {
+  if (url !== QA_URL || !publishableKey || !aEmail || !aPassword || !bEmail || !bPassword || placeholder) {
     return null;
   }
   return {
@@ -183,15 +187,14 @@ async function crossTenantProbe(
       .from(table)
       .select("*")
       .eq(table === "tenants" ? "id" : "tenant_id", foreignTenantId);
-    if (rErr) {
-      // A policy error is also a valid denial signal for this probe.
-      continue;
-    }
-    if ((data ?? []).length > 0) {
+    if (!foreignRowsDenied({ data, error: rErr })) {
+      const leaked = Array.isArray(data) && data.length > 0;
       return {
         name: `cross:${maskEmail(who.email)}→${foreignTenantId.slice(0, 8)}`,
         pass: false,
-        detail: `LEAK: ${data?.length} row(s) visible in ${table}`,
+        detail: leaked
+          ? `LEAK: ${data.length} row(s) visible in ${table}`
+          : `unverified foreign read in ${table} (error code: ${rErr?.code ?? "none"}; malformed data or non-RLS error)`,
       };
     }
   }
@@ -254,13 +257,15 @@ export async function runCrossTenantSmoke(
 }
 
 const isDirectRun =
-  typeof process !== "undefined" && Array.isArray(process.argv) && process.argv[1]?.includes("cross-tenant-smoke");
+  typeof process !== "undefined" &&
+  Array.isArray(process.argv) &&
+  process.argv[1]?.split(/[\\/]/).at(-1) === "cross-tenant-smoke.ts";
 if (isDirectRun) {
   runCrossTenantSmoke(
     // lazy import keeps the module loadable without credentials
     (...args) => import("@supabase/supabase-js").then((m) => m.createClient(...args)) as never,
   ).then((r) => {
     console.log(`[cross-tenant-smoke] status: ${r.status}`);
-    if (r.status === "FAIL") process.exitCode = 1;
+    if (r.status !== "PASS") process.exitCode = 1;
   });
 }

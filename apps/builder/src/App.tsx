@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { onAuthStateChange, signInWithPassword, signOut } from "tupiniquim-auth";
 import type { TenantContextResult } from "tupiniquim-tenancy";
@@ -31,14 +31,18 @@ export function App({ client }: AppProps) {
   const [credentials, setCredentials] = useState({ email: "", password: "" });
   const [authError, setAuthError] = useState<string | null>(null);
   const [workspaceView, setWorkspaceView] = useState<"builder" | "billing" | "settings">("builder");
+  const accessRequestId = useRef(0);
 
   const refresh = useCallback(async () => {
+    const requestId = ++accessRequestId.current;
     setState({ status: "loading" });
     try {
       const next = await loadBuilderAccess(client, {
         requestedTenantId: tenantId || undefined,
         requestedVerticalKey: verticalKey || undefined,
       });
+      // Ignore older in-flight tenant reads after login, logout or selection change.
+      if (requestId !== accessRequestId.current) return;
       setState(next);
       if (next.status === "selected") {
         const resolvedTenant = next.context.tenant?.id ?? "";
@@ -48,7 +52,7 @@ export function App({ client }: AppProps) {
         }
       }
     } catch (error) {
-      setState({ status: "error", message: error instanceof Error ? error.message : "Builder load failed" });
+      if (requestId === accessRequestId.current) setState({ status: "error", message: error instanceof Error ? error.message : "Builder load failed" });
     }
   }, [client, tenantId, verticalKey]);
 
@@ -56,6 +60,22 @@ export function App({ client }: AppProps) {
     void refresh();
     return onAuthStateChange(client, () => void refresh());
   }, [client, refresh]);
+
+  const handleSignOut = async () => {
+    try {
+      await signOut(client);
+      // A late membership fetch must never resurrect the previous authenticated UI.
+      accessRequestId.current += 1;
+      setState({ status: "unauthorized" });
+      setAuthError(null);
+      setCredentials({ email: "", password: "" });
+      writeSelection("", "");
+      setTenantId("");
+      setVerticalKey("");
+    } catch (error) {
+      setState({ status: "error", message: error instanceof Error ? error.message : "Sign-out failed" });
+    }
+  };
 
   const applySelection = () => {
     const normalizedVertical = verticalKey.trim();
@@ -91,7 +111,7 @@ export function App({ client }: AppProps) {
   }
 
   if (state.status === "empty") {
-    return <OnboardingPanel client={client} onSignOut={() => void signOut(client)} onCreated={(newTenantId, newVerticalKey) => {
+    return <OnboardingPanel client={client} onSignOut={() => void handleSignOut()} onCreated={(newTenantId, newVerticalKey) => {
       writeSelection(newTenantId, newVerticalKey);
       setTenantId(newTenantId);
       setVerticalKey(newVerticalKey);
@@ -121,7 +141,7 @@ export function App({ client }: AppProps) {
           <button type="button" className={workspaceView === "billing" ? "tenant-nav-active" : "secondary"} aria-pressed={workspaceView === "billing"} onClick={() => setWorkspaceView("billing")}>Cobrança</button>
           <button type="button" className={workspaceView === "settings" ? "tenant-nav-active" : "secondary"} aria-pressed={workspaceView === "settings"} onClick={() => setWorkspaceView("settings")}>Conta e configurações</button>
         </nav>
-        <button className="secondary" type="button" onClick={() => void signOut(client)}>Sair</button>
+        <button className="secondary" type="button" onClick={() => void handleSignOut()}>Sair</button>
       </header>
       <section className="selection-card workspace-context" aria-labelledby="workspace-context-title">
         <div className="workspace-context-heading"><div><p className="eyebrow">ESPAÇO DE TRABALHO</p><h2 id="workspace-context-title">Tenant e vertical</h2></div><span className="context-trust-label">Membership validada · RLS ativo</span></div>

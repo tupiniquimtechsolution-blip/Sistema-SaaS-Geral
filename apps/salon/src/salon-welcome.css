@@ -1,0 +1,72 @@
+/* 2.5-second welcome, no skip control or video; the overhead photo is softened with a white scrim. */
+.salon-welcome {
+  position:fixed;inset:0;z-index:120;isolation:isolate;
+  display:grid;place-items:center;overflow:hidden;
+  background:#faf8f5;color:#29231f;pointer-events:none;
+  animation:salon-welcome-appear .25s ease-out both
+}
+.salon-welcome::before {
+  content:"";position:absolute;inset:-2%;z-index:-2;
+  background-image:url("/media/espaco-vanessa-vista-superior.webp");
+  background-size:cover;background-position:center 48%;
+  filter:saturate(.68) brightness(1.11);
+}
+.salon-welcome::after {
+  content:"";position:absolute;inset:0;z-index:-1;
+  background:rgba(255,252,248,.81)
+}
+.salon-welcome-content {
+  text-align:center;display:flex;align-items:center;justify-content:center;
+  flex-direction:column;gap:9px;padding:clamp(25px,6vw,70px);
+  max-width:min(92vw,630px);background:rgba(255,253,250,.86);
+  box-shadow:0 18px 70px rgba(42,32,25,.11);
+  border:1px solid rgba(111,81,63,.19);border-radius:5px 65px 5px 5px
+}
+.salon-welcome-logo {
+  display:block;width:min(136px,33vw);height:min(136px,33vw);
+  object-fit:contain;border-radius:50%;
+  box-shadow:0 8px 28px rgba(44,30,23,.18);margin-bottom:16px
+}
+.salon-welcome-fallback{font:400 clamp(1.3rem,4vw,2rem) Georgia,serif}
+.salon-welcome .salon-welcome-greeting {
+  margin:0;color:#3c2821;letter-spacing:-.045em;
+  font:400 clamp(2.9rem,8vw,5rem)/1.12 "Playfair Display",Georgia,serif
+}
+.salon-welcome .salon-welcome-subtitle{
+  margin:0;color:#6f4938;font:500 clamp(1.1rem,3.4vw,1.5rem)/1.35 Inter,system-ui,sans-serif
+}
+.salon-welcome .salon-welcome-brand {
+  margin:10px 0 0;color:#31261f;
+  font:650 clamp(.87rem,2.1vw,1.1rem)/1.5 Inter,system-ui,sans-serif
+}
+@keyframes salon-welcome-appear{from{opacity:0}to{opacity:1}}
+@media(max-width:520px){
+  .salon-welcome-content{padding:36px 27px;width:calc(100vw - 36px);gap:7px}
+  .salon-welcome-logo{margin-bottom:12px}
+}
+@media(prefers-reduced-motion:reduce){.salon-welcome{animation:none}}
+
+/* Align the brief welcome with the salon's warm, elegant identity.
+   The original logo image remains unchanged; lettering uses the site's display serif
+   until the brand supplies the actual wordmark typeface. */
+.salon-welcome::after {background:rgba(251,245,238,.76)}
+.salon-welcome-content {
+  background:rgba(253,248,242,.89);border-color:rgba(122,68,52,.16);
+  border-radius:0;box-shadow:0 15px 65px rgba(66,38,31,.12);
+  gap:8px
+}
+.salon-welcome .salon-welcome-greeting {
+  font-family:"Playfair Display",Georgia,serif;color:#6c3b36;
+  font-size:clamp(2.5rem,7vw,4.65rem);font-style:italic;font-weight:500;
+  letter-spacing:-.03em;margin:0 0 8px
+}
+.salon-welcome .salon-welcome-brand {
+  font-family:"Playfair Display",Georgia,serif;font-style:italic;
+  font-weight:500;font-size:clamp(2.3rem,7.2vw,4.7rem);
+  line-height:1.07;letter-spacing:-.04em;color:#63362f;
+  margin:0
+}
+.salon-welcome .salon-welcome-subtitle {
+  font-family:"Playfair Display",Georgia,serif;font-size:clamp(1.2rem,3vw,1.75rem);
+  letter-spacing:.05em;font-weight:500;color:#784f40;margin:2px 0 0
+}
