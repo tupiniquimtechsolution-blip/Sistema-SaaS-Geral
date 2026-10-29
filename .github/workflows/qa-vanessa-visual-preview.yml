@@ -15,6 +15,14 @@ on:
       - apps/salon/src/booking/whatsapp-request.ts
       - apps/salon/src/salon-booking.css
       - apps/salon/src/VanessaShowcase.tsx
+      - apps/salon/src/vanessa-premium-theme.css
+      - apps/salon/src/vanessa-50-ux.css
+      - apps/salon/src/SalonWelcome.tsx
+      - apps/salon/src/salon-welcome.css
+      - apps/salon/src/SalonInstallPrompt.tsx
+      - apps/salon/index.html
+      - apps/salon/public/manifest.webmanifest
+      - apps/salon/e2e/vanessa-visual.qa.spec.ts
       - apps/salon/src/App.tsx
       - apps/salon/src/config/template.ts
       - apps/salon/e2e/whatsapp-booking.qa.spec.ts
@@ -149,6 +157,7 @@ jobs:
           path: |
             qa-vanessa-visual/urls.txt
             qa-vanessa-visual/immutable-url.txt
+            qa-vanessa-visual/screenshots/*.png
 # Re-run QA visual evidence after fixing TS2367 live-only branch narrowing.
 
 # Retry after fixing strict Playwright locator ambiguity; no site media or tenant writes changed.
