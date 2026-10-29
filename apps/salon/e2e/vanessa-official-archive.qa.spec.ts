@@ -33,6 +33,8 @@ test("official archive supports browsing 155 photos, 28 videos and downloading a
   await videos.getByRole("button", { name: "Mostrar mais vídeos" }).click();
   await expect(videos.locator("video")).toHaveCount(8);
   await expect(page.getByRole("link", { name: /Instagram/ }).first()).toHaveAttribute("href", /instagram.com/);
+  await expect(page.locator("#contato iframe")).toHaveCount(0);
+  await page.getByRole("button", { name: "Visualizar mapa" }).click();
   await expect(page.locator("#contato iframe")).toHaveAttribute("src", /maps.google.com/);
   await expect(page.locator("#contato")).toContainText("Chácara Tatuapé, São Paulo");
   await page.reload();
@@ -87,4 +89,20 @@ test("Public gallery samples spaced original images without adjacent near-duplic
   await expect(overlay.getByText("19 / 19")).toBeVisible();
   await overlay.getByRole("button", { name: "Próxima fotografia" }).click();
   await expect(overlay.getByText("1 / 19")).toBeVisible();
+});
+
+test("Gallery viewer locks background scrolling and returns keyboard focus", async ({ page }) => {
+  const base = process.env.VANESSA_VISUAL_URL;
+  if (!base) throw new Error("VANESSA_VISUAL_URL is required");
+  await page.goto(base, { waitUntil: "domcontentloaded" });
+  const trigger = page.getByRole("button", { name: "Ampliar fotografia 2" });
+  await trigger.click();
+  const dialog = page.getByRole("dialog", { name: "Foto ampliada" });
+  await expect(dialog).toBeVisible();
+  await expect(page.locator("body")).toHaveCSS("overflow", "hidden");
+  await expect(dialog.getByRole("button", { name: "Fechar fotografia" })).toBeFocused();
+  await page.keyboard.press("Escape");
+  await expect(dialog).toHaveCount(0);
+  await expect(trigger).toBeFocused();
+  await expect(page.locator("body")).not.toHaveCSS("overflow", "hidden");
 });
