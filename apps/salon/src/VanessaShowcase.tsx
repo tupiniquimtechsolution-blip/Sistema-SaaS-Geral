@@ -259,6 +259,29 @@ export default function VanessaShowcase({ config, photos, published }: { config:
           <SalonBooking config={config} />
         </section>
 
+        <section className="vanessa-faq" id="duvidas" aria-labelledby="vanessa-faq-title">
+          <div className="vanessa-faq-intro">
+            <p className="vanessa-eyebrow">DÚVIDAS FREQUENTES</p>
+            <h2 id="vanessa-faq-title">Tudo mais simples para você.</h2>
+            <p>Informações importantes para solicitar seu atendimento com tranquilidade.</p>
+            <a href="#salon-service-label" className="vanessa-inline-link">Escolher um cuidado <span aria-hidden="true">↗</span></a>
+          </div>
+          <div className="vanessa-faq-questions">
+            <details><summary>Como faço para solicitar um horário?</summary>
+              <p>Escolha a área de interesse, a data e o horário de preferência. Depois, revise sua mensagem e envie pelo WhatsApp.</p>
+            </details>
+            <details><summary>O horário fica reservado automaticamente?</summary>
+              <p>Não. A solicitação abre uma conversa com nossa equipe, que confirma a disponibilidade e os detalhes com você.</p>
+            </details>
+            <details><summary>Posso tirar dúvidas antes de escolher?</summary>
+              <p>Sim. Você pode usar o botão do WhatsApp para conversar diretamente com o salão, mesmo sem preencher o formulário.</p>
+            </details>
+            <details><summary>Preciso criar uma conta para conhecer o salão?</summary>
+              <p>Não. Você pode navegar pelo espaço, pelas imagens e pelas informações públicas sem fazer login.</p>
+            </details>
+          </div>
+        </section>
+
         <section className="vanessa-editorial vanessa-contact" id="contato">
           <p className="vanessa-eyebrow">FALE COM A GENTE</p>
           <h2>Será um prazer receber você.</h2>
