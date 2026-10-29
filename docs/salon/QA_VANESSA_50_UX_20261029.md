@@ -1,5 +1,9 @@
 # Vanessa Braz — auditoria e execução de 50 melhorias UX
-Data: 29/10/2026 | Branch: `qa/vanessa-50-ux-improvements-20261029`
+**Atualizado:** 29/10/2026 | **Branch canônica de QA:** `qa/tenant-isolation-staging-20261010`
+
+**Status:** 50 melhorias **implementadas em código QA** e fluxo integrado **PASS — 17/17 Chromium**, no baseline funcional `2db887a0c5a7e2aa71b199ebbde0062bffdd99cc`. A lista é de **melhorias técnicas, funcionais e visuais**, não 50 testes isolados nem a liberação comercial do tenant.
+
+**PONTO DE RETOMADA / CONTINUIDADE E CORREÇÕES:** [VANESSA_50_UX_CHECKPOINT_20261029.md](../handoffs/VANESSA_50_UX_CHECKPOINT_20261029.md). Leia-o **antes** de continuar, alterar QA ou criar outra lista.
 
 ## Fonte e limites
 - **Tenant QA** `d7c34143-c044-4ad6-ac44-75e54118a857`; diagnóstico de leitura em `ynqbnimlpxlokrxlucdm`: 0 serviços, 0 mídias vinculadas, 1 página registrada e 0 memberships; nenhum registro foi modificado.
@@ -7,7 +11,7 @@ Data: 29/10/2026 | Branch: `qa/vanessa-50-ux-improvements-20261029`
 - **Preview atual auditado por código e evidências de browser CI**, porque esta execução não dispõe de controle visual direto sobre a sessão de navegador privada do usuário. Capturas desktop/mobile passam a ser arquivadas pelo workflow.
 - **Ambiente alvo**: Cloudflare QA preview imutável. Nada foi publicado no Worker QA estável, na main nem em produção.
 - **Aviso de conteúdo**: o acervo de demonstração externo não é acervo publicado no tenant; WhatsApp inicia solicitação, não garante disponibilidade. Este pacote não cria serviços, preços, proprietários, credenciais nem mídia autorizada.
-- **Verificação**: itens abaixo implementados na branch, sujeitos aos Quality Gates/Playwright do SHA integrado antes de status validado.
+- **Verificação**: itens implementados e testados conjuntamente no SHA funcional `2db887a0c5a7e2aa71b199ebbde0062bffdd99cc`; o aceite visual humano e a configuração comercial permanecem pendentes.
 
 ## 50 melhorias técnicas, funcionais e visuais
 | # | Área | Correção implementada no código QA | Arquivo principal |
@@ -63,11 +67,19 @@ Data: 29/10/2026 | Branch: `qa/vanessa-50-ux-improvements-20261029`
 | 49 | Técnica | Barra de navegador acompanha o tema claro/escuro | `apps/salon/src/VanessaShowcase.tsx` |
 | 50 | Técnica | Convite PWA adiado para evitar interrupção na entrada | `apps/salon/src/SalonInstallPrompt.tsx` |
 
-## Evidência automatizada
-- GitHub Monorepo Quality Gates: lint, types, integração, build e higiene.
-- QA Salon + Builder Readonly: consulta controlada e isolamento A/B.
-- QA Vanessa E2E: navegação, acervo público/curadoria, imagem, abertura, temas, agendamento/WhatsApp, FAQ, mapa, acessibilidade do diálogo, resumo e limpeza de seleção.
-- Capturas previstas na execução QA: `qa-vanessa-visual/screenshots/desktop-light.png` e `mobile-dark.png`.
+## Evidências verificadas do último código funcional
+
+| Verificação | Resultado | Evidência |
+|---|---|---|
+| Monorepo Quality Gates | **PASS** | [Action 40901134203](https://github.com/tupiniquimtechsolution-blip/Sistema-SaaS-Geral/actions/runs/40901134203) |
+| QA Salon + Builder Readonly | **PASS** | [Action 40901134631](https://github.com/tupiniquimtechsolution-blip/Sistema-SaaS-Geral/actions/runs/40901134631) |
+| QA Vanessa E2E | **17/17 PASS (Chromium)** | [Action 40901134174](https://github.com/tupiniquimtechsolution-blip/Sistema-SaaS-Geral/actions/runs/40901134174) |
+| Preview Cloudflare QA imutável | **Gerado e testado** | https://2d9a6e47-tupiniquim-salon-qa.tupiniquim-techsolution.workers.dev |
+| Capturas de boas-vindas, desktop claro e celular escuro | **Geradas** | Artefato `qa-vanessa-visual-2db887a0c5a7e2aa71b199ebbde0062bffdd99cc` (ID `12909682444`) |
+| Aceite editorial/fonte da marca/catálogo comercial | **PENDENTE** | [Handoff de continuidade](../handoffs/VANESSA_50_UX_CHECKPOINT_20261029.md) |
+| Worker QA estável e produção | **NÃO PUBLICADOS** | Promoção futura com gate e rollback |
+
+Os 50 itens foram implementados no QA; o **polimento complementar** inclui tema escuro rosewood no calendário, trilho de vídeos móvel, captura após carregar imagens e legibilidade do WhatsApp desabilitado. Os testes abrangem os fluxos de maior risco; não afirmar que houve auditoria manual individual de todas as 50 linhas.
 
 ## Dependências externas, fora das 50 correções de interface
 1. Cadastrar catálogo/valores/duração apenas com informação confirmada pelo proprietário.
@@ -77,3 +89,7 @@ Data: 29/10/2026 | Branch: `qa/vanessa-50-ux-improvements-20261029`
 5. Auditar avisos do Security Advisor sem revogar RPCs públicas necessárias de maneira indiscriminada.
 6. Confirmar comportamento visual humano desktop/mobile após screenshots; não inferir automaticamente aprovação comercial.
 7. Promover ao Worker QA estável somente com baseline, rollback, mesmo SHA e autorização operacional.
+
+## Protocolo de correção daqui em diante
+
+Para qualquer regressão, registrar **número do item (01–50), sintoma reproduzível, arquivo modificado, SHA, teste e evidência antes/depois**. Corrigir numa branch QA isolada; não reabrir itens já validados sem falha demonstrada. A ordem de verificação, dependências de catálogo/owner/mídia e os limites de publicação estão no [ponto de retomada](../handoffs/VANESSA_50_UX_CHECKPOINT_20261029.md).
